@@ -44,7 +44,7 @@
 #include "Geometry.h"
 #include "Pipeline.h"
 
-//TODO 위치 수정
+//TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
@@ -52,3 +52,11 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+
+const uint32_t WIDTH = 800;
+const uint32_t HEIGHT = 600;
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
+const std::string MODEL_PATH = "Resources/models/viking_room.obj";
+const std::string TEXTURE_PATH = "Resources/textures/viking_room.png";
+

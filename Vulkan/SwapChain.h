@@ -2,6 +2,18 @@
 class SwapChain
 {
 public:
+    SwapChain();
+    SwapChain(Device* device, VkSurfaceKHR* surface, GLFWwindow* window);
+    VkSwapchainKHR& Get() { return _swapChain; }
+    VkFormat& GetImageFormat() { return _swapChainImageFormat; }
+    VkExtent2D& GetExtent() { return _swapChainExtent; }
+    std::vector<VkImage>& GetImages() { return _swapChainImages; }
+    std::vector<VkImageView>& GetImageViews() { return _swapChainImageViews; }
+    std::vector<VkFramebuffer>& GetFrameBuffers() { return _swapChainFramebuffers; }
+    void recreate();
+    void create();
+    void cleanup();
+
     static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,VkSurfaceKHR surface) {
         SwapChainSupportDetails details;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -24,5 +36,25 @@ public:
 
         return details;
     }
+
+private:
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+    //For Recreate, TODO : ÃßÈÄ surface¶û window ÅëÇÕ.
+
+    Device* _device;
+    VkSurfaceKHR* _surface;
+    GLFWwindow* _window;
+
+    //Members
+
+    std::vector<VkImageView> _swapChainImageViews;
+    std::vector<VkImage> _swapChainImages;
+    VkFormat _swapChainImageFormat;
+    VkExtent2D _swapChainExtent;
+    std::vector<VkFramebuffer> _swapChainFramebuffers;
+    VkSwapchainKHR _swapChain;
 };
 
