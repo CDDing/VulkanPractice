@@ -26,11 +26,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Struct.h"
-#include "Queue.h"
 #include "Device.h"
-#include "VL.h"
-#include "CommandBuffer.h"
+#include "Queue.h"
 #include "CommandPool.h"
+#include "CommandBuffer.h"
+#include "VL.h"
 #include "RenderPass.h"
 #include "Sampler.h"
 #include "Surface.h"
