@@ -48,8 +48,8 @@ private:
     VkPipelineLayout pipelineLayout;
     VkRenderPass renderPass;
     VkPipeline graphicsPipeline;
+    CommandPool commandPool;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -104,7 +104,7 @@ private:
         createRenderPass();
         createDescriptorSetLayout();
         createGraphicsPipeline();
-        createCommandPool();
+        commandPool = CommandPool(device, &surface);
         createDepthResources();
         createFramebuffers();
         createTextureImage();
@@ -331,7 +331,7 @@ private:
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = commandPool;
+        allocInfo.commandPool = commandPool.Get();
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
@@ -356,7 +356,7 @@ private:
         vkQueueSubmit(queue.Get(QueueType::GRAPHICS), 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(queue.Get(QueueType::GRAPHICS));
 
-        vkFreeCommandBuffers(device.Get(), commandPool, 1, &commandBuffer);
+        vkFreeCommandBuffers(device.Get(), commandPool.Get(), 1, &commandBuffer);
     }
     void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
         VkImageCreateInfo imageInfo{};
@@ -705,7 +705,7 @@ private:
         commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = commandPool;
+        allocInfo.commandPool = commandPool.Get();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
 
@@ -769,18 +769,6 @@ private:
             throw std::runtime_error("failed to record command buffer!");
         }
 
-    }
-    void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = Queue::findQueueFamilies(device.GetPhysical(),surface);
-
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-        if (vkCreateCommandPool(device.Get(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create command pool!");
-        }
     }
     void createFramebuffers() {
         swapChainFramebuffers.resize(swapChainImageViews.size());
@@ -1254,7 +1242,7 @@ private:
             vkDestroySemaphore(device.Get(), renderFinishedSemaphores[i], nullptr);
             vkDestroyFence(device.Get(), inFlightFences[i], nullptr);
         }
-        vkDestroyCommandPool(device.Get(), commandPool, nullptr);
+        vkDestroyCommandPool(device.Get(), commandPool.Get(), nullptr);
         vkDestroyPipeline(device.Get(), graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device.Get(), pipelineLayout, nullptr);
         vkDestroyRenderPass(device.Get(), renderPass, nullptr);

@@ -26,6 +26,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Struct.h"
+#include "Queue.h"
+#include "Device.h"
 #include "VL.h"
 #include "CommandBuffer.h"
 #include "CommandPool.h"
@@ -39,8 +41,6 @@
 #include "Fence.h"
 #include "Semaphore.h"
 #include "FileLoader.h"
-#include "Queue.h"
-#include "Device.h"
 #include "Geometry.h"
 #include "Pipeline.h"
 
