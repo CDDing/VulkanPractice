@@ -3,10 +3,6 @@
 #include <stb_image.h>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
-
-
-
-
 namespace std {
     template<> struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const {
@@ -31,11 +27,11 @@ private:
     SwapChain swapChain;
     RenderPass renderPass;
     CommandPool commandPool;
+    Surface surface;
     std::vector<CommandBuffer> commandBuffers;
 
     GLFWwindow* window;
     VkInstance instance;
-    VkSurfaceKHR surface;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
@@ -85,15 +81,15 @@ private:
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
-        createSurface();
-        device = Device(&instance, &surface);
+        surface = Surface(&instance,window);
+        device = Device(&instance, &surface.Get());
         queue = Queue(&device);
-        swapChain = SwapChain(&device, &surface, window);
+        swapChain = SwapChain(&device, &surface.Get(), window);
         createImageViews();
         renderPass = RenderPass(&device,swapChain.GetImageFormat(), findDepthFormat());
         createDescriptorSetLayout();
         createGraphicsPipeline();
-        commandPool = CommandPool(device, &surface);
+        commandPool = CommandPool(device, &surface.Get());
         createDepthResources();
         createFramebuffers();
         createTextureImage();
@@ -1079,18 +1075,12 @@ private:
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
 
-        vkDestroySurfaceKHR(instance, surface, nullptr);
+        vkDestroySurfaceKHR(instance, surface.Get(), nullptr);
         vkDestroyInstance(instance, nullptr);
 
         glfwDestroyWindow(window);
 
         glfwTerminate();
-    }
-
-    void createSurface() {
-        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface!");
-        }
     }
 
     void createInstance() {
