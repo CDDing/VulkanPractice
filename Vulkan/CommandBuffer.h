@@ -9,3 +9,6 @@ private:
 	VkCommandBuffer _commandBuffer;
 };
 
+
+VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
+void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer);

@@ -154,6 +154,7 @@
     <ClCompile Include="Struct.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="SwapChain.cpp" />
+    <ClCompile Include="Utils.cpp" />
     <ClCompile Include="VL.cpp" />
     <ClCompile Include="Vulkan.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
@@ -183,6 +184,7 @@
     <ClInclude Include="Struct.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="SwapChain.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="VL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
