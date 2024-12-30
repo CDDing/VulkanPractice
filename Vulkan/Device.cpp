@@ -5,7 +5,7 @@ Device::Device() {
 }
 
 //Setup with Vulkan Physical and Logical Device
-Device::Device(VkInstance* instance, VkSurfaceKHR* surface,VkQueue& graphics,VkQueue& present) : _instance(instance), _surface(surface)
+Device::Device(VkInstance* instance, VkSurfaceKHR* surface) : _instance(instance), _surface(surface)
 {
     _device = new VkDevice();
     _physicalDevice = new VkPhysicalDevice;
@@ -13,7 +13,7 @@ Device::Device(VkInstance* instance, VkSurfaceKHR* surface,VkQueue& graphics,VkQ
 
 
     pickPhysicalDevice();
-    createLogicalDevice(graphics,present);
+    createLogicalDevice();
 }
 
 void Device::pickPhysicalDevice()
@@ -40,7 +40,7 @@ void Device::pickPhysicalDevice()
     }
 }
 
-void Device::createLogicalDevice(VkQueue& graphicsQueue, VkQueue& presentQueue)
+void Device::createLogicalDevice()
 {
     QueueFamilyIndices indices = Queue::findQueueFamilies(*_physicalDevice,*_surface);
 
@@ -82,8 +82,6 @@ void Device::createLogicalDevice(VkQueue& graphicsQueue, VkQueue& presentQueue)
         throw std::runtime_error("failed to create logical device!");
     }
 
-    vkGetDeviceQueue(*_device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(*_device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device)

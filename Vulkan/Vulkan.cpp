@@ -22,7 +22,7 @@ namespace std {
         }
     };
 }
-class HelloTriangleApplication {
+class VulkanApp {
 public:
     void run() {
         initWindow();
@@ -36,8 +36,7 @@ private:
 
     VkInstance instance;
     Device device;
-    VkQueue presentQueue;
-    VkQueue graphicsQueue;
+    Queue queue;
     VkSurfaceKHR surface;
     VkSwapchainKHR swapChain;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -80,7 +79,7 @@ private:
 
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication*> (glfwGetWindowUserPointer(window));
+        auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
     void initWindow() {
@@ -98,8 +97,8 @@ private:
         createInstance();
         setupDebugMessenger();
         createSurface();
-        device = Device(&instance, &surface,graphicsQueue,presentQueue);
-
+        device = Device(&instance, &surface);
+        queue = Queue(device.Get());
         createSwapChain();
         createImageViews();
         createRenderPass();
@@ -354,8 +353,8 @@ private:
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
 
-        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(graphicsQueue);
+        vkQueueSubmit(queue.Get(QueueType::GRAPHICS), 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(queue.Get(QueueType::GRAPHICS));
 
         vkFreeCommandBuffers(device.Get(), commandPool, 1, &commandBuffer);
     }
@@ -1205,7 +1204,7 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo,inFlightFences[currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(queue.Get(QueueType::GRAPHICS), 1, &submitInfo,inFlightFences[currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -1220,7 +1219,7 @@ private:
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr;
 
-        result = vkQueuePresentKHR(presentQueue, &presentInfo);
+        result = vkQueuePresentKHR(queue.Get(QueueType::PRESENT), &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = false;
             recreateSwapChain();
@@ -1285,7 +1284,7 @@ private:
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Hello Triangle";
+        appInfo.pApplicationName = "DDing";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "No Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -1418,7 +1417,7 @@ private:
 };
 
 int main() {
-    HelloTriangleApplication app;
+    VulkanApp app;
 
     try {
         app.run();

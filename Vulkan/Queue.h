@@ -1,9 +1,16 @@
 #pragma once
+enum QueueType {
+    GRAPHICS,
+    PRESENT,
+    END
+};
 class Queue
 {
 public:
+    Queue();
+    Queue(VkDevice device);
+    VkQueue& Get(QueueType type);
     static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
-        QueueFamilyIndices indices;
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
@@ -13,19 +20,24 @@ public:
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
             if (queueFamily.queueFlags && VK_QUEUE_GRAPHICS_BIT) {
-                indices.graphicsFamily = i;
+                _indices.graphicsFamily = i;
             }
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
             if (presentSupport) {
-                indices.presentFamily = i;
+                _indices.presentFamily = i;
             }
-            if (indices.isComplete()) {
+            if (_indices.isComplete()) {
                 break;
             }
             i++;
         }
-        return indices;
+        return _indices;
     }
+
+private:
+    static QueueFamilyIndices _indices;
+
+    std::vector<VkQueue> _queues;
 };
 
