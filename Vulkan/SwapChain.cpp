@@ -64,7 +64,12 @@ void SwapChain::create()
 
     vkGetSwapchainImagesKHR(_device->Get(), _swapChain, &imageCount, nullptr);
     _swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(_device->Get(), _swapChain, &imageCount, _swapChainImages.data());
+    std::vector<VkImage> temp(imageCount,0);
+    vkGetSwapchainImagesKHR(_device->Get(), _swapChain, &imageCount, temp.data());
+    for (int i = 0; i < imageCount;i++) {
+        _swapChainImages[i].Get() = temp[i];
+    }
+
 
     _swapChainImageFormat = surfaceFormat.format;
     _swapChainExtent = extent;

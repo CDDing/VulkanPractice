@@ -1,4 +1,6 @@
 #pragma once
+class Image;
+class ImageView;
 class SwapChain
 {
 public:
@@ -7,8 +9,8 @@ public:
     VkSwapchainKHR& Get() { return _swapChain; }
     VkFormat& GetImageFormat() { return _swapChainImageFormat; }
     VkExtent2D& GetExtent() { return _swapChainExtent; }
-    std::vector<VkImage>& GetImages() { return _swapChainImages; }
-    std::vector<VkImageView>& GetImageViews() { return _swapChainImageViews; }
+    std::vector<Image>& GetImages() { return _swapChainImages; }
+    std::vector<ImageView>& GetImageViews() { return _swapChainImageViews; }
     std::vector<VkFramebuffer>& GetFrameBuffers() { return _swapChainFramebuffers; }
     void recreate();
     void create();
@@ -50,8 +52,8 @@ private:
 
     //Members
 
-    std::vector<VkImageView> _swapChainImageViews;
-    std::vector<VkImage> _swapChainImages;
+    std::vector<ImageView> _swapChainImageViews;
+    std::vector<Image> _swapChainImages;
     VkFormat _swapChainImageFormat;
     VkExtent2D _swapChainExtent;
     std::vector<VkFramebuffer> _swapChainFramebuffers;

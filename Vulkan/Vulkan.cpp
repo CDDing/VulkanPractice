@@ -31,6 +31,8 @@ private:
     std::vector<CommandBuffer> commandBuffers;
     Image textureImage;
     Image depthImage;
+    ImageView depthImageView;
+    ImageView textureImageView;
 
     GLFWwindow* window;
     VkInstance instance;
@@ -51,9 +53,7 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
-    VkImageView textureImageView;
     VkSampler textureSampler;
-    VkImageView depthImageView;
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     uint32_t mipLevels;
@@ -144,7 +144,7 @@ private:
     void createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
         depthImage = Image(&device,swapChain.GetExtent().width, swapChain.GetExtent().height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        depthImageView = ImageView::createImageView(device.Get(),depthImage.Get(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+        depthImageView = ImageView(&device,depthImage.Get(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
         transitionImageLayout(depthImage.Get(), depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }
@@ -193,7 +193,7 @@ private:
         }
     }
     void createTextureImageView() {
-        textureImageView = ImageView::createImageView(device.Get(), textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        textureImageView = ImageView(&device, textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     }
     void createTextureImage() {
         int texWidth, texHeight, texChannels;
@@ -317,7 +317,7 @@ private:
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageView;
+            imageInfo.imageView = textureImageView.Get();
             imageInfo.sampler = textureSampler;
 
             std::array<VkWriteDescriptorSet,2> descriptorWrites{};
@@ -542,7 +542,7 @@ private:
         endSingleTimeCommands(device.Get(), commandPool.Get(), queue.Get(QueueType::GRAPHICS), commandBuffer);
     }
     void cleanupSwapChain() {
-        vkDestroyImageView(device.Get(), depthImageView, nullptr);
+        vkDestroyImageView(device.Get(), depthImageView.Get(), nullptr);
         vkDestroyImage(device.Get(), depthImage.Get(), nullptr);
         vkFreeMemory(device.Get(), depthImage.GetMemory(), nullptr);
         for (size_t i = 0; i < swapChain.GetFrameBuffers().size(); i++) {
@@ -550,7 +550,7 @@ private:
         }
 
         for (size_t i = 0; i < swapChain.GetImageViews().size(); i++) {
-            vkDestroyImageView(device.Get(), swapChain.GetImageViews()[i], nullptr);
+            vkDestroyImageView(device.Get(), swapChain.GetImageViews()[i].Get(), nullptr);
         }
         vkDestroySwapchainKHR(device.Get(), swapChain.Get(), nullptr);
     }
@@ -652,8 +652,8 @@ private:
         swapChain.GetFrameBuffers().resize(swapChain.GetImageViews().size());
         for (size_t i = 0; i < swapChain.GetImageViews().size(); i++) {
             std::array<VkImageView,2> attachments = {
-                swapChain.GetImageViews()[i],
-                depthImageView
+                swapChain.GetImageViews()[i].Get(),
+                depthImageView.Get()
             };
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -845,7 +845,7 @@ private:
         swapChain.GetImageViews().resize(swapChain.GetImages().size());
 
         for (size_t i = 0; i < swapChain.GetImages().size(); i++) {
-            swapChain.GetImageViews()[i] = ImageView::createImageView(device.Get(), swapChain.GetImages()[i], swapChain.GetImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT, 1);
+            swapChain.GetImageViews()[i] = ImageView(&device, swapChain.GetImages()[i].Get(), swapChain.GetImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT, 1);
         }
     }
 
@@ -948,7 +948,7 @@ private:
         cleanupSwapChain();
 
         vkDestroySampler(device.Get(), textureSampler, nullptr);
-        vkDestroyImageView(device.Get(), textureImageView, nullptr);
+        vkDestroyImageView(device.Get(), textureImageView.Get(), nullptr);
         
         vkDestroyDescriptorPool(device.Get(), descriptorPool, nullptr);
         vkDestroyImage(device.Get(), textureImage.Get(), nullptr);
