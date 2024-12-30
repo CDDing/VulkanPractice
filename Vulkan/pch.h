@@ -24,3 +24,31 @@
 #include <glm/gtx/hash.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "Struct.h"
+#include "VL.h"
+#include "CommandBuffer.h"
+#include "CommandPool.h"
+#include "RenderPass.h"
+#include "Sampler.h"
+#include "Surface.h"
+#include "SwapChain.h"
+#include "Buffer.h"
+#include "Image.h"
+#include "ImageView.h"
+#include "Fence.h"
+#include "Semaphore.h"
+#include "FileLoader.h"
+#include "Queue.h"
+#include "Device.h"
+#include "Geometry.h"
+#include "Pipeline.h"
+
+//TODO 위치 수정
+const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};

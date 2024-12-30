@@ -133,10 +133,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Buffer.cpp" />
+    <ClCompile Include="CommandBuffer.cpp" />
+    <ClCompile Include="CommandPool.cpp" />
+    <ClCompile Include="Device.cpp" />
+    <ClCompile Include="Fence.cpp" />
+    <ClCompile Include="FileLoader.cpp" />
+    <ClCompile Include="Geometry.cpp" />
+    <ClCompile Include="Image.cpp" />
+    <ClCompile Include="ImageView.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Pipeline.cpp" />
+    <ClCompile Include="Queue.cpp" />
+    <ClCompile Include="RenderPass.cpp" />
+    <ClCompile Include="Sampler.cpp" />
+    <ClCompile Include="Semaphore.cpp" />
+    <ClCompile Include="Struct.cpp" />
+    <ClCompile Include="Surface.cpp" />
+    <ClCompile Include="SwapChain.cpp" />
+    <ClCompile Include="VL.cpp" />
     <ClCompile Include="Vulkan.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
@@ -147,7 +165,25 @@
     <None Include="shader.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Buffer.h" />
+    <ClInclude Include="CommandBuffer.h" />
+    <ClInclude Include="CommandPool.h" />
+    <ClInclude Include="Device.h" />
+    <ClInclude Include="Fence.h" />
+    <ClInclude Include="FileLoader.h" />
+    <ClInclude Include="Geometry.h" />
+    <ClInclude Include="Image.h" />
+    <ClInclude Include="ImageView.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Pipeline.h" />
+    <ClInclude Include="Queue.h" />
+    <ClInclude Include="RenderPass.h" />
+    <ClInclude Include="Sampler.h" />
+    <ClInclude Include="Semaphore.h" />
+    <ClInclude Include="Struct.h" />
+    <ClInclude Include="Surface.h" />
+    <ClInclude Include="SwapChain.h" />
+    <ClInclude Include="VL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -13,18 +13,158 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="소스 파일\Debug">
+      <UniqueIdentifier>{9ddeca96-38b8-4cf1-a8cc-1a1759d7db1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Synchro">
+      <UniqueIdentifier>{bf530194-ec55-4b44-8698-68f734db04ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Command">
+      <UniqueIdentifier>{b044fcaa-3bdb-4707-99c8-054d92b4ba86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Resource">
+      <UniqueIdentifier>{b1e15550-c33e-4d87-bfb2-80b0da801ed2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Shader">
+      <UniqueIdentifier>{b4652918-ba6a-4c38-a31a-d0f422ac5f2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Util">
+      <UniqueIdentifier>{429e45a9-302a-4925-b1e6-17e2f41acb43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core">
+      <UniqueIdentifier>{e9a8a51f-ba44-4b8b-bcb6-58b3c4b2e4ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Rendering">
+      <UniqueIdentifier>{88f80c97-f886-48bd-b3fe-cd0382d43d56}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Vulkan.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Struct.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="FileLoader.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="Device.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Queue.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Geometry.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="VL.cpp">
+      <Filter>소스 파일\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Fence.cpp">
+      <Filter>소스 파일\Synchro</Filter>
+    </ClCompile>
+    <ClCompile Include="Semaphore.cpp">
+      <Filter>소스 파일\Synchro</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderPass.cpp">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="SwapChain.cpp">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Surface.cpp">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandPool.cpp">
+      <Filter>소스 파일\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandBuffer.cpp">
+      <Filter>소스 파일\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Buffer.cpp">
+      <Filter>소스 파일\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Image.cpp">
+      <Filter>소스 파일\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageView.cpp">
+      <Filter>소스 파일\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Sampler.cpp">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.vert">
-      <Filter>소스 파일</Filter>
+      <Filter>소스 파일\Shader</Filter>
     </None>
     <None Include="shader.frag">
-      <Filter>소스 파일</Filter>
+      <Filter>소스 파일\Shader</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="FileLoader.h">
+      <Filter>소스 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Struct.h">
+      <Filter>소스 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>소스 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline.h">
+      <Filter>소스 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Queue.h">
+      <Filter>소스 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry.h">
+      <Filter>소스 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="VL.h">
+      <Filter>소스 파일\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Semaphore.h">
+      <Filter>소스 파일\Synchro</Filter>
+    </ClInclude>
+    <ClInclude Include="Fence.h">
+      <Filter>소스 파일\Synchro</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPass.h">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapChain.h">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Surface.h">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandBuffer.h">
+      <Filter>소스 파일\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandPool.h">
+      <Filter>소스 파일\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>소스 파일\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Image.h">
+      <Filter>소스 파일\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageView.h">
+      <Filter>소스 파일\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Sampler.h">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
