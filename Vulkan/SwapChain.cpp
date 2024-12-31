@@ -113,3 +113,11 @@ VkExtent2D SwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilit
         return actualExtent;
     }
 }
+
+void SwapChain::createImageViews()
+{
+    _swapChainImageViews.resize(_swapChainImages.size());
+    for (size_t i = 0; i < _swapChainImages.size(); i++) {
+        _swapChainImageViews[i] = ImageView(_device, _swapChainImages[i].Get(), _swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    }
+}

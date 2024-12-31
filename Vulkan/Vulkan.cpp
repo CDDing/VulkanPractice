@@ -33,6 +33,10 @@ private:
     Image depthImage;
     ImageView depthImageView;
     ImageView textureImageView;
+    Sampler textureSampler;
+    Buffer vertexBuffer;
+    Buffer indexBuffer;
+    std::vector<Buffer> uniformBuffers;
 
     GLFWwindow* window;
     VkInstance instance;
@@ -44,16 +48,9 @@ private:
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
-    VkSampler textureSampler;
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     uint32_t mipLevels;
@@ -83,7 +80,7 @@ private:
         device = Device(&instance, &surface.Get());
         queue = Queue(&device);
         swapChain = SwapChain(&device, &surface.Get(), window);
-        createImageViews();
+        swapChain.createImageViews();
         renderPass = RenderPass(&device,swapChain.GetImageFormat(), findDepthFormat());
         createDescriptorSetLayout();
         createGraphicsPipeline();
@@ -91,8 +88,8 @@ private:
         createDepthResources();
         createFramebuffers();
         createTextureImage();
-        createTextureImageView();
-        createTextureSampler();
+        textureImageView = ImageView(&device, textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        textureSampler = Sampler(&device, mipLevels);
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
@@ -166,35 +163,6 @@ private:
     VkFormat findDepthFormat() {
         return findSupportedFormat({ VK_FORMAT_D32_SFLOAT,VK_FORMAT_D32_SFLOAT_S8_UINT,VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     }
-    void createTextureSampler() {
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.anisotropyEnable = VK_TRUE;
-
-        VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(device.GetPhysical(), &properties);
-        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.mipLodBias = 0.0f;
-        samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = static_cast<float>(mipLevels);
-
-        if (vkCreateSampler(device.Get(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-    }
-    void createTextureImageView() {
-        textureImageView = ImageView(&device, textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    }
     void createTextureImage() {
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -204,25 +172,24 @@ private:
             throw std::runtime_error("failed to load texture image!");
         }
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        Buffer stagingBuffer;
+        
+        stagingBuffer = Buffer(&device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         void* data;
-        vkMapMemory(device.Get(), stagingBufferMemory, 0, imageSize, 0, &data);
+        vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
         memcpy(data, pixels, static_cast<size_t>(imageSize));
-        vkUnmapMemory(device.Get(), stagingBufferMemory);
+        vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
         stbi_image_free(pixels);
         textureImage = Image(&device,texWidth, texHeight,mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
      
         transitionImageLayout(textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-        copyBufferToImage(stagingBuffer, textureImage.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+        copyBufferToImage(stagingBuffer.Get(), textureImage.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
         //transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
         
-        vkDestroyBuffer(device.Get(), stagingBuffer, nullptr);
-        vkFreeMemory(device.Get(), stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
+        vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
         
         generateMipmaps(textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
 
@@ -311,14 +278,14 @@ private:
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.buffer = uniformBuffers[i].Get();
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = textureImageView.Get();
-            imageInfo.sampler = textureSampler;
+            imageInfo.sampler = textureSampler.Get();
 
             std::array<VkWriteDescriptorSet,2> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -362,12 +329,11 @@ private:
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
         uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
         uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-            vkMapMemory(device.Get(), uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+            uniformBuffers[i] = Buffer(&device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
         }
     }
     void createDescriptorSetLayout() {
@@ -396,69 +362,42 @@ private:
         }
 
     }
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        if (vkCreateBuffer(device.Get(), &bufferInfo, nullptr, &buffer)!=VK_SUCCESS) {
-            throw std::runtime_error("failed to create buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device.Get(), buffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(&device,memRequirements.memoryTypeBits, properties);
-
-        if (vkAllocateMemory(device.Get(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate buffer memory!");
-        }
-
-        vkBindBufferMemory(device.Get(), buffer, bufferMemory, 0);
-    }
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        Buffer stagingBuffer;
+        stagingBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         void* data;
-        vkMapMemory(device.Get(), stagingBufferMemory, 0, bufferSize, 0, &data);
+        vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, bufferSize, 0, &data);
         memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device.Get(), stagingBufferMemory);
+        vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+        indexBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+        copyBuffer(stagingBuffer.Get(), indexBuffer.Get(), bufferSize);
 
-        vkDestroyBuffer(device.Get(), stagingBuffer, nullptr);
-        vkFreeMemory(device.Get(), stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
+        vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
     }
     void createVertexBuffer() {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-        createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        vertexBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        Buffer stagingBuffer;
+        stagingBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 
 
         void* data;
-        vkMapMemory(device.Get(), stagingBufferMemory, 0, bufferSize , 0, &data);
+        vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, bufferSize, 0, &data);
         memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device.Get(), stagingBufferMemory);
+        vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        copyBuffer(stagingBuffer.Get(), vertexBuffer.Get(), bufferSize);
 
-        vkDestroyBuffer(device.Get(), stagingBuffer, nullptr);
-        vkFreeMemory(device.Get(), stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
+        vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
     }
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands(device.Get(), commandPool.Get());
@@ -564,7 +503,7 @@ private:
         vkDeviceWaitIdle(device.Get());
         cleanupSwapChain();
         swapChain.create();
-        createImageViews();
+        swapChain.createImageViews();
         createDepthResources();
         createFramebuffers();
     }
@@ -617,10 +556,10 @@ private:
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        VkBuffer vertexBuffers[] = { vertexBuffer };
+        VkBuffer vertexBuffers[] = { vertexBuffer.Get()};
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
 
         
 
@@ -841,14 +780,6 @@ private:
 
         return shaderModule;
     }
-    void createImageViews() {
-        swapChain.GetImageViews().resize(swapChain.GetImages().size());
-
-        for (size_t i = 0; i < swapChain.GetImages().size(); i++) {
-            swapChain.GetImageViews()[i] = ImageView(&device, swapChain.GetImages()[i].Get(), swapChain.GetImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT, 1);
-        }
-    }
-
     
 
 
@@ -947,22 +878,22 @@ private:
     void cleanup() {
         cleanupSwapChain();
 
-        vkDestroySampler(device.Get(), textureSampler, nullptr);
+        vkDestroySampler(device.Get(), textureSampler.Get(), nullptr);
         vkDestroyImageView(device.Get(), textureImageView.Get(), nullptr);
         
         vkDestroyDescriptorPool(device.Get(), descriptorPool, nullptr);
         vkDestroyImage(device.Get(), textureImage.Get(), nullptr);
         vkFreeMemory(device.Get(), textureImage.GetMemory(), nullptr);
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroyBuffer(device.Get(), uniformBuffers[i], nullptr);
-            vkFreeMemory(device.Get(), uniformBuffersMemory[i], nullptr);
+            vkDestroyBuffer(device.Get(), uniformBuffers[i].Get(), nullptr);
+            vkFreeMemory(device.Get(), uniformBuffers[i].GetMemory(), nullptr);
         }
         vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout, nullptr);
-        vkDestroyBuffer(device.Get(), vertexBuffer, nullptr);
-        vkFreeMemory(device.Get(), vertexBufferMemory, nullptr);
+        vkDestroyBuffer(device.Get(), vertexBuffer.Get(), nullptr);
+        vkFreeMemory(device.Get(), vertexBuffer.GetMemory(), nullptr);
 
-        vkDestroyBuffer(device.Get(), indexBuffer, nullptr);
-        vkFreeMemory(device.Get(), indexBufferMemory, nullptr);
+        vkDestroyBuffer(device.Get(), indexBuffer.Get(), nullptr);
+        vkFreeMemory(device.Get(), indexBuffer.GetMemory(), nullptr);
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device.Get(), imageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.Get(), renderFinishedSemaphores[i], nullptr);

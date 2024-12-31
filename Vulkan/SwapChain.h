@@ -15,6 +15,7 @@ public:
     void recreate();
     void create();
     void cleanup();
+    void createImageViews();
 
     static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,VkSurfaceKHR surface) {
         SwapChainSupportDetails details;
@@ -43,6 +44,7 @@ private:
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
 
     //For Recreate, TODO : 추후 surface랑 window 통합.
 
