@@ -41,6 +41,7 @@ private:
     DescriptorPool descriptorPool;
     Pipeline graphicsPipeline;
     DescriptorSetLayout descriptorSetLayout;
+    std::vector<DescriptorSet> descriptorSets;
 
     GLFWwindow* window;
     VkInstance instance;
@@ -49,7 +50,6 @@ private:
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
-    std::vector<VkDescriptorSet> descriptorSets;
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     uint32_t mipLevels;
@@ -263,18 +263,12 @@ private:
     }
     
     void createDescriptorSets() {
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout.Get());
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool.Get();
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-        allocInfo.pSetLayouts = layouts.data();
-
+        
         descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(device.Get(), &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate descriptor sets!");
+        for (auto& descriptorSet : descriptorSets) {
+            descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayout);
         }
-
+        
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i].Get();
@@ -288,7 +282,7 @@ private:
 
             std::array<VkWriteDescriptorSet,2> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptorSets[i];
+            descriptorWrites[0].dstSet = descriptorSets[i].Get();
             descriptorWrites[0].dstBinding = 0;
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -296,7 +290,7 @@ private:
             descriptorWrites[0].pBufferInfo = &bufferInfo;
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i];
+            descriptorWrites[1].dstSet = descriptorSets[i].Get();
             descriptorWrites[1].dstBinding = 1;
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -532,7 +526,7 @@ private:
         scissor.offset = { 0,0 };
         scissor.extent = swapChain.GetExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetLayout(), 0, 1, &descriptorSets[currentFrame].Get(), 0, nullptr);
 
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,0, 0);
  
