@@ -5,7 +5,7 @@ class SwapChain
 {
 public:
     SwapChain();
-    SwapChain(Device* device, VkSurfaceKHR* surface, GLFWwindow* window);
+    SwapChain(Device& device, Surface& surface);
     VkSwapchainKHR& Get() { return _swapChain; }
     VkFormat& GetImageFormat() { return _swapChainImageFormat; }
     VkExtent2D& GetExtent() { return _swapChainExtent; }
@@ -15,7 +15,6 @@ public:
     void recreate();
     void create();
     void cleanup();
-    void createImageViews();
 
     static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,VkSurfaceKHR surface) {
         SwapChainSupportDetails details;
@@ -44,12 +43,13 @@ private:
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    void createImageViews();
 
 
     //For Recreate, TODO : ÃßÈÄ surface¶û window ÅëÇÕ.
 
     Device* _device;
-    VkSurfaceKHR* _surface;
+    Surface* _surface;
     GLFWwindow* _window;
 
     //Members

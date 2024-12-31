@@ -75,20 +75,19 @@ private:
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
-        surface = Surface(&instance,window);
-        device = Device(&instance, &surface.Get());
-        queue = Queue(&device);
-        swapChain = SwapChain(&device, &surface.Get(), window);
-        swapChain.createImageViews();
-        renderPass = RenderPass(&device,swapChain.GetImageFormat(), findDepthFormat());
+        surface = Surface(instance,window);
+        device = Device(instance, surface);
+        queue = Queue(device);
+        swapChain = SwapChain(device, surface);
+        renderPass = RenderPass(device,swapChain.GetImageFormat(), findDepthFormat());
         descriptorSetLayout = DescriptorSetLayout(device);
-        descriptorPool = DescriptorPool(&device);
-        commandPool = CommandPool(device, &surface.Get());
+        descriptorPool = DescriptorPool(device);
+        commandPool = CommandPool(device, surface);
         createDepthResources();
         createFramebuffers();
         createTextureImage();
-        textureImageView = ImageView(&device, textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-        textureSampler = Sampler(&device, mipLevels);
+        textureImageView = ImageView(device, textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        textureSampler = Sampler(device, mipLevels);
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
@@ -139,8 +138,8 @@ private:
     }
     void createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
-        depthImage = Image(&device,swapChain.GetExtent().width, swapChain.GetExtent().height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        depthImageView = ImageView(&device,depthImage.Get(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+        depthImage = Image(device,swapChain.GetExtent().width, swapChain.GetExtent().height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        depthImageView = ImageView(device,depthImage.Get(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
         transitionImageLayout(depthImage.Get(), depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }
@@ -173,7 +172,7 @@ private:
 
         Buffer stagingBuffer;
         
-        stagingBuffer = Buffer(&device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         void* data;
         vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
@@ -181,7 +180,7 @@ private:
         vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
         stbi_image_free(pixels);
-        textureImage = Image(&device,texWidth, texHeight,mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        textureImage = Image(device,texWidth, texHeight,mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
      
         transitionImageLayout(textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
         copyBufferToImage(stagingBuffer.Get(), textureImage.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
@@ -308,7 +307,7 @@ private:
         uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            uniformBuffers[i] = Buffer(&device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
             vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
         }
     }
@@ -316,14 +315,14 @@ private:
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
         Buffer stagingBuffer;
-        stagingBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        stagingBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         void* data;
         vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, bufferSize, 0, &data);
         memcpy(data, indices.data(), (size_t)bufferSize);
         vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
-        indexBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        indexBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         copyBuffer(stagingBuffer.Get(), indexBuffer.Get(), bufferSize);
 
@@ -332,10 +331,10 @@ private:
     }
     void createVertexBuffer() {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-        vertexBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        vertexBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         Buffer stagingBuffer;
-        stagingBuffer = Buffer(&device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        stagingBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 
 
@@ -453,7 +452,6 @@ private:
         vkDeviceWaitIdle(device.Get());
         cleanupSwapChain();
         swapChain.create();
-        swapChain.createImageViews();
         createDepthResources();
         createFramebuffers();
     }

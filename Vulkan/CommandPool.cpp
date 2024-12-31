@@ -5,9 +5,9 @@ CommandPool::CommandPool()
 {
 }
 
-CommandPool::CommandPool(Device device,VkSurfaceKHR* surface)
+CommandPool::CommandPool(Device& device,Surface& surface)
 {
-    QueueFamilyIndices queueFamilyIndices = Queue::findQueueFamilies(device.GetPhysical(), *surface);
+    QueueFamilyIndices queueFamilyIndices = Queue::findQueueFamilies(device.GetPhysical(), surface.Get());
 
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

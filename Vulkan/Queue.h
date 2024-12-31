@@ -8,7 +8,7 @@ class Queue
 {
 public:
     Queue();
-    Queue(Device* device);
+    Queue(Device& device);
     VkQueue& Get(QueueType type);
     static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
         uint32_t queueFamilyCount = 0;

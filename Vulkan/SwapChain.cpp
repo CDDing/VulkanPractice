@@ -5,7 +5,7 @@ SwapChain::SwapChain()
 {
 }
 
-SwapChain::SwapChain(Device* device,VkSurfaceKHR* surface, GLFWwindow* window) : _device(device), _surface(surface), _window(window)
+SwapChain::SwapChain(Device& device,Surface& surface) : _device(&device), _surface(&surface)
 {
     create();
 }
@@ -16,7 +16,7 @@ void SwapChain::recreate()
 
 void SwapChain::create()
 {
-    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(_device->GetPhysical(), *_surface);
+    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(_device->GetPhysical(), _surface->Get());
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -30,7 +30,7 @@ void SwapChain::create()
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = *_surface;
+    createInfo.surface = _surface->Get();
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -38,7 +38,7 @@ void SwapChain::create()
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = Queue::findQueueFamilies(_device->GetPhysical(), *_surface);
+    QueueFamilyIndices indices = Queue::findQueueFamilies(_device->GetPhysical(), _surface->Get());
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily) {
@@ -73,6 +73,8 @@ void SwapChain::create()
 
     _swapChainImageFormat = surfaceFormat.format;
     _swapChainExtent = extent;
+
+    createImageViews();
 }
 
 
@@ -118,6 +120,6 @@ void SwapChain::createImageViews()
 {
     _swapChainImageViews.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
-        _swapChainImageViews[i] = ImageView(_device, _swapChainImages[i].Get(), _swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        _swapChainImageViews[i] = ImageView(*_device, _swapChainImages[i].Get(), _swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 }

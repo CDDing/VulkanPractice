@@ -6,7 +6,7 @@ RenderPass::RenderPass()
 }
 
 //TODO : Format 추후 정리 필요.
-RenderPass::RenderPass(Device* device, VkFormat swapChainImageFormat, VkFormat DepthFormat)
+RenderPass::RenderPass(Device& device, VkFormat swapChainImageFormat, VkFormat DepthFormat)
 {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainImageFormat;
@@ -60,7 +60,7 @@ RenderPass::RenderPass(Device* device, VkFormat swapChainImageFormat, VkFormat D
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(device->Get(), &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass(device.Get(), &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS) {
         throw std::runtime_error("failed to create render pass!");
     }
 }

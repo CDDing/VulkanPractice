@@ -5,7 +5,7 @@ DescriptorPool::DescriptorPool()
 {
 }
 
-DescriptorPool::DescriptorPool(Device* device)
+DescriptorPool::DescriptorPool(Device& device)
 {
 	std::array<VkDescriptorPoolSize, 2> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -19,7 +19,7 @@ DescriptorPool::DescriptorPool(Device* device)
 	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-	if (vkCreateDescriptorPool(device->Get(), &poolInfo, nullptr, &_descriptorPool) != VK_SUCCESS) {
+	if (vkCreateDescriptorPool(device.Get(), &poolInfo, nullptr, &_descriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");
 	}
 }

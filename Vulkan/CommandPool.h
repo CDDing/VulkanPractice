@@ -3,7 +3,7 @@ class CommandPool
 {
 public:
 	CommandPool();
-	CommandPool(Device device, VkSurfaceKHR* surface);
+	CommandPool(Device& device, Surface& surface);
 	VkCommandPool& Get() { return _commandPool; }
 private:
 

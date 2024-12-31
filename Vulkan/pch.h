@@ -27,6 +27,7 @@
 
 #include "Utils.h"
 #include "Struct.h"
+#include "Surface.h"
 #include "Device.h"
 #include "Queue.h"
 #include "CommandPool.h"
@@ -34,7 +35,6 @@
 #include "VL.h"
 #include "RenderPass.h"
 #include "Sampler.h"
-#include "Surface.h"
 #include "SwapChain.h"
 #include "Buffer.h"
 #include "Image.h"

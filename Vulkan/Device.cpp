@@ -5,44 +5,41 @@ Device::Device() {
 }
 
 //Setup with Vulkan Physical and Logical Device
-Device::Device(VkInstance* instance, VkSurfaceKHR* surface) : _instance(instance), _surface(surface)
+Device::Device(VkInstance& instance, Surface& surface)
 {
-    _device = new VkDevice();
-    _physicalDevice = new VkPhysicalDevice;
-    *_physicalDevice = VK_NULL_HANDLE;
 
 
-    pickPhysicalDevice();
-    createLogicalDevice();
+    pickPhysicalDevice(instance,surface);
+    createLogicalDevice(surface);
 }
 
-void Device::pickPhysicalDevice()
+void Device::pickPhysicalDevice(VkInstance& instance,Surface& surface)
 {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(*_instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     if (deviceCount == 0) {
         throw std::runtime_error("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(*_instance, &deviceCount, devices.data());
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
     for (const auto& device : devices) {
-        if (isDeviceSuitable(device)) {
-            *_physicalDevice = device;
+        if (isDeviceSuitable(device,surface)) {
+            _physicalDevice = device;
             break;
         }
     }
 
-    if (*_physicalDevice == VK_NULL_HANDLE) {
+    if (_physicalDevice == VK_NULL_HANDLE) {
         throw std::runtime_error("failed to find a suitable GPU!");
     }
 }
 
-void Device::createLogicalDevice()
+void Device::createLogicalDevice(Surface& surface)
 {
-    QueueFamilyIndices indices = Queue::findQueueFamilies(*_physicalDevice,*_surface);
+    QueueFamilyIndices indices = Queue::findQueueFamilies(_physicalDevice,surface.Get());
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(),indices.presentFamily.value() };
@@ -78,21 +75,21 @@ void Device::createLogicalDevice()
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateDevice(*_physicalDevice, &createInfo, nullptr, _device) != VK_SUCCESS) {
+    if (vkCreateDevice(_physicalDevice, &createInfo, nullptr, &_device) != VK_SUCCESS) {
         throw std::runtime_error("failed to create logical device!");
     }
 
 }
 
-bool Device::isDeviceSuitable(VkPhysicalDevice device)
+bool Device::isDeviceSuitable(VkPhysicalDevice device,Surface& surface)
 {
-    QueueFamilyIndices indices = Queue::findQueueFamilies(device,*_surface);
+    QueueFamilyIndices indices = Queue::findQueueFamilies(device,surface.Get());
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-       SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(device,*_surface);
+       SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(device,surface.Get());
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 

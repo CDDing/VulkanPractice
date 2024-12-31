@@ -4,7 +4,7 @@ class RenderPass
 public:
 
 	RenderPass();
-	RenderPass(Device* device, VkFormat swapChainImageFormat, VkFormat DepthFormat);
+	RenderPass(Device& device, VkFormat swapChainImageFormat, VkFormat DepthFormat);
 	VkRenderPass& Get() { return _renderPass; }
 
 private:
