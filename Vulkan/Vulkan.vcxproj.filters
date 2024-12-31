@@ -99,6 +99,12 @@
     <ClCompile Include="Sampler.cpp">
       <Filter>소스 파일\Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>소스 파일\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.vert">
@@ -165,6 +171,12 @@
     </ClInclude>
     <ClInclude Include="Sampler.h">
       <Filter>소스 파일\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>소스 파일\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>소스 파일\Util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -44,6 +44,7 @@
 #include "FileLoader.h"
 #include "Geometry.h"
 #include "Pipeline.h"
+#include "Shader.h"
 
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
