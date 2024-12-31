@@ -37,19 +37,19 @@ private:
     Buffer vertexBuffer;
     Buffer indexBuffer;
     std::vector<Buffer> uniformBuffers;
+    std::vector<void*> uniformBuffersMapped;
     DescriptorPool descriptorPool;
     Pipeline graphicsPipeline;
+    DescriptorSetLayout descriptorSetLayout;
 
     GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
-    VkDescriptorSetLayout descriptorSetLayout;
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
     std::vector<VkDescriptorSet> descriptorSets;
-    std::vector<void*> uniformBuffersMapped;
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     uint32_t mipLevels;
@@ -81,7 +81,7 @@ private:
         swapChain = SwapChain(&device, &surface.Get(), window);
         swapChain.createImageViews();
         renderPass = RenderPass(&device,swapChain.GetImageFormat(), findDepthFormat());
-        createDescriptorSetLayout();
+        descriptorSetLayout = DescriptorSetLayout(device);
         descriptorPool = DescriptorPool(&device);
         commandPool = CommandPool(device, &surface.Get());
         createDepthResources();
@@ -94,7 +94,7 @@ private:
         createIndexBuffer();
         createUniformBuffers();
         createDescriptorSets();
-        graphicsPipeline = Pipeline(device, swapChain.GetExtent(), descriptorSetLayout, renderPass);
+        graphicsPipeline = Pipeline(device, swapChain.GetExtent(), descriptorSetLayout.Get(), renderPass);
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             CommandBuffer cb = CommandBuffer(&device, &commandPool);
             commandBuffers.push_back(cb);
@@ -263,7 +263,7 @@ private:
     }
     
     void createDescriptorSets() {
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout.Get());
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = descriptorPool.Get();
@@ -317,32 +317,6 @@ private:
             uniformBuffers[i] = Buffer(&device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
             vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
         }
-    }
-    void createDescriptorSetLayout() {
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        uboLayoutBinding.pImmutableSamplers = nullptr;
-
-        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
-
-        if (vkCreateDescriptorSetLayout(device.Get(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
-
     }
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
@@ -697,7 +671,7 @@ private:
             vkDestroyBuffer(device.Get(), uniformBuffers[i].Get(), nullptr);
             vkFreeMemory(device.Get(), uniformBuffers[i].GetMemory(), nullptr);
         }
-        vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
         vkDestroyBuffer(device.Get(), vertexBuffer.Get(), nullptr);
         vkFreeMemory(device.Get(), vertexBuffer.GetMemory(), nullptr);
 

@@ -37,6 +37,9 @@
     <Filter Include="소스 파일\Rendering">
       <UniqueIdentifier>{88f80c97-f886-48bd-b3fe-cd0382d43d56}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Resource\Descriptor">
+      <UniqueIdentifier>{0fccc608-b60a-4ca1-a3b3-13d00210ba66}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Vulkan.cpp">
@@ -99,11 +102,14 @@
     <ClCompile Include="Utils.cpp">
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
-    <ClCompile Include="DescriptorPool.cpp">
-      <Filter>소스 파일\Resource</Filter>
+    <ClCompile Include="DescriptorSetLayout.cpp">
+      <Filter>소스 파일\Resource\Descriptor</Filter>
     </ClCompile>
     <ClCompile Include="DescriptorSet.cpp">
-      <Filter>소스 파일\Resource</Filter>
+      <Filter>소스 파일\Resource\Descriptor</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorPool.cpp">
+      <Filter>소스 파일\Resource\Descriptor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -172,11 +178,14 @@
     <ClInclude Include="Utils.h">
       <Filter>소스 파일\Util</Filter>
     </ClInclude>
+    <ClInclude Include="DescriptorSetLayout.h">
+      <Filter>소스 파일\Resource\Descriptor</Filter>
+    </ClInclude>
     <ClInclude Include="DescriptorSet.h">
-      <Filter>소스 파일\Resource</Filter>
+      <Filter>소스 파일\Resource\Descriptor</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorPool.h">
-      <Filter>소스 파일\Resource</Filter>
+      <Filter>소스 파일\Resource\Descriptor</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -138,6 +138,7 @@
     <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="DescriptorPool.cpp" />
     <ClCompile Include="DescriptorSet.cpp" />
+    <ClCompile Include="DescriptorSetLayout.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="Geometry.cpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="CommandPool.h" />
     <ClInclude Include="DescriptorPool.h" />
     <ClInclude Include="DescriptorSet.h" />
+    <ClInclude Include="DescriptorSetLayout.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="FileLoader.h" />
     <ClInclude Include="Geometry.h" />

@@ -46,6 +46,7 @@
 #include "Shader.h"
 #include "Pipeline.h"
 #include "DescriptorPool.h"
+#include "DescriptorSetLayout.h"
 #include "DescriptorSet.h"
 
 //TODO 상수값들 위치 수정
