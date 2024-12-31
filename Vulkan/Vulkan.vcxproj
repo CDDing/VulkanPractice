@@ -136,8 +136,9 @@
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="CommandBuffer.cpp" />
     <ClCompile Include="CommandPool.cpp" />
+    <ClCompile Include="DescriptorPool.cpp" />
+    <ClCompile Include="DescriptorSet.cpp" />
     <ClCompile Include="Device.cpp" />
-    <ClCompile Include="Fence.cpp" />
     <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="Image.cpp" />
@@ -150,7 +151,6 @@
     <ClCompile Include="Queue.cpp" />
     <ClCompile Include="RenderPass.cpp" />
     <ClCompile Include="Sampler.cpp" />
-    <ClCompile Include="Semaphore.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Struct.cpp" />
     <ClCompile Include="Surface.cpp" />
@@ -170,8 +170,9 @@
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="CommandBuffer.h" />
     <ClInclude Include="CommandPool.h" />
+    <ClInclude Include="DescriptorPool.h" />
+    <ClInclude Include="DescriptorSet.h" />
     <ClInclude Include="Device.h" />
-    <ClInclude Include="Fence.h" />
     <ClInclude Include="FileLoader.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="Image.h" />
@@ -181,7 +182,6 @@
     <ClInclude Include="Queue.h" />
     <ClInclude Include="RenderPass.h" />
     <ClInclude Include="Sampler.h" />
-    <ClInclude Include="Semaphore.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Struct.h" />
     <ClInclude Include="Surface.h" />
