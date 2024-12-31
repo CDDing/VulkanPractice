@@ -43,6 +43,7 @@ private:
     DescriptorSetLayout descriptorSetLayout;
     std::vector<DescriptorSet> descriptorSets;
 
+    Camera camera;
     GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -54,8 +55,21 @@ private:
     std::vector<uint32_t> indices;
     uint32_t mipLevels;
 
+    bool keyPressed[256] = { false, };
+
     bool framebufferResized = false;
 
+    static void keyboardInput(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
+        
+        if (action == GLFW_PRESS) {
+            app->keyPressed[key] = true;
+        }
+
+        if (action == GLFW_RELEASE) {
+            app->keyPressed[key] = false;
+        }
+    }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
@@ -69,9 +83,9 @@ private:
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
+        glfwSetKeyCallback(window, keyboardInput);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
-
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
@@ -570,23 +584,25 @@ private:
     }
 
     void mainLoop() {
+        static auto startTime = std::chrono::high_resolution_clock::now();
+
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - startTime).count();
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
+            
+            camera.Update(time, keyPressed);
             drawFrame();
         }
 
         vkDeviceWaitIdle(device.Get());
     }
     void updateUniformBuffer(uint32_t currentImage) {
-        static auto startTime = std::chrono::high_resolution_clock::now();
-
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.model = glm::rotate(glm::mat4(1.0f), 0.f , glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(camera.GetPos(), camera.GetPos() + camera.GetDir(), camera.GetUp());
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.GetExtent().width / (float)swapChain.GetExtent().height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
 

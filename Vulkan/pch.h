@@ -16,6 +16,7 @@
 #include <array>
 #include <unordered_map>
 #include <chrono>
+#include <memory>
 
 
 #define GLM_FORCE_RADIANS
@@ -48,7 +49,7 @@
 #include "DescriptorPool.h"
 #include "DescriptorSetLayout.h"
 #include "DescriptorSet.h"
-
+#include "Camera.h"
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -64,4 +65,5 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::string MODEL_PATH = "Resources/models/viking_room.obj";
 const std::string TEXTURE_PATH = "Resources/textures/viking_room.png";
+
 
