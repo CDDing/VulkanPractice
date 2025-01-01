@@ -42,16 +42,30 @@ private:
     bool keyPressed[256] = { false, };
 
     bool framebufferResized = false;
+    bool enableInput = true;
+
+    float previousX = 0, previousY = 0;
+    float currentX = 0, currentY = 0;
+    float mouse_dx = 0, mouse_dy = 0;
 
     static void keyboardInput(GLFWwindow* window, int key, int scancode, int action, int mods) {
         auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
         
         if (action == GLFW_PRESS) {
             app->keyPressed[key] = true;
+
+            if (key == GLFW_KEY_F) app->enableInput = !app->enableInput;
         }
 
         if (action == GLFW_RELEASE) {
             app->keyPressed[key] = false;
+        }
+    }
+    static void mouseInput(GLFWwindow* window, double xpos, double ypos) {
+        auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
+        if (app->enableInput) {
+            app->currentX = xpos;
+            app->currentY = ypos;
         }
     }
 
@@ -67,6 +81,7 @@ private:
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
+        glfwSetCursorPosCallback(window, mouseInput);
         glfwSetKeyCallback(window, keyboardInput);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
@@ -484,8 +499,6 @@ private:
 
 
     void mainLoop() {
-
-
         static auto previousTime = std::chrono::high_resolution_clock::now();
 
         while (!glfwWindowShouldClose(window)) {
@@ -502,10 +515,20 @@ private:
             sprintf_s(title, "Vulkan %.2fms, %dFPS", time, static_cast<int>(fps));
 
             glfwSetWindowTitle(window, title);
-            camera.Update(time / 1000.f, keyPressed);
+            if (enableInput) {
+                mouse_dx = currentX - previousX;
+                mouse_dy = currentY - previousY;
+
+                previousX = currentX;
+                previousY = currentY;
+
+
+
+
+                camera.Update(time / 1000.f, keyPressed,mouse_dx,mouse_dy);
+            }
             drawFrame();
         }
-
         vkDeviceWaitIdle(device.Get());
     }
     void updateUniformBuffer(uint32_t currentImage) {
