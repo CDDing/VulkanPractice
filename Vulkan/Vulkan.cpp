@@ -584,14 +584,24 @@ private:
     }
 
     void mainLoop() {
-        static auto startTime = std::chrono::high_resolution_clock::now();
 
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - startTime).count();
+        static auto previousTime = std::chrono::high_resolution_clock::now();
+
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            
+
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            float time = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - previousTime).count();
+            previousTime = currentTime;
+            // FPS 계산
+            float fps = 1000.0f / time;
+
+            // 창 제목 업데이트
+            char title[256];
+            sprintf_s(title, "Vulkan %.2fms, %dFPS", time, static_cast<int>(fps));
+
+            glfwSetWindowTitle(window, title);
             camera.Update(time, keyPressed);
             drawFrame();
         }
