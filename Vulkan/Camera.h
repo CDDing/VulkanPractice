@@ -4,7 +4,7 @@ class Camera
 public:
 	Camera();
 	glm::mat4 GetView();
-	glm::mat4 GetProj();
+	glm::mat4 GetProj(const uint32_t& width, const uint32_t& height);
 	glm::vec3 GetPos() { return _position;}
 	glm::vec3 GetDir() { return _viewDir; }
 	glm::vec3 GetUp() { return _upDir; }

@@ -535,8 +535,8 @@ private:
 
         UniformBufferObject ubo{};
         ubo.model = glm::rotate(glm::mat4(1.0f), 0.f , glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(camera.GetPos(), camera.GetPos() + camera.GetDir(), camera.GetUp());
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.GetExtent().width / (float)swapChain.GetExtent().height, 0.1f, 10.0f);
+        ubo.view = camera.GetView();
+        ubo.proj = camera.GetProj(swapChain.GetExtent().width, swapChain.GetExtent().height);
         ubo.proj[1][1] *= -1;
 
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

@@ -7,12 +7,12 @@ Camera::Camera()
 
 glm::mat4 Camera::GetView()
 {
-    return glm::mat4();
+    return glm::lookAt(GetPos(), GetPos() + GetDir(), GetUp());
 }
 
-glm::mat4 Camera::GetProj()
+glm::mat4 Camera::GetProj(const uint32_t& width, const uint32_t& height)
 {
-    return glm::mat4();
+    return glm::perspective(glm::radians(45.0f),  (float)width/ (float)height, _nearZ, _farZ);
 }
 
 void Camera::moveForward(float dt)

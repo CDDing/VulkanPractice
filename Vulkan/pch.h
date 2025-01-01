@@ -64,11 +64,11 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::string MODEL_PATH = "Resources/models/viking_room.obj";
-const std::string TEXTURE_PATH = "Resources/textures/viking_room.png";
-
-
-//const std::string MODEL_PATH = "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_LOD0.fbx";
-//const std::string TEXTURE_PATH = "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Albedo.jpg";
+//const std::string MODEL_PATH = "Resources/models/viking_room.obj";
+//const std::string TEXTURE_PATH = "Resources/textures/viking_room.png";
+//
+//
+const std::string MODEL_PATH = "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_LOD0.fbx";
+const std::string TEXTURE_PATH = "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Albedo.jpg";
 //
 //
