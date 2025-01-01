@@ -30,7 +30,6 @@ Instance::Instance(const char* ApplicationName)
     if (enableValidationLayers && !checkValidationLayerSupport()) {
         throw std::runtime_error("validation layers requested, but not available!");
     }
-    std::cout << "¾ßÈ£";
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;

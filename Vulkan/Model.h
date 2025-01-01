@@ -10,11 +10,13 @@ public:
 	Model(Device& device, const std::string& path);
 
 	void Render();
-	glm::mat4 world;
+	void deleteModel(Device& device);
+	glm::mat4 world = glm::mat4();
 
 	std::vector<std::shared_ptr<Mesh>> meshes;
 private:
-	void processNode(aiNode* node, const aiScene* scene);
-	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+	void processNode(Device& device, aiNode* node, const aiScene* scene);
+	Mesh processMesh(Device& device, aiMesh* mesh, const aiScene* scene);
+
 };
 

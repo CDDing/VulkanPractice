@@ -12,7 +12,6 @@ public:
     
 private:
     Device device;
-    Queue queue;
     SwapChain swapChain;
     RenderPass renderPass;
     CommandPool commandPool;
@@ -21,12 +20,9 @@ private:
     Texture texture;
     Image depthImage;
     ImageView depthImageView;
-    Buffer vertexBuffer;
-    Buffer indexBuffer;
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
     std::vector<Buffer> uniformBuffers;
     std::vector<void*> uniformBuffersMapped;
+    std::vector<Model> models;
 
     DescriptorPool descriptorPool;
     DescriptorSetLayout descriptorSetLayout;
@@ -78,7 +74,6 @@ private:
         instance = Instance("DDing");
         surface = Surface(instance,window);
         device = Device(instance, surface);
-        queue = Queue(device);
         swapChain = SwapChain(device, surface);
         renderPass = RenderPass(device,swapChain.GetImageFormat(), findDepthFormat());
         descriptorSetLayout = DescriptorSetLayout(device);
@@ -87,14 +82,13 @@ private:
         createDepthResources();
         createFramebuffers();
         createTexture();
-        loadModel(vertices,indices);
-        createVertexBuffer();
-        createIndexBuffer();
+        Model model = Model(device, MODEL_PATH.c_str());
+        models.push_back(model);
         createUniformBuffers();
         createDescriptorSets();
         graphicsPipeline = Pipeline(device, swapChain.GetExtent(), descriptorSetLayout.Get(), renderPass);
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            CommandBuffer cb = CommandBuffer(&device, &commandPool);
+            CommandBuffer cb = CommandBuffer(device, commandPool);
             commandBuffers.push_back(cb);
         }
         createSyncObjects();
@@ -168,7 +162,7 @@ private:
         if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
             throw std::runtime_error("texture image format does not linear blitting!");
         }
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device.Get(), commandPool.Get());
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -227,7 +221,7 @@ private:
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
         vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-        endSingleTimeCommands(device.Get(),commandPool.Get(),queue.Get(QueueType::GRAPHICS),commandBuffer);
+        endSingleTimeCommands(device,commandBuffer);
     }
     
     void createDescriptorSets() {
@@ -280,55 +274,10 @@ private:
             vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
         }
     }
-    void createIndexBuffer() {
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-        Buffer stagingBuffer;
-        stagingBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        void* data;
-        vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
-
-        indexBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        copyBuffer(stagingBuffer.Get(), indexBuffer.Get(), bufferSize);
-
-        vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
-        vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
-    }
-    void createVertexBuffer() {
-        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-        vertexBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        Buffer stagingBuffer;
-        stagingBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-
-
-        void* data;
-        vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
-
-        copyBuffer(stagingBuffer.Get(), vertexBuffer.Get(), bufferSize);
-
-        vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
-        vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
-    }
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device.Get(), commandPool.Get());
-
-        VkBufferCopy copyRegion{};
-        copyRegion.size = size;
-        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-        
-        endSingleTimeCommands(device.Get(), commandPool.Get(), queue.Get(QueueType::GRAPHICS), commandBuffer);
-
-    }
+    
+    
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageAspectFlags aspectFlags,uint32_t mipLevels) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device.Get(),commandPool.Get());
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
         
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -376,10 +325,10 @@ private:
 
         vkCmdPipelineBarrier(commandBuffer, sourceStage,destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-        endSingleTimeCommands(device.Get(), commandPool.Get(), queue.Get(QueueType::GRAPHICS), commandBuffer);
+        endSingleTimeCommands(device, commandBuffer);
     }
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device.Get(), commandPool.Get());
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
@@ -396,7 +345,7 @@ private:
             width,height,1 };
 
         vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-        endSingleTimeCommands(device.Get(), commandPool.Get(), queue.Get(QueueType::GRAPHICS), commandBuffer);
+        endSingleTimeCommands(device, commandBuffer);
     }
     void cleanupSwapChain() {
         vkDestroyImageView(device.Get(), depthImageView.Get(), nullptr);
@@ -447,7 +396,7 @@ private:
             }
         }
     }
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Model>& models) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = 0;
@@ -473,13 +422,6 @@ private:
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.Get());
 
-        VkBuffer vertexBuffers[] = { vertexBuffer.Get()};
-        VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
-
-        
-
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -493,10 +435,23 @@ private:
         scissor.offset = { 0,0 };
         scissor.extent = swapChain.GetExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetLayout(), 0, 1, &descriptorSets[currentFrame].Get(), 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,0, 0);
- 
+        for (auto& model : models) {
+            for (auto& mesh : model.meshes) {
+                VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
+                VkDeviceSize offsets[] = { 0 };
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+                vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+
+
+
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetLayout(), 0, 1, &descriptorSets[currentFrame].Get(), 0, nullptr);
+
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
+
+            }
+        }
+
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -578,7 +533,7 @@ private:
         vkResetFences(device.Get(), 1, &inFlightFences[currentFrame]);
         updateUniformBuffer(currentFrame);
         vkResetCommandBuffer(commandBuffers[currentFrame].Get(), 0);
-        recordCommandBuffer(commandBuffers[currentFrame].Get(), imageIndex);
+        recordCommandBuffer(commandBuffers[currentFrame].Get(), imageIndex,models);
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -595,7 +550,7 @@ private:
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(queue.Get(QueueType::GRAPHICS), 1, &submitInfo,inFlightFences[currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(device.GetQueue(QueueType::GRAPHICS), 1, &submitInfo,inFlightFences[currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -610,7 +565,7 @@ private:
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr;
 
-        result = vkQueuePresentKHR(queue.Get(QueueType::PRESENT), &presentInfo);
+        result = vkQueuePresentKHR(device.GetQueue(QueueType::PRESENT), &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = false;
             recreateSwapChain();
@@ -635,17 +590,18 @@ private:
             vkFreeMemory(device.Get(), uniformBuffers[i].GetMemory(), nullptr);
         }
         vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
-        vkDestroyBuffer(device.Get(), vertexBuffer.Get(), nullptr);
-        vkFreeMemory(device.Get(), vertexBuffer.GetMemory(), nullptr);
 
-        vkDestroyBuffer(device.Get(), indexBuffer.Get(), nullptr);
-        vkFreeMemory(device.Get(), indexBuffer.GetMemory(), nullptr);
+        for (auto& model : models) {
+            model.deleteModel(device);
+        }
+
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device.Get(), imageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(device.Get(), renderFinishedSemaphores[i], nullptr);
             vkDestroyFence(device.Get(), inFlightFences[i], nullptr);
         }
         vkDestroyCommandPool(device.Get(), commandPool.Get(), nullptr);
+        vkDestroyCommandPool(device.Get(), CommandPool::TransientPool, nullptr);
         vkDestroyPipeline(device.Get(), graphicsPipeline.Get(), nullptr);
         vkDestroyPipelineLayout(device.Get(), graphicsPipeline.GetLayout(), nullptr);
         vkDestroyRenderPass(device.Get(), renderPass.Get(), nullptr);

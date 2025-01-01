@@ -152,7 +152,6 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="Pipeline.cpp" />
-    <ClCompile Include="Queue.cpp" />
     <ClCompile Include="RenderPass.cpp" />
     <ClCompile Include="Sampler.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -187,7 +186,6 @@
     <ClInclude Include="Model.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Pipeline.h" />
-    <ClInclude Include="Queue.h" />
     <ClInclude Include="RenderPass.h" />
     <ClInclude Include="Sampler.h" />
     <ClInclude Include="Shader.h" />

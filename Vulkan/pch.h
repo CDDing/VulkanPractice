@@ -31,7 +31,6 @@
 #include "Instance.h"
 #include "Surface.h"
 #include "Device.h"
-#include "Queue.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 #include "VL.h"

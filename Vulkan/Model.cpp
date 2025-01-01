@@ -2,29 +2,50 @@
 #include "Model.h"
 Model::Model(Device& device, const std::string& path)
 {
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    // check for errors
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
+    {
+        std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+        return;
+    }
+    // retrieve the directory path of the filepath
+    //directory = path.substr(0, path.find_last_of('/'));
+
+    // process ASSIMP's root node recursively
+    processNode(device, scene->mRootNode, scene);
 }
 
 void Model::Render()
 {
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene)
+void Model::deleteModel(Device& device)
+{
+    for (auto& mesh : meshes) {
+        mesh->deleteMesh(device);
+    }
+
+}
+
+void Model::processNode(Device& device, aiNode* node, const aiScene* scene)
 {
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         // the node object only contains indices to index the actual objects in the scene. 
         // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(std::make_shared<Mesh>(processMesh(mesh, scene)));
+        meshes.push_back(std::make_shared<Mesh>(processMesh(device, mesh, scene)));
     }
     // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        processNode(node->mChildren[i], scene);
+        processNode(device, node->mChildren[i], scene);
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
+Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
 {// data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -104,7 +125,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     //textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
     // return a mesh object created from the extracted mesh data
-    return Mesh(vertices, indices, textures);
+    return Mesh(device, vertices, indices, textures);
 }
 //std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)
 //{

@@ -11,3 +11,5 @@ private:
 	VkDeviceMemory _memory;
 };
 
+
+void copyBuffer(Device& device, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);

@@ -11,6 +11,7 @@ Device::Device(Instance& instance, Surface& surface)
 
     pickPhysicalDevice(instance,surface);
     createLogicalDevice(surface);
+
 }
 
 void Device::pickPhysicalDevice(Instance& instance,Surface& surface)
@@ -39,7 +40,7 @@ void Device::pickPhysicalDevice(Instance& instance,Surface& surface)
 
 void Device::createLogicalDevice(Surface& surface)
 {
-    QueueFamilyIndices indices = Queue::findQueueFamilies(_physicalDevice,surface.Get());
+    QueueFamilyIndices indices = findQueueFamilies(_physicalDevice,surface.Get());
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(),indices.presentFamily.value() };
@@ -79,11 +80,20 @@ void Device::createLogicalDevice(Surface& surface)
         throw std::runtime_error("failed to create logical device!");
     }
 
+
+    for (int i = 0; i < QueueType::END; i++) {
+        VkQueue q;
+        _queues.push_back(q);
+    }
+    vkGetDeviceQueue(_device, indices.graphicsFamily.value(), 0, &_queues[QueueType::GRAPHICS]);
+    vkGetDeviceQueue(_device, indices.presentFamily.value(), 0, &_queues[QueueType::PRESENT]);
+
+
 }
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device,Surface& surface)
 {
-    QueueFamilyIndices indices = Queue::findQueueFamilies(device,surface.Get());
+    QueueFamilyIndices indices = findQueueFamilies(device,surface.Get());
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
 
