@@ -1,4 +1,7 @@
 #pragma once
+#include "Image.h"
+#include "ImageView.h"
+#include "Sampler.h"
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -54,4 +57,10 @@ struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
+};
+
+struct Texture {
+    Image image;
+    ImageView imageView;
+    Sampler sampler;
 };

@@ -12,3 +12,7 @@ uint32_t findMemoryType(Device& device, uint32_t typeFilter, VkMemoryPropertyFla
 
     throw std::runtime_error("failed to find suitable memory type!");
 }
+std::ostream& operator<<(std::ostream& os, const glm::vec3& vec) {
+    os << "(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
+    return os;
+}

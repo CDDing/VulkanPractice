@@ -28,6 +28,7 @@
 
 #include "Utils.h"
 #include "Struct.h"
+#include "Instance.h"
 #include "Surface.h"
 #include "Device.h"
 #include "Queue.h"
@@ -43,7 +44,6 @@
 #include "Fence.h"
 #include "Semaphore.h"
 #include "FileLoader.h"
-#include "Geometry.h"
 #include "Shader.h"
 #include "Pipeline.h"
 #include "DescriptorPool.h"

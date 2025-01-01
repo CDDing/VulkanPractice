@@ -63,9 +63,6 @@
     <ClCompile Include="Pipeline.cpp">
       <Filter>소스 파일\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Geometry.cpp">
-      <Filter>소스 파일\Core</Filter>
-    </ClCompile>
     <ClCompile Include="VL.cpp">
       <Filter>소스 파일\Debug</Filter>
     </ClCompile>
@@ -114,6 +111,9 @@
     <ClCompile Include="Camera.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="Instance.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.vert">
@@ -140,9 +140,6 @@
       <Filter>소스 파일\Core</Filter>
     </ClInclude>
     <ClInclude Include="Queue.h">
-      <Filter>소스 파일\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Geometry.h">
       <Filter>소스 파일\Core</Filter>
     </ClInclude>
     <ClInclude Include="VL.h">
@@ -192,6 +189,9 @@
     </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Instance.h">
+      <Filter>소스 파일\Core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

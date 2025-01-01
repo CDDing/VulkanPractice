@@ -29,24 +29,23 @@ private:
     CommandPool commandPool;
     Surface surface;
     std::vector<CommandBuffer> commandBuffers;
-    Image textureImage;
+    Texture texture;
     Image depthImage;
     ImageView depthImageView;
-    ImageView textureImageView;
-    Sampler textureSampler;
     Buffer vertexBuffer;
     Buffer indexBuffer;
     std::vector<Buffer> uniformBuffers;
     std::vector<void*> uniformBuffersMapped;
+
     DescriptorPool descriptorPool;
-    Pipeline graphicsPipeline;
     DescriptorSetLayout descriptorSetLayout;
     std::vector<DescriptorSet> descriptorSets;
+    
+    Pipeline graphicsPipeline;
 
     Camera camera;
     GLFWwindow* window;
-    VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
+    Instance instance;
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
@@ -87,8 +86,7 @@ private:
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
     void initVulkan() {
-        createInstance();
-        setupDebugMessenger();
+        instance = Instance("DDing");
         surface = Surface(instance,window);
         device = Device(instance, surface);
         queue = Queue(device);
@@ -99,9 +97,7 @@ private:
         commandPool = CommandPool(device, surface);
         createDepthResources();
         createFramebuffers();
-        createTextureImage();
-        textureImageView = ImageView(device, textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-        textureSampler = Sampler(device, mipLevels);
+        createTexture();
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
@@ -114,6 +110,11 @@ private:
         }
         createSyncObjects();
     }
+    void createTexture() {
+        createTextureImage();
+        texture.imageView = ImageView(device, texture.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        texture.sampler = Sampler(device, mipLevels);
+    };
     void loadModel() {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -194,16 +195,16 @@ private:
         vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
         stbi_image_free(pixels);
-        textureImage = Image(device,texWidth, texHeight,mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        texture.image = Image(device,texWidth, texHeight,mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
      
-        transitionImageLayout(textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-        copyBufferToImage(stagingBuffer.Get(), textureImage.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+        transitionImageLayout(texture.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        copyBufferToImage(stagingBuffer.Get(), texture.image.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
         //transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
         
         vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
         vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
         
-        generateMipmaps(textureImage.Get(), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
+        generateMipmaps(texture.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
 
     }
     void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
@@ -290,8 +291,8 @@ private:
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageView.Get();
-            imageInfo.sampler = textureSampler.Get();
+            imageInfo.imageView = texture.imageView.Get();
+            imageInfo.sampler = texture.sampler.Get();
 
             std::array<VkWriteDescriptorSet,2> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -572,16 +573,6 @@ private:
     }
 
 
-    void setupDebugMessenger() {
-        if (!enableValidationLayers) return;
-
-        VkDebugUtilsMessengerCreateInfoEXT createInfo;
-        populateDebugMessengerCreateInfo(createInfo);
-
-        if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-            throw std::runtime_error("failed to set up debug messenger!");
-        }
-    }
 
     void mainLoop() {
 
@@ -602,7 +593,7 @@ private:
             sprintf_s(title, "Vulkan %.2fms, %dFPS", time, static_cast<int>(fps));
 
             glfwSetWindowTitle(window, title);
-            camera.Update(time, keyPressed);
+            camera.Update(time / 1000.f, keyPressed);
             drawFrame();
         }
 
@@ -679,12 +670,12 @@ private:
     void cleanup() {
         cleanupSwapChain();
 
-        vkDestroySampler(device.Get(), textureSampler.Get(), nullptr);
-        vkDestroyImageView(device.Get(), textureImageView.Get(), nullptr);
+        vkDestroySampler(device.Get(), texture.sampler.Get(), nullptr);
+        vkDestroyImageView(device.Get(), texture.imageView.Get(), nullptr);
         
         vkDestroyDescriptorPool(device.Get(), descriptorPool.Get(), nullptr);
-        vkDestroyImage(device.Get(), textureImage.Get(), nullptr);
-        vkFreeMemory(device.Get(), textureImage.GetMemory(), nullptr);
+        vkDestroyImage(device.Get(), texture.image.Get(), nullptr);
+        vkFreeMemory(device.Get(), texture.image.GetMemory(), nullptr);
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroyBuffer(device.Get(), uniformBuffers[i].Get(), nullptr);
             vkFreeMemory(device.Get(), uniformBuffers[i].GetMemory(), nullptr);
@@ -706,154 +697,18 @@ private:
         vkDestroyRenderPass(device.Get(), renderPass.Get(), nullptr);
         vkDestroyDevice(device.Get(), nullptr);
         if (enableValidationLayers) {
-            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+
+            DestroyDebugUtilsMessengerEXT(instance.Get(), instance.GetDebugMessenger(), nullptr);
         }
 
-        vkDestroySurfaceKHR(instance, surface.Get(), nullptr);
-        vkDestroyInstance(instance, nullptr);
+        vkDestroySurfaceKHR(instance.Get(), surface.Get(), nullptr);
+        vkDestroyInstance(instance.Get(), nullptr);
 
         glfwDestroyWindow(window);
 
         glfwTerminate();
     }
 
-    void createInstance() {
-        if (enableValidationLayers && !checkValidationLayerSupport()) {
-            throw std::runtime_error("validation layers requested, but not available!");
-        }
-
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "DDing";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
-
-        VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
-
-
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT|
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT|
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-
-        debugCreateInfo.messageType =
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        debugCreateInfo.pfnUserCallback = debugCallback;
-        debugCreateInfo.pUserData = nullptr;
-
-        if (enableValidationLayers) {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-            createInfo.ppEnabledLayerNames = validationLayers.data();
-
-            populateDebugMessengerCreateInfo(debugCreateInfo);
-            createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-        }
-        else {
-            createInfo.enabledLayerCount = 0;
-
-            createInfo.pNext = nullptr;
-        }
-
-
-        auto extensions = getRequiredExtensions();
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-        createInfo.ppEnabledExtensionNames = extensions.data();
-
-
-        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create instance!");
-        }
-    }
-
-    bool checkValidationLayerSupport() {
-        uint32_t layerCount;
-        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-        std::vector<VkLayerProperties> availableLayers(layerCount);
-        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-        for (const char* layerName : validationLayers) {
-            bool layerFound = false;
-            for (const auto& layerProperties : availableLayers) {
-                if (strcmp(layerName, layerProperties.layerName) == 0) {
-                    layerFound = true;
-                    break;
-                }
-            }
-            if (!layerFound) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    std::vector<const char*> getRequiredExtensions() {
-        uint32_t glfwExtensionCount = 0;
-        const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-        if (enableValidationLayers) {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-
-        return extensions;
-    }
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData) {
-
-        std::cerr << "validation layer : " << pCallbackData->pMessage << std::endl;
-
-        return VK_FALSE;
-    }
-
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-        const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-
-        if (func != nullptr) {
-            return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-        }
-        else {
-            return VK_ERROR_EXTENSION_NOT_PRESENT;
-        }
-    }
-
-    void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-        VkDebugUtilsMessengerEXT debugMessenger,
-        const VkAllocationCallbacks* pAllocator) {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-        if (func != nullptr) {
-            func(instance, debugMessenger, pAllocator);
-        }
-    }
-
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-        createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity =
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType =
-            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        createInfo.pfnUserCallback = debugCallback;
-    }
 };
 
 int main() {

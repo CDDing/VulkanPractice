@@ -3,12 +3,12 @@ class Device
 {
 public:
     Device();
-    Device(VkInstance& instance, Surface& surface);
+    Device(Instance& instance, Surface& surface);
     ~Device();
     VkDevice& Get() { return _device; }
     VkPhysicalDevice& GetPhysical() { return _physicalDevice; }
 private:
-    void pickPhysicalDevice(VkInstance& instance,Surface& surface);
+    void pickPhysicalDevice(Instance& instance,Surface& surface);
     void createLogicalDevice(Surface& surface);
     bool isDeviceSuitable(VkPhysicalDevice device,Surface& surface);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
