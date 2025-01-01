@@ -23,6 +23,8 @@ private:
     ImageView depthImageView;
     Buffer vertexBuffer;
     Buffer indexBuffer;
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
     std::vector<Buffer> uniformBuffers;
     std::vector<void*> uniformBuffersMapped;
 
@@ -39,8 +41,6 @@ private:
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
     uint32_t mipLevels;
 
     bool keyPressed[256] = { false, };

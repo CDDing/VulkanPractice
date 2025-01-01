@@ -17,7 +17,7 @@
 #include <unordered_map>
 #include <chrono>
 #include <memory>
-
+#include <string>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -50,6 +50,8 @@
 #include "DescriptorSetLayout.h"
 #include "DescriptorSet.h"
 #include "Camera.h"
+#include "Model.h"
+#include "Mesh.h"
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -67,3 +69,7 @@ const std::string MODEL_PATH = "Resources/models/viking_room.obj";
 const std::string TEXTURE_PATH = "Resources/textures/viking_room.png";
 
 
+//const std::string MODEL_PATH = "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_LOD0.fbx";
+//const std::string TEXTURE_PATH = "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Albedo.jpg";
+//
+//

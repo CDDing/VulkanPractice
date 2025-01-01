@@ -19,7 +19,7 @@ struct SwapChainSupportDetails {
 
 struct Vertex {
     glm::vec3 pos;
-    glm::vec3 color;
+    glm::vec3 normal;
     glm::vec2 texCoord;
 
     static VkVertexInputBindingDescription getBindingDescription() {
@@ -40,7 +40,7 @@ struct Vertex {
         attributeDescription[1].binding = 0;
         attributeDescription[1].location = 1;
         attributeDescription[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription[1].offset = offsetof(Vertex, color);
+        attributeDescription[1].offset = offsetof(Vertex, normal);
 
         attributeDescription[2].binding = 0;
         attributeDescription[2].location = 2;
@@ -50,7 +50,7 @@ struct Vertex {
         return attributeDescription;
     }
     bool operator==(const Vertex& other) const {
-        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+        return pos == other.pos && normal == other.normal && texCoord == other.texCoord;
     }
 };
 struct UniformBufferObject {
