@@ -166,10 +166,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader.frag" />
-    <None Include="shader.vert" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommandBuffer.h" />
@@ -194,6 +190,10 @@
     <ClInclude Include="SwapChain.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="VL.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\shader.frag" />
+    <None Include="shaders\shader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

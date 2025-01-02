@@ -21,6 +21,7 @@ struct Vertex {
     glm::vec3 pos;
     glm::vec3 normal;
     glm::vec2 texCoord;
+    glm::vec3 tangent;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
@@ -30,8 +31,8 @@ struct Vertex {
 
         return bindingDescription;
     }
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescription() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescription{};
+    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescription() {
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescription{};
         attributeDescription[0].binding = 0;
         attributeDescription[0].location = 0;
         attributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -47,10 +48,15 @@ struct Vertex {
         attributeDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescription[2].offset = offsetof(Vertex, texCoord);
 
+        attributeDescription[3].binding = 0;
+        attributeDescription[3].location = 3;
+        attributeDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescription[3].offset = offsetof(Vertex, tangent);
+
         return attributeDescription;
     }
     bool operator==(const Vertex& other) const {
-        return pos == other.pos && normal == other.normal && texCoord == other.texCoord;
+        return pos == other.pos && normal == other.normal && texCoord == other.texCoord && tangent == other.tangent;
     }
 };
 struct UniformBufferObject {

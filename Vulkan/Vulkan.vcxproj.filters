@@ -28,9 +28,6 @@
     <Filter Include="소스 파일\Resource">
       <UniqueIdentifier>{b1e15550-c33e-4d87-bfb2-80b0da801ed2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\Resource\Descriptor">
-      <UniqueIdentifier>{0fccc608-b60a-4ca1-a3b3-13d00210ba66}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Shader">
       <UniqueIdentifier>{b4652918-ba6a-4c38-a31a-d0f422ac5f2c}</UniqueIdentifier>
     </Filter>
@@ -39,6 +36,9 @@
     </Filter>
     <Filter Include="소스 파일\Util">
       <UniqueIdentifier>{429e45a9-302a-4925-b1e6-17e2f41acb43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Shader\Descriptor">
+      <UniqueIdentifier>{0fccc608-b60a-4ca1-a3b3-13d00210ba66}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -55,9 +55,6 @@
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
     <ClCompile Include="Device.cpp">
-      <Filter>소스 파일\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Queue.cpp">
       <Filter>소스 파일\Core</Filter>
     </ClCompile>
     <ClCompile Include="Pipeline.cpp">
@@ -100,13 +97,13 @@
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
     <ClCompile Include="DescriptorSetLayout.cpp">
-      <Filter>소스 파일\Resource\Descriptor</Filter>
+      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClCompile>
     <ClCompile Include="DescriptorSet.cpp">
-      <Filter>소스 파일\Resource\Descriptor</Filter>
+      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClCompile>
     <ClCompile Include="DescriptorPool.cpp">
-      <Filter>소스 파일\Resource\Descriptor</Filter>
+      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>소스 파일</Filter>
@@ -114,14 +111,12 @@
     <ClCompile Include="Instance.cpp">
       <Filter>소스 파일\Core</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="shader.vert">
-      <Filter>소스 파일\Shader</Filter>
-    </None>
-    <None Include="shader.frag">
-      <Filter>소스 파일\Shader</Filter>
-    </None>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -137,9 +132,6 @@
       <Filter>소스 파일\Core</Filter>
     </ClInclude>
     <ClInclude Include="Pipeline.h">
-      <Filter>소스 파일\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Queue.h">
       <Filter>소스 파일\Core</Filter>
     </ClInclude>
     <ClInclude Include="VL.h">
@@ -179,13 +171,13 @@
       <Filter>소스 파일\Util</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorSetLayout.h">
-      <Filter>소스 파일\Resource\Descriptor</Filter>
+      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorSet.h">
-      <Filter>소스 파일\Resource\Descriptor</Filter>
+      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorPool.h">
-      <Filter>소스 파일\Resource\Descriptor</Filter>
+      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>헤더 파일</Filter>
@@ -193,5 +185,19 @@
     <ClInclude Include="Instance.h">
       <Filter>소스 파일\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\shader.frag">
+      <Filter>소스 파일\Shader</Filter>
+    </None>
+    <None Include="shaders\shader.vert">
+      <Filter>소스 파일\Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>
