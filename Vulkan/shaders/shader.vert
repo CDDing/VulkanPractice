@@ -13,10 +13,15 @@ layout(location = 3) in vec3 inTangent;
 
 layout(location = 0) out vec3 v_Normal;
 layout(location = 1) out vec2 fragTexCoord;
+layout(location = 2) out vec3 v_tangent;
+layout(location = 2)
 
 void main(){
 	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition,1.0);
-	v_Normal = inNormal;
 	fragTexCoord = inTexCoord;
-	vec3 temp = inTangent;
+
+	mat4 worldInverseTranspose = transpose(inverse(ubo.model));
+	v_Normal = (worldInverseTranspose * vec4(inNormal,0.0)).xyz;
+	
+	v_tangent = inTangent;
 }

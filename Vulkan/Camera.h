@@ -21,7 +21,7 @@ private:
 	glm::vec3 _upDir = glm::vec3(0.0f,1.0f,0.0f);
 	glm::vec3 _rightDir = glm::vec3(1.0f,0.0f,0.0f);
 
-	float _speed = 20.0f;
+	float _speed = 1000.0f;
 	float _rotateSpeed = 0.5f;
 
 	float _nearZ = 0.01f;
