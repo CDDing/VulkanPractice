@@ -1,20 +1,23 @@
 #include "pch.h"
 #include "Model.h"
-Model::Model(Device& device, const std::string& path)
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+Model::Model(Device& device, const std::string& modelPath)
 {
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
-    // check for errors
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
-    {
-        std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
-        return;
-    }
-    // retrieve the directory path of the filepath
-    //directory = path.substr(0, path.find_last_of('/'));
+    loadModel(device, modelPath);
+}
 
-    // process ASSIMP's root node recursively
-    processNode(device, scene->mRootNode, scene);
+Model::Model(Device& device, const std::string& modelPath, const std::string& texturePath)
+{
+    loadModel(device, modelPath);
+    loadImage(device, texturePath);
+}
+
+Model::Model(Device& device, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath)
+{
+    loadModel(device, modelPath);
+    loadImage(device, texturePath);
+    loadImage(device, normalMapPath);
 }
 
 void Model::Render()
@@ -26,6 +29,14 @@ void Model::deleteModel(Device& device)
     for (auto& mesh : meshes) {
         mesh->deleteMesh(device);
     }
+
+    for (auto& image : images) {
+        vkDestroySampler(device.Get(), image.sampler.Get(), nullptr);
+        vkDestroyImageView(device.Get(), image.imageView.Get(), nullptr);
+        vkDestroyImage(device.Get(), image.image.Get(), nullptr);
+        vkFreeMemory(device.Get(), image.image.GetMemory(), nullptr);
+    }
+
 
 }
 
@@ -127,33 +138,60 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
     // return a mesh object created from the extracted mesh data
     return Mesh(device, vertices, indices, textures);
 }
-//std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)
-//{
-//    std::vector<Texture> textures;
-//    for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-//    {
-//        aiString str;
-//        mat->GetTexture(type, i, &str);
-//        // check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
-//        bool skip = false;
-//        for (unsigned int j = 0; j < textures_loaded.size(); j++)
-//        {
-//            if (std::strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0)
-//            {
-//                textures.push_back(textures_loaded[j]);
-//                skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
-//                break;
-//            }
-//        }
-//        if (!skip)
-//        {   // if texture hasn't been loaded already, load it
-//            Texture texture;
-//            texture.id = TextureFromFile(str.C_Str(), this->directory);
-//            texture.type = typeName;
-//            texture.path = str.C_Str();
-//            textures.push_back(texture);
-//            textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecessary load duplicate textures.
-//        }
-//    }
-//    return textures;
-//}
+
+
+void Model::loadModel(Device& device, const std::string& modelPath)
+{
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    // check for errors
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
+    {
+        std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+        return;
+    }
+    // retrieve the directory path of the filepath
+    //directory = path.substr(0, path.find_last_of('/'));
+
+    // process ASSIMP's root node recursively
+    processNode(device, scene->mRootNode, scene);
+}
+
+void Model::loadImage(Device& device, const std::string& filePath)
+{
+    Texture image;
+
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    _mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+    if (!pixels) {
+        throw std::runtime_error("failed to load texture image!");
+    }
+
+    Buffer stagingBuffer;
+
+    stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    void* data;
+    vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
+
+    stbi_image_free(pixels);
+    image.image = Image(device, texWidth, texHeight, _mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    transitionImageLayout(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, _mipLevels);
+    copyBufferToImage(device,stagingBuffer.Get(), image.image.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    //transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+
+    vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
+    vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
+
+    generateMipmaps(device,image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, _mipLevels);
+
+    image.imageView = ImageView(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, _mipLevels);
+    image.sampler = Sampler(device, _mipLevels);
+
+    images.push_back(image);
+}
