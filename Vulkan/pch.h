@@ -25,6 +25,7 @@
 #include <glm/gtx/hash.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/scalar_constants.hpp>
 
 #include "Utils.h"
 #include "Struct.h"

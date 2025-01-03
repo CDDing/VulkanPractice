@@ -20,6 +20,23 @@ Model::Model(Device& device, const std::string& modelPath, const std::string& te
     loadImage(device, normalMapPath);
 }
 
+Model makeSphere(Device& device, const float& scale, const std::string& texturePath)
+{
+    Model model;
+    GenerateSphere(device, model,scale);
+    model.loadImage(device,texturePath);
+    return model;
+}
+
+Model makeSphere(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath)
+{
+    Model model;
+    GenerateSphere(device,model,scale);
+    model.loadImage(device, texturePath);
+    model.loadImage(device, normalMapPath);
+    return model;
+}
+
 void Model::Render()
 {
 }
@@ -194,4 +211,54 @@ void Model::loadImage(Device& device, const std::string& filePath)
     image.sampler = Sampler(device, _mipLevels);
 
     images.push_back(image);
+}
+void GenerateSphere(Device& device, Model& model,const float& scale)
+{
+
+
+    const int slice = 50;
+    std::vector<Vertex> vertices;
+    const float dTheta = 2 * glm::pi<float>() / (float)(slice);
+    const float dPi = glm::pi<float>() / (float)(slice);
+
+    for (int j = 0; j <= slice; j++) {
+        Vertex v;
+
+        glm::vec3 startPoint = glm::rotate(glm::mat4(1.0f), dPi * j, glm::vec3(0.0f, 0.0f, 1.0f)) * glm::vec4(0.0f, -scale, 0.0f, 1.0f);
+
+        for (int i = 0; i <= slice; i++) {
+            v.pos = glm::rotate(glm::mat4(1.0f), dTheta * float(i), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(startPoint, 1.0f);
+            v.normal = glm::normalize(v.pos);
+            v.texCoord = glm::vec2(float(i) / slice, 1.0f- float(j) / slice);
+
+            glm::vec3 biTangent = glm::vec3(0.0f, 1.0f, 0.0f);
+
+            glm::vec3 normalOrth = v.normal - glm::dot(biTangent, v.normal) * v.normal;
+            normalOrth = glm::normalize(normalOrth);
+
+            v.tangent = glm::cross(biTangent, normalOrth);
+            v.tangent = glm::normalize(v.tangent);
+
+            vertices.push_back(v);
+
+
+        }
+    }
+
+    std::vector<uint32_t> indices;
+    for (int j = 0; j < slice; j++) {
+        const int offset = (slice + 1) * j;
+        for (int i = 0; i < slice; i++) {
+            indices.push_back(offset + i);
+            indices.push_back(offset + i + 1 + slice + 1);
+            indices.push_back(offset + i + slice + 1);
+
+            indices.push_back(offset + i);
+            indices.push_back(offset + i + 1);
+            indices.push_back(offset + i + 1 + slice + 1);
+        }
+    }
+
+    Mesh mesh = Mesh(device, vertices, indices, {});
+    model.meshes.push_back(std::make_shared<Mesh>(mesh));
 }

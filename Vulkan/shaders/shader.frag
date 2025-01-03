@@ -28,6 +28,6 @@ void main(){
 	float light = max(dot(normalWorld, -lightDir),0.0);
 	
 	outColor = texture(texSampler, fragTexCoord);
-
+	
 	outColor.rgb *= light;
 }

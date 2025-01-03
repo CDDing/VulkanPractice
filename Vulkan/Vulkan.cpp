@@ -23,7 +23,7 @@ private:
 
     DescriptorPool descriptorPool;
     DescriptorSetLayout descriptorSetLayout;
-    std::vector<DescriptorSet> descriptorSets;
+    std::vector<std::vector<DescriptorSet>> descriptorSets;
     
     Pipeline graphicsPipeline;
 
@@ -89,10 +89,9 @@ private:
         descriptorSetLayout = DescriptorSetLayout(device);
         descriptorPool = DescriptorPool(device);
         commandPool = CommandPool(device, surface);
+        InsertModels();
         createDepthResources();
         createFramebuffers();
-        Model model = Model(device, MODEL_PATH.c_str(),TEXTURE_PATH.c_str(), NORMALMAP_PATH.c_str());
-        models.push_back(model);
         createUniformBuffers();
         createDescriptorSets();
         graphicsPipeline = Pipeline(device, swapChain.GetExtent(), descriptorSetLayout.Get(), renderPass);
@@ -102,7 +101,13 @@ private:
         }
         createSyncObjects();
     }
-    
+    void InsertModels() {
+        Model model = makeSphere(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png","Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
+        Model model2 = Model(device, MODEL_PATH.c_str(), TEXTURE_PATH.c_str(), NORMALMAP_PATH.c_str());
+        
+        models.push_back(model);
+        models.push_back(model2);
+    }
     
     void createDepthResources() {
         VkFormat depthFormat = findDepthFormat();
@@ -132,54 +137,59 @@ private:
     
     void createDescriptorSets() {
         
-        descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        for (auto& descriptorSet : descriptorSets) {
-            descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayout);
+        descriptorSets.resize(models.size());
+        for (auto& descriptorSetVector : descriptorSets) {
+            descriptorSetVector.resize(MAX_FRAMES_IN_FLIGHT);
+            for (auto& descriptorSet : descriptorSetVector) {
+                descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayout);
+            }
         }
-        
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i].Get();
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = models[0].images[0].imageView.Get();
-            imageInfo.sampler = models[0].images[0].sampler.Get();
+        for (int i = 0; i < models.size();i++) {
+            for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
+                VkDescriptorBufferInfo bufferInfo{};
+                bufferInfo.buffer = uniformBuffers[j].Get();
+                bufferInfo.offset = 0;
+                bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkDescriptorImageInfo normalMapInfo{};
-            normalMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            normalMapInfo.imageView = models[0].images[1].imageView.Get();
-            normalMapInfo.sampler = models[0].images[1].sampler.Get();
+                VkDescriptorImageInfo imageInfo{};
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.imageView = models[i].images[0].imageView.Get();
+                imageInfo.sampler = models[i].images[0].sampler.Get();
 
-            std::array<VkWriteDescriptorSet,3> descriptorWrites{};
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptorSets[i].Get();
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
+                VkDescriptorImageInfo normalMapInfo{};
+                normalMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                normalMapInfo.imageView = models[i].images[1].imageView.Get();
+                normalMapInfo.sampler = models[i].images[1].sampler.Get();
 
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i].Get();
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &imageInfo;
+                std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+                descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[0].dstSet = descriptorSets[i][j].Get();
+                descriptorWrites[0].dstBinding = 0;
+                descriptorWrites[0].dstArrayElement = 0;
+                descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptorWrites[0].descriptorCount = 1;
+                descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[2].dstSet = descriptorSets[i].Get();
-            descriptorWrites[2].dstBinding = 2;
-            descriptorWrites[2].dstArrayElement = 0;
-            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[2].descriptorCount = 1;
-            descriptorWrites[2].pImageInfo = &normalMapInfo;
+                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[1].dstSet = descriptorSets[i][j].Get();
+                descriptorWrites[1].dstBinding = 1;
+                descriptorWrites[1].dstArrayElement = 0;
+                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrites[1].descriptorCount = 1;
+                descriptorWrites[1].pImageInfo = &imageInfo;
+
+                descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[2].dstSet = descriptorSets[i][j].Get();
+                descriptorWrites[2].dstBinding = 2;
+                descriptorWrites[2].dstArrayElement = 0;
+                descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrites[2].descriptorCount = 1;
+                descriptorWrites[2].pImageInfo = &normalMapInfo;
 
 
-            vkUpdateDescriptorSets(device.Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+                vkUpdateDescriptorSets(device.Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            }
         }
     }
     void createUniformBuffers() {
@@ -284,8 +294,8 @@ private:
         scissor.extent = swapChain.GetExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        for (auto& model : models) {
-            for (auto& mesh : model.meshes) {
+        for (int i = 0; i < models.size();i++) {
+            for (auto& mesh : models[i].meshes) {
                 VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
                 VkDeviceSize offsets[] = { 0 };
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
@@ -293,7 +303,7 @@ private:
 
 
 
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetLayout(), 0, 1, &descriptorSets[currentFrame].Get(), 0, nullptr);
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetLayout(), 0, 1, &descriptorSets[i][currentFrame].Get(), 0, nullptr);
 
                 vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
 
@@ -365,9 +375,8 @@ private:
         vkDeviceWaitIdle(device.Get());
     }
     void updateUniformBuffer(uint32_t currentImage) {
-
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.0f), 0.f , glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.model = glm::rotate(glm::mat4(1.0f), 0.f, glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = camera.GetView();
         ubo.proj = camera.GetProj(swapChain.GetExtent().width, swapChain.GetExtent().height);
         ubo.proj[1][1] *= -1;
