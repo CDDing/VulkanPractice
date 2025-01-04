@@ -37,7 +37,7 @@ Pipeline::Pipeline(Device& device,VkExtent2D& swapChainExtent,VkDescriptorSetLay
 
 
     auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescription = Vertex::getAttributeDescription();
+    auto attributeDescription = Vertex::inputAttributeDescriptions(0, { VertexComponent::Position,VertexComponent::Normal,VertexComponent::UV,VertexComponent::Tangent });
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

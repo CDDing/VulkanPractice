@@ -85,8 +85,8 @@ void Device::createLogicalDevice(Surface& surface)
         VkQueue q;
         _queues.push_back(q);
     }
-    vkGetDeviceQueue(_device, indices.graphicsFamily.value(), 0, &_queues[QueueType::GRAPHICS]);
-    vkGetDeviceQueue(_device, indices.presentFamily.value(), 0, &_queues[QueueType::PRESENT]);
+    vkGetDeviceQueue(_device, indices.graphicsFamily.value(), 0, &GetQueue(QueueType::GRAPHICS));
+    vkGetDeviceQueue(_device, indices.presentFamily.value(), 0, &GetQueue(QueueType::PRESENT));
 
 
 }

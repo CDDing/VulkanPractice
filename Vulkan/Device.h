@@ -1,18 +1,18 @@
 #pragma once
-enum QueueType {
-    GRAPHICS,
-    PRESENT,
-    END
-};
 class Device
 {
 public:
+    enum QueueType {
+        GRAPHICS,
+        PRESENT,
+        END
+    };
     Device();
     Device(Instance& instance, Surface& surface);
     ~Device();
     VkDevice& Get() { return _device; }
     VkPhysicalDevice& GetPhysical() { return _physicalDevice; }
-    VkQueue& GetQueue(QueueType type) { return _queues[type]; }
+    VkQueue& GetQueue(int type) { return _queues[type]; }
 private:
     void pickPhysicalDevice(Instance& instance,Surface& surface);
     void createLogicalDevice(Surface& surface);

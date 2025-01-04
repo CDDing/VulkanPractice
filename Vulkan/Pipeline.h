@@ -2,6 +2,7 @@
 class Pipeline
 {
 public:
+
 	enum {
 		DEFAULT,
 		SKYBOX,

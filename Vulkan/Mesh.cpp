@@ -11,6 +11,11 @@ Mesh::Mesh(Device& device, std::vector<Vertex> vertices, std::vector<unsigned in
 	createIndexBuffer(device);
 }
 
+void Mesh::draw(VkCommandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
+{
+
+}
+
 void Mesh::deleteMesh(Device& device)
 {
 	vkDestroyBuffer(device.Get(), vertexBuffer.Get(), nullptr);

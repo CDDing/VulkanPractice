@@ -17,11 +17,13 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+enum class VertexComponent { Position, Normal, UV, Color, Tangent };
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 normal;
     glm::vec2 texCoord;
     glm::vec3 tangent;
+    glm::vec4 color;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
@@ -31,33 +33,35 @@ struct Vertex {
 
         return bindingDescription;
     }
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescription() {
-        std::array<VkVertexInputAttributeDescription, 4> attributeDescription{};
-        attributeDescription[0].binding = 0;
-        attributeDescription[0].location = 0;
-        attributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription[0].offset = offsetof(Vertex, pos);
-
-        attributeDescription[1].binding = 0;
-        attributeDescription[1].location = 1;
-        attributeDescription[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription[1].offset = offsetof(Vertex, normal);
-
-        attributeDescription[2].binding = 0;
-        attributeDescription[2].location = 2;
-        attributeDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescription[2].offset = offsetof(Vertex, texCoord);
-
-        attributeDescription[3].binding = 0;
-        attributeDescription[3].location = 3;
-        attributeDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription[3].offset = offsetof(Vertex, tangent);
-
-        return attributeDescription;
-    }
     bool operator==(const Vertex& other) const {
         return pos == other.pos && normal == other.normal && texCoord == other.texCoord && tangent == other.tangent;
     }
+    static VkVertexInputAttributeDescription inputAttributeDescription(uint32_t binding, uint32_t location, VertexComponent component) {
+        switch (component) {
+        case VertexComponent::Position:
+            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) });
+        case VertexComponent::Normal:
+            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) });
+        case VertexComponent::UV:
+            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord) });
+        case VertexComponent::Color:
+            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, color) });
+        case VertexComponent::Tangent:
+            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, tangent) });
+        default:
+            return VkVertexInputAttributeDescription({});
+        }
+    }
+    static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(uint32_t binding, const std::vector<VertexComponent> components) {
+        std::vector<VkVertexInputAttributeDescription> result;
+        uint32_t location = 0;
+        for (VertexComponent component : components) {
+            result.push_back(Vertex::inputAttributeDescription(binding, location, component));
+            location++;
+        }
+        return result;
+    }
+
 };
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;

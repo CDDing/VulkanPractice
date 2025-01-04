@@ -43,8 +43,8 @@ void endSingleTimeCommands(Device& device, VkCommandBuffer commandBuffer) {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(device.GetQueue(QueueType::GRAPHICS), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(device.GetQueue(QueueType::GRAPHICS));
+    vkQueueSubmit(device.GetQueue(Device::QueueType::GRAPHICS), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(device.GetQueue(Device::QueueType::GRAPHICS));
 
     vkFreeCommandBuffers(device.Get(), CommandPool::TransientPool, 1, &commandBuffer);
 }

@@ -9,6 +9,8 @@ public:
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
 
+	void draw(VkCommandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet);
+
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	void deleteMesh(Device& device);
