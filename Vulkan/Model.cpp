@@ -58,7 +58,7 @@ void Model::Render()
 {
 }
 
-void Model::deleteModel(Device& device)
+void Model::destroy(Device& device)
 {
     for (auto& mesh : meshes) {
         mesh->deleteMesh(device);

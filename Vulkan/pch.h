@@ -52,6 +52,8 @@
 #include "Camera.h"
 #include "Model.h"
 #include "Mesh.h"
+#include "Texture.h"
+#include "Material.h"
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"

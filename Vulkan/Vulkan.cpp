@@ -17,7 +17,6 @@ private:
     std::vector<CommandBuffer> commandBuffers;
     Image depthImage;
     ImageView depthImageView;
-    Texture cubeMap;
     std::vector<Buffer> uniformBuffers;
     std::vector<void*> uniformBuffersMapped;
     std::vector<Model> models;
@@ -91,7 +90,7 @@ private:
         descriptorPool = DescriptorPool(device);
         commandPool = CommandPool(device, surface);
         InsertModels();
-        loadCubeMap();
+        loadCubeMap();//TODO
         createDepthResources();
         createFramebuffers();
         createUniformBuffers();
@@ -636,7 +635,7 @@ private:
         vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
 
         for (auto& model : models) {
-            model.deleteModel(device);
+            model.destroy(device);
         }
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {

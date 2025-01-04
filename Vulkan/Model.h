@@ -2,6 +2,7 @@
 #include <assimp\Importer.hpp>
 #include <assimp\postprocess.h>
 #include <assimp\scene.h>
+class Texture;
 class Mesh;
 enum ImageType {
 	TEXTURE,
@@ -18,7 +19,7 @@ public:
 
 
 	void Render();
-	void deleteModel(Device& device);
+	void destroy(Device& device);
 	glm::mat4 world = glm::mat4();
 
 	std::vector<std::shared_ptr<Mesh>> meshes;
