@@ -12,9 +12,9 @@ public:
     std::vector<Image>& GetImages() { return _swapChainImages; }
     std::vector<ImageView>& GetImageViews() { return _swapChainImageViews; }
     std::vector<VkFramebuffer>& GetFrameBuffers() { return _swapChainFramebuffers; }
-    void recreate();
-    void create();
-    void cleanup();
+    RenderPass& GetRenderPass() { return _renderPass; }
+    void create(Device& device);
+    void destroy(Device& device);
 
     static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,VkSurfaceKHR surface) {
         SwapChainSupportDetails details;
@@ -48,6 +48,7 @@ private:
 
     //For Recreate, TODO : ÃßÈÄ surface¶û window ÅëÇÕ.
 
+    RenderPass _renderPass;
     Device* _device;
     Surface* _surface;
     GLFWwindow* _window;
@@ -60,5 +61,12 @@ private:
     VkExtent2D _swapChainExtent;
     std::vector<VkFramebuffer> _swapChainFramebuffers;
     VkSwapchainKHR _swapChain;
+    
+    //Depth
+    VkFormat _depthFormat;
+    Image _depthImage;
+    ImageView _depthImageView;
 };
 
+VkFormat findDepthFormat(Device& device);
+VkFormat findSupportedFormat(Device& device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
