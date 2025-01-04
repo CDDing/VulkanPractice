@@ -17,3 +17,4 @@ void generateMipmaps(Device& device, VkImage image, VkFormat imageFormat, int32_
 
 
 void transitionImageLayout(Device& device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+void transitionImageLayout(Device& device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImageSubresourceRange subresourceRange);

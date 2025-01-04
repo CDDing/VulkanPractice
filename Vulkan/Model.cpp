@@ -37,6 +37,23 @@ Model makeSphere(Device& device, const float& scale, const std::string& textureP
     return model;
 }
 
+Model makeSqaure(Device& device, const float& scale, const std::string& texturePath)
+{
+    Model model;
+    GenerateSquare(device, model, scale);
+    model.loadImage(device, texturePath);
+    return model;
+}
+
+Model makeSqaure(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath)
+{
+    Model model;
+    GenerateSquare(device, model, scale);
+    model.loadImage(device, texturePath);
+    model.loadImage(device, normalMapPath);
+    return model;
+}
+
 void Model::Render()
 {
 }
@@ -259,6 +276,54 @@ void GenerateSphere(Device& device, Model& model,const float& scale)
         }
     }
 
+    Mesh mesh = Mesh(device, vertices, indices, {});
+    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+}
+
+void GenerateSquare(Device& device, Model& model, const float& scale)
+{
+    std::vector<Vertex> vertices;
+    Vertex v0, v1, v2, v3;
+    v0.pos = (glm::vec3(-1.0f, 1.0f, 0.0f) * scale);
+    v1.pos=(glm::vec3(1.0f, 1.0f, 0.0f) * scale);
+    v2.pos=(glm::vec3(1.0f, -1.0f, 0.0f) * scale);
+    v3.pos=(glm::vec3(-1.0f, -1.0f, 0.0f) * scale);
+    v0.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
+    v1.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
+    v2.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
+    v3.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
+    v0.texCoord = (glm::vec2(0.0f, 0.0f));
+    v1.texCoord = (glm::vec2(1.0f, 0.0f));
+    v2.texCoord = (glm::vec2(1.0f, 1.0f));
+    v3.texCoord = (glm::vec2(0.0f, 1.0f));
+    std::vector<uint32_t> indices = {
+        0,1,2,0,2,3
+    
+    };
+    glm::vec3 tangent0, tangent1, tangent2, tangent3;
+
+    // Calculate tangent for the square's vertices
+    glm::vec3 edge1 = v1.pos - v0.pos;
+    glm::vec3 edge2 = v2.pos - v0.pos;
+    glm::vec2 deltaUV1 = v1.texCoord - v0.texCoord;
+    glm::vec2 deltaUV2 = v2.texCoord - v0.texCoord;
+
+    float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+
+    tangent0 = f * (deltaUV2.y * edge1 - deltaUV1.y * edge2);
+    tangent1 = tangent0;
+    tangent2 = tangent0;
+    tangent3 = tangent0;
+
+    v0.tangent = tangent0;
+    v1.tangent = tangent1;
+    v2.tangent = tangent2;
+    v3.tangent = tangent3;
+
+    vertices.push_back(v0);
+    vertices.push_back(v1);
+    vertices.push_back(v2);
+    vertices.push_back(v3);
     Mesh mesh = Mesh(device, vertices, indices, {});
     model.meshes.push_back(std::make_shared<Mesh>(mesh));
 }

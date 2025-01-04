@@ -5,10 +5,10 @@ Pipeline::Pipeline()
 {
 }
 
-Pipeline::Pipeline(Device& device,VkExtent2D& swapChainExtent,VkDescriptorSetLayout& descriptorSetLayout,RenderPass &renderPass)
+Pipeline::Pipeline(Device& device,VkExtent2D& swapChainExtent,VkDescriptorSetLayout& descriptorSetLayout,RenderPass &renderPass, const std::string& vsShaderPath, const std::string& psShaderPath)
 {
-    Shader vertShaderModule = Shader(device, "shaders/vert.spv");
-    Shader fragShaderModule = Shader(device, "shaders/frag.spv");
+    Shader vertShaderModule = Shader(device, vsShaderPath);
+    Shader fragShaderModule = Shader(device, psShaderPath);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
