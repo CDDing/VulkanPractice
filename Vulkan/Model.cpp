@@ -54,6 +54,23 @@ Model makeSqaure(Device& device, const float& scale, const std::string& textureP
     return model;
 }
 
+Model makeBox(Device& device, const float& scale, const std::string& texturePath)
+{
+    Model model;
+    GenerateBox(device, model, scale);
+    model.loadImage(device, texturePath);
+    return model;
+}
+
+Model makeBox(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath)
+{
+    Model model;
+    GenerateBox(device, model, scale);
+    model.loadImage(device, texturePath);
+    model.loadImage(device, normalMapPath);
+    return model;
+}
+
 void Model::Render()
 {
 }
@@ -324,11 +341,79 @@ void GenerateSquare(Device& device, Model& model, const float& scale)
     model.meshes.push_back(std::make_shared<Mesh>(mesh));
 }
 
+void GenerateBox(Device& device, Model& model, const float& scale)
+{
+    std::vector<Vertex> vertices(24);
+    std::vector<uint32_t> indices = {
+        0,  1,  2,  0,  2,  3,  // À­¸é
+        4,  5,  6,  4,  6,  7,  // ¾Æ·§¸é
+        8,  9,  10, 8,  10, 11, // ¾Õ¸é
+        12, 13, 14, 12, 14, 15, // µÞ¸é
+        16, 17, 18, 16, 18, 19, // ¿ÞÂÊ
+        20, 21, 22, 20, 22, 23  // ¿À¸¥ÂÊ
+    };
+
+    // Front face
+    vertices[0] = { glm::vec3(-1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[1] = { glm::vec3(-1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[2] = { glm::vec3(1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[3] = { glm::vec3(1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f) };
+
+    // Back face
+    vertices[4] = { glm::vec3(-1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[5] = { glm::vec3(1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[6] = { glm::vec3(1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[7] = { glm::vec3(-1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 1.0f) };
+
+    // Left face
+    vertices[8] = { glm::vec3(-1.0f, -1.0f, 1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[9] = { glm::vec3(-1.0f, 1.0f, 1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[10] = { glm::vec3(-1.0f, 1.0f, -1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[11] = { glm::vec3(-1.0f, -1.0f, -1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+
+    // Right face
+    vertices[12] = { glm::vec3(1.0f, -1.0f, 1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[13] = { glm::vec3(1.0f, -1.0f, -1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[14] = { glm::vec3(1.0f, 1.0f, -1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[15] = { glm::vec3(1.0f, 1.0f, 1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+
+    // Top face
+    vertices[16] = { glm::vec3(-1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[17] = { glm::vec3(-1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[18] = { glm::vec3(1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[19] = { glm::vec3(1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+
+    // Bottom face
+    vertices[20] = { glm::vec3(-1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[21] = { glm::vec3(1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[22] = { glm::vec3(1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[23] = { glm::vec3(-1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+
+    for (int i = 0; i < vertices.size(); i += 4) {
+        glm::vec3 edge1 = vertices[i + 1].pos - vertices[i].pos;
+        glm::vec3 edge2 = vertices[i + 2].pos - vertices[i].pos;
+        glm::vec2 deltaUV1 = vertices[i + 1].texCoord - vertices[i].texCoord;
+        glm::vec2 deltaUV2 = vertices[i + 2].texCoord - vertices[i].texCoord;
+
+        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+
+        glm::vec3 tangent = f * (deltaUV2.y * edge1 - deltaUV1.y * edge2);
+        tangent = glm::normalize(tangent);
+
+        vertices[i].tangent = tangent;
+        vertices[i + 1].tangent = tangent;
+        vertices[i + 2].tangent = tangent;
+        vertices[i + 3].tangent = tangent;
+    }
+
+    Mesh mesh = Mesh(device, vertices, indices);
+    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+}
+
 Model makeSkyBox(Device& device)
 {
     Model model;
-    Mesh mesh;
-
+    GenerateBox(device, model, 40.0f);
 
     Texture image;
 

@@ -38,6 +38,9 @@ Model makeSphere(Device& device, const float& scale, const std::string& textureP
 Model makeSphere(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath);
 Model makeSqaure(Device& device, const float& scale, const std::string& texturePath);
 Model makeSqaure(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath);
+Model makeBox(Device& device, const float& scale, const std::string& texturePath);
+Model makeBox(Device& device, const float& scale, const std::string& texturePath,const std::string& normalMapPath);
 void GenerateSphere(Device& device, Model& model,const float& scale);
 void GenerateSquare(Device& device, Model& model, const float& scale);
+void GenerateBox(Device& device, Model& model, const float& scale);
 Model makeSkyBox(Device& device);
