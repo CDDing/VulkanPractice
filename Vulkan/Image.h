@@ -14,6 +14,6 @@ private:
 void copyBufferToImage(Device& device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 void generateMipmaps(Device& device, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 void transitionImageLayout(Device& device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
-void copyBufferToImageForCubemap(Device& device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+void copyBufferToImageForCubemap(Device& device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height,VkDeviceSize layerSize);
 void generateMipmapsForCubemap(Device& device, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 void transitionImageLayoutForCubemap(Device& device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, uint32_t mipLevels);

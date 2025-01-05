@@ -18,6 +18,7 @@ ImageView::ImageView(Device& device, VkImage image, VkFormat format, VkImageAspe
     viewInfo.subresourceRange.layerCount = layerCount;
     viewInfo.subresourceRange.levelCount = mipLevels;
     if (layerCount == 6) {
+
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
     }
     if (vkCreateImageView(device.Get(), &viewInfo, nullptr, &_imageView) != VK_SUCCESS) {

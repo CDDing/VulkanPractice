@@ -426,8 +426,8 @@ Model makeSkyBox(Device& device)
     faceData[3] = stbi_load("Resources/textures/Cubemap/bottom.jpg", &width, &height, &channels, STBI_rgb_alpha);
     faceData[4] = stbi_load("Resources/textures/Cubemap/front.jpg", &width, &height, &channels, STBI_rgb_alpha);
     faceData[5] = stbi_load("Resources/textures/Cubemap/back.jpg", &width, &height, &channels, STBI_rgb_alpha); 
-    VkDeviceSize imageSize = width * height * channels * 6;
-    VkDeviceSize layerSize = width * height * channels;
+    VkDeviceSize imageSize = width * height * 4 * 6;
+    VkDeviceSize layerSize = width * height * 4;
     mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
     //mipLevels = 01;
 
@@ -438,7 +438,7 @@ Model makeSkyBox(Device& device)
     vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
     for (int i = 0; i < 6; i++) {
         memcpy((stbi_uc*)data + i*layerSize, faceData[i], static_cast<size_t>(layerSize));
-
+    
     }
     vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
@@ -446,19 +446,19 @@ Model makeSkyBox(Device& device)
         stbi_image_free(faceData[i]);
     }
     
-    image.image = Image(device, width, height, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,6);
+    image.image = Image(device, width, height, mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,6);
 
-    transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    copyBufferToImageForCubemap(device, stagingBuffer.Get(), image.image.Get(), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+    copyBufferToImageForCubemap(device, stagingBuffer.Get(), image.image.Get(), static_cast<uint32_t>(width), static_cast<uint32_t>(height),layerSize);
     //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 
     vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
     vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
 
-    generateMipmapsForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, width, height, mipLevels);
+    generateMipmapsForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, width, height, mipLevels);
     
     
-    image.imageView = ImageView(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels,6);
+    image.imageView = ImageView(device, image.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels,6);
     image.sampler = Sampler(device, mipLevels);
 
     model.images.push_back(image);

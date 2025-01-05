@@ -188,7 +188,7 @@ void transitionImageLayout(Device& device, VkImage image, VkFormat format, VkIma
 
     endSingleTimeCommands(device, commandBuffer);
 }
-void copyBufferToImageForCubemap(Device& device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void copyBufferToImageForCubemap(Device& device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height,VkDeviceSize layerSize)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
@@ -207,6 +207,7 @@ void copyBufferToImageForCubemap(Device& device, VkBuffer buffer, VkImage image,
     // 6개의 레이어에 대해 반복
     for (uint32_t layer = 0; layer < 6; layer++) {
         region.imageSubresource.baseArrayLayer = layer;  // 각 레이어에 대해 baseArrayLayer 설정
+        region.bufferOffset = layer * layerSize;
         vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     }
     endSingleTimeCommands(device, commandBuffer);
@@ -299,7 +300,7 @@ void transitionImageLayoutForCubemap(Device& device, VkImage image, VkFormat for
     barrier.subresourceRange.aspectMask = aspectFlags;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.layerCount = 6;
     barrier.subresourceRange.levelCount = mipLevels;
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = 0;
@@ -331,11 +332,9 @@ void transitionImageLayoutForCubemap(Device& device, VkImage image, VkFormat for
     else {
         throw std::invalid_argument("unsupported layout transition!");
     }
-    for (uint32_t layer = 0; layer < 6; layer++) {
-        barrier.subresourceRange.baseArrayLayer = layer;
-        vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-    }
-    
+
+    vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
     endSingleTimeCommands(device, commandBuffer);
 }
