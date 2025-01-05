@@ -19,6 +19,8 @@ private:
 	std::vector<Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
 	std::vector<Model> models;
+	Model skybox;
+	std::vector<DescriptorSet> skyboxDescriptorSets;
 
 	DescriptorPool descriptorPool;
 	std::vector<DescriptorSetLayout> descriptorSetLayouts;
@@ -105,7 +107,7 @@ private:
 		};
 	}
 	void createPipelines() {
-		pipelines.resize(1);
+		pipelines.resize(2);
 
 		Pipeline defaultPipeline = Pipeline(device,
 			swapChain.GetExtent(),
@@ -114,24 +116,24 @@ private:
 			"shaders/shader.vert.spv",
 			"shaders/shader.frag.spv");
 
-		/*Pipeline skyboxPipeline = Pipeline(device,
+		Pipeline skyboxPipeline = Pipeline(device,
 			swapChain.GetExtent(),
-			descriptorSetLayout.Get(),
+			descriptorSetLayouts[static_cast<int>(ShaderType::SKYBOX)].Get(),
 			swapChain.GetRenderPass(),
 			"shaders/skybox.vert.spv",
-			"shaders/skybox.frag.spv");*/
+			"shaders/skybox.frag.spv");
 
 		pipelines[Pipeline::DEFAULT] = (defaultPipeline);
-		//pipelines[Pipeline::SKYBOX]=(skyboxPipeline);
+		pipelines[Pipeline::SKYBOX]=(skyboxPipeline);
 	}
 	void InsertModels() {
-		Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
+		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
 		Model model2 = Model(device, MODEL_PATH.c_str(), TEXTURE_PATH.c_str(), NORMALMAP_PATH.c_str());
 
-		models.push_back(model);
+		//models.push_back(model);
 		models.push_back(model2);
 
-
+		skybox = makeSkyBox(device);
 	}
 
 	void createDescriptorSets() {
@@ -142,6 +144,60 @@ private:
 			for (auto& descriptorSet : descriptorSetVector) {
 				descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::DEFAULT)]);
 			}
+		}
+
+		skyboxDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+		for (auto& descriptorSet : skyboxDescriptorSets) {
+			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::SKYBOX)]);
+
+		}
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			std::vector<VkWriteDescriptorSet> descriptorWrites;
+			std::vector<ShaderComponent> components = DescriptorSetLayout::GetComponents(ShaderType::SKYBOX);
+
+			int imgCnt = 0;
+			int bufCnt = 0;
+
+			// bufferInfo와 imageInfo를 벡터에 저장하여 유효 범위 보장
+			std::vector<VkDescriptorBufferInfo> bufferInfos(components.size());
+			std::vector<VkDescriptorImageInfo> imageInfos(components.size());
+
+			for (int binding = 0; binding < components.size(); binding++) {
+				VkWriteDescriptorSet descriptorWrite{};
+				switch (components[binding]) {
+				case ShaderComponent::UNIFORM:
+					bufferInfos[bufCnt].buffer = uniformBuffers[i].Get();
+					bufferInfos[bufCnt].offset = 0;
+					bufferInfos[bufCnt].range = sizeof(UniformBufferObject);
+
+					descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptorWrite.dstSet = skyboxDescriptorSets[i].Get();
+					descriptorWrite.dstBinding = binding;
+					descriptorWrite.dstArrayElement = 0;
+					descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					descriptorWrite.descriptorCount = 1;
+					descriptorWrite.pBufferInfo = &bufferInfos[bufCnt++];
+					descriptorWrites.push_back(descriptorWrite);
+					break;
+
+				case ShaderComponent::SAMPLER:
+					imageInfos[imgCnt].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					imageInfos[imgCnt].imageView = skybox.images[imgCnt].imageView.Get();
+					imageInfos[imgCnt].sampler = skybox.images[imgCnt].sampler.Get();
+
+					descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptorWrite.dstSet = skyboxDescriptorSets[i].Get();
+					descriptorWrite.dstBinding = binding;
+					descriptorWrite.dstArrayElement = 0;
+					descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descriptorWrite.descriptorCount = 1;
+					descriptorWrite.pImageInfo = &imageInfos[imgCnt++];
+					descriptorWrites.push_back(descriptorWrite);
+					break;
+				}
+			}
+
+			vkUpdateDescriptorSets(device.Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
 
 		for (int i = 0; i < models.size(); i++) {
@@ -282,6 +338,17 @@ private:
 		scissor.extent = swapChain.GetExtent();
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].GetLayout(), 0, 1, &skyboxDescriptorSets[currentFrame].Get(), 0, nullptr);
+
+		VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer.Get()};
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
+		
 		for (int i = 0; i < models.size(); i++) {
 			for (auto& mesh : models[i].meshes) {
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
@@ -344,7 +411,7 @@ private:
 	}
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), 0.f, glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = glm::mat4(1.0f);
 		ubo.view = camera.GetView();
 		ubo.proj = camera.GetProj(swapChain.GetExtent().width, swapChain.GetExtent().height);
 		ubo.proj[1][1] *= -1;
@@ -425,7 +492,7 @@ private:
 		for (auto& model : models) {
 			model.destroy(device);
 		}
-
+		skybox.destroy(device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device.Get(), imageAvailableSemaphores[i], nullptr);
 			vkDestroySemaphore(device.Get(), renderFinishedSemaphores[i], nullptr);

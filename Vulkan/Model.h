@@ -44,3 +44,11 @@ void GenerateSphere(Device& device, Model& model,const float& scale);
 void GenerateSquare(Device& device, Model& model, const float& scale);
 void GenerateBox(Device& device, Model& model, const float& scale);
 Model makeSkyBox(Device& device);
+void setImageLayout(
+	VkCommandBuffer cmdbuffer,
+	VkImage image,
+	VkImageLayout oldImageLayout,
+	VkImageLayout newImageLayout,
+	VkImageSubresourceRange subresourceRange,
+	VkPipelineStageFlags srcStageMask,
+	VkPipelineStageFlags dstStageMask);
