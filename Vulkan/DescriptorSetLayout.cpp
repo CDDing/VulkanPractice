@@ -5,30 +5,20 @@ DescriptorSetLayout::DescriptorSetLayout()
 {
 }
 
-DescriptorSetLayout::DescriptorSetLayout(Device& device)
+DescriptorSetLayout::DescriptorSetLayout(Device& device, ShaderType type)
 {
-	VkDescriptorSetLayoutBinding uboLayoutBinding{};
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	uboLayoutBinding.pImmutableSamplers = nullptr;
-
-	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkDescriptorSetLayoutBinding normalsamplerLayoutBinding{};
-	normalsamplerLayoutBinding.binding = 2;
-	normalsamplerLayoutBinding.descriptorCount = 1;
-	normalsamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	normalsamplerLayoutBinding.pImmutableSamplers = nullptr;
-	normalsamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, samplerLayoutBinding,normalsamplerLayoutBinding };
+	std::vector<VkDescriptorSetLayoutBinding> bindings;
+	std::vector<ShaderComponent> components;
+	switch (type) {
+	case ShaderType::DEFAULT:
+		components = { ShaderComponent::UNIFORM,ShaderComponent::SAMPLER ,ShaderComponent::SAMPLER };
+		bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
+		break;
+	case ShaderType::SKYBOX:
+		components = { ShaderComponent::UNIFORM,ShaderComponent::SAMPLER };
+		bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
+		break;
+	}
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());

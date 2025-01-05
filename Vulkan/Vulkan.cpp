@@ -21,7 +21,7 @@ private:
     std::vector<Model> models;
 
     DescriptorPool descriptorPool;
-    DescriptorSetLayout descriptorSetLayout;
+    std::vector<DescriptorSetLayout> descriptorSetLayouts;
     std::vector<std::vector<DescriptorSet>> descriptorSets;
     
     std::vector<Pipeline> pipelines;
@@ -86,7 +86,7 @@ private:
         descriptorPool = DescriptorPool(device);
         commandPool = CommandPool(device, surface);
         swapChain = SwapChain(device, surface);
-        descriptorSetLayout = DescriptorSetLayout(device);
+        createDescriptorSetLayouts();
         InsertModels();
         createUniformBuffers();
         createDescriptorSets();
@@ -97,12 +97,19 @@ private:
         }
         createSyncObjects();
     }
+    void createDescriptorSetLayouts() {
+        descriptorSetLayouts =
+        {
+            DescriptorSetLayout(device,ShaderType::DEFAULT),
+            DescriptorSetLayout(device,ShaderType::SKYBOX),
+        };
+    }
     void createPipelines() {
         pipelines.resize(1);
 
         Pipeline defaultPipeline =Pipeline(device,
             swapChain.GetExtent(),
-            descriptorSetLayout.Get(),
+            descriptorSetLayouts[static_cast<int>(ShaderType::DEFAULT)].Get(),
             swapChain.GetRenderPass(),
             "shaders/shader.vert.spv",
             "shaders/shader.frag.spv");
@@ -133,7 +140,7 @@ private:
         for (auto& descriptorSetVector : descriptorSets) {
             descriptorSetVector.resize(MAX_FRAMES_IN_FLIGHT);
             for (auto& descriptorSet : descriptorSetVector) {
-                descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayout);
+                descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::DEFAULT)]);
             }
         }
 
@@ -406,8 +413,11 @@ private:
             vkDestroyBuffer(device.Get(), uniformBuffers[i].Get(), nullptr);
             vkFreeMemory(device.Get(), uniformBuffers[i].GetMemory(), nullptr);
         }
-        vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
 
+        for (auto& descriptorSetLayout : descriptorSetLayouts) {
+            vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
+        }
+        
         for (auto& model : models) {
             model.destroy(device);
         }

@@ -4,13 +4,10 @@ class Texture
 public:
 	Texture() {};
 	Texture(Device& device);
-	void updateDescriptor();
 	void destroy(Device& device);
 	Image image;
 	ImageView imageView;
 	Sampler sampler;
-
-	VkDescriptorImageInfo descriptor;
 private:
 
 	VkImageLayout _imageLayout;

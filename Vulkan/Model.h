@@ -40,3 +40,4 @@ Model makeSqaure(Device& device, const float& scale, const std::string& textureP
 Model makeSqaure(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath);
 void GenerateSphere(Device& device, Model& model,const float& scale);
 void GenerateSquare(Device& device, Model& model, const float& scale);
+Model makeSkyBox(Device& device);

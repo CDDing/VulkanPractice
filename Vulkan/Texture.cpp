@@ -5,12 +5,6 @@ Texture::Texture(Device& device)
 {
 }
 
-void Texture::updateDescriptor()
-{
-	descriptor.sampler = sampler.Get();
-	descriptor.imageView = imageView.Get();
-	descriptor.imageLayout = _imageLayout;
-}
 
 void Texture::destroy(Device& device)
 {

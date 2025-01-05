@@ -5,7 +5,7 @@ ImageView::ImageView()
 {
 }
 
-ImageView::ImageView(Device& device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+ImageView::ImageView(Device& device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels,uint32_t layerCount)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -15,9 +15,8 @@ ImageView::ImageView(Device& device, VkImage image, VkFormat format, VkImageAspe
     viewInfo.subresourceRange.aspectMask = aspectFlags;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.layerCount = 1;
+    viewInfo.subresourceRange.layerCount = layerCount;
     viewInfo.subresourceRange.levelCount = mipLevels;
-
     if (vkCreateImageView(device.Get(), &viewInfo, nullptr, &_imageView) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture image view!");
     }

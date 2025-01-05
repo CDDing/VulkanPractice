@@ -1,11 +1,10 @@
 #include "pch.h"
 #include "Mesh.h"
 
-Mesh::Mesh(Device& device, std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
+Mesh::Mesh(Device& device, std::vector<Vertex> vertices, std::vector<unsigned int> indices)
 {
 	this->vertices = vertices;
 	this->indices = indices;
-	this->textures = textures;
 
 	createVertexBuffer(device);
 	createIndexBuffer(device);
@@ -16,7 +15,7 @@ void Mesh::draw(VkCommandBuffer, uint32_t renderFlags, VkPipelineLayout pipeline
 
 }
 
-void Mesh::deleteMesh(Device& device)
+void Mesh::destroy(Device& device)
 {
 	vkDestroyBuffer(device.Get(), vertexBuffer.Get(), nullptr);
 	vkFreeMemory(device.Get(), vertexBuffer.GetMemory(), nullptr);

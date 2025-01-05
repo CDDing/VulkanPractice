@@ -61,14 +61,11 @@ void Model::Render()
 void Model::destroy(Device& device)
 {
     for (auto& mesh : meshes) {
-        mesh->deleteMesh(device);
+        mesh->destroy(device);
     }
 
     for (auto& image : images) {
-        vkDestroySampler(device.Get(), image.sampler.Get(), nullptr);
-        vkDestroyImageView(device.Get(), image.imageView.Get(), nullptr);
-        vkDestroyImage(device.Get(), image.image.Get(), nullptr);
-        vkFreeMemory(device.Get(), image.image.GetMemory(), nullptr);
+        image.destroy(device);
     }
 
 
@@ -94,7 +91,6 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
 {// data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture> textures;
 
     // walk through each of the mesh's vertices
     for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -170,7 +166,7 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
     //textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
     // return a mesh object created from the extracted mesh data
-    return Mesh(device, vertices, indices, textures);
+    return Mesh(device, vertices, indices);
 }
 
 
@@ -276,7 +272,7 @@ void GenerateSphere(Device& device, Model& model,const float& scale)
         }
     }
 
-    Mesh mesh = Mesh(device, vertices, indices, {});
+    Mesh mesh = Mesh(device, vertices, indices);
     model.meshes.push_back(std::make_shared<Mesh>(mesh));
 }
 
@@ -324,6 +320,86 @@ void GenerateSquare(Device& device, Model& model, const float& scale)
     vertices.push_back(v1);
     vertices.push_back(v2);
     vertices.push_back(v3);
-    Mesh mesh = Mesh(device, vertices, indices, {});
+    Mesh mesh = Mesh(device, vertices, indices);
     model.meshes.push_back(std::make_shared<Mesh>(mesh));
 }
+
+Model makeSkyBox(Device& device)
+{
+    Model model;
+    Mesh mesh;
+
+
+    Texture image;
+
+    int width,height, channels;
+    uint32_t mipLevels;
+    stbi_uc* faceData[6];
+    faceData[0] = stbi_load("Resources/textures/Cubemap/right.jpg", &width, &height, &channels, STBI_rgb_alpha);
+    faceData[1] = stbi_load("Resources/textures/Cubemap/left.jpg", &width, &height, &channels, STBI_rgb_alpha);
+    faceData[2] = stbi_load("Resources/textures/Cubemap/top.jpg", &width, &height, &channels, STBI_rgb_alpha);
+    faceData[3] = stbi_load("Resources/textures/Cubemap/bottom.jpg", &width, &height, &channels, STBI_rgb_alpha);
+    faceData[4] = stbi_load("Resources/textures/Cubemap/front.jpg", &width, &height, &channels, STBI_rgb_alpha);
+    faceData[5] = stbi_load("Resources/textures/Cubemap/back.jpg", &width, &height, &channels, STBI_rgb_alpha); 
+    VkDeviceSize imageSize = width * height * channels * 6;
+    VkDeviceSize layerSize = width * height * channels;
+    mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+    
+
+    Buffer stagingBuffer;
+
+    stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    stbi_uc* data;
+    vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, (void**) & data);
+    for (int i = 0; i < 6; i++) {
+        memcpy(data + layerSize * i, faceData[i], static_cast<size_t>(imageSize));
+
+    }
+    vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
+
+    for (int i = 0; i < 6; i++) {
+        stbi_image_free(faceData[i]);
+    }
+    image.image = Image(device, width, height, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,6);
+
+    transitionImageLayout(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+    
+    std::vector<VkBufferImageCopy> bufferCopyRegions;
+
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
+
+    for (uint32_t i = 0; i < 6; i++) {
+
+        for (uint32_t mipLevel = 0; mipLevel < mipLevels; mipLevel++) {
+
+            VkBufferImageCopy region{};
+            region.bufferOffset = layerSize * i;
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = mipLevel;
+            region.imageSubresource.baseArrayLayer = i;
+            region.imageSubresource.layerCount = 1;
+            region.imageExtent.width = width >> mipLevel;
+            region.imageExtent.height = height >> mipLevel;
+            region.imageExtent.depth = 1;
+
+            bufferCopyRegions.emplace_back(region);
+        }
+    }
+
+    vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.Get(), image.image.Get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, bufferCopyRegions.size(), bufferCopyRegions.data());
+    endSingleTimeCommands(device, commandBuffer);
+    copyBufferToImage(device, stagingBuffer.Get(), image.image.Get(), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    //transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+
+    vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
+    vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
+
+    generateMipmaps(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, width, height, mipLevels);
+
+    image.imageView = ImageView(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels,6);
+    image.sampler = Sampler(device, mipLevels);
+
+    return model;
+}
+
