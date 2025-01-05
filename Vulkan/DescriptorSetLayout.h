@@ -33,6 +33,18 @@ public:
         }
         return result;
     }
+    static std::vector<ShaderComponent> GetComponents(ShaderType type) {
+        std::vector<ShaderComponent> results;
+        switch (type) {
+        case ShaderType::DEFAULT:
+            results ={ ShaderComponent::UNIFORM, ShaderComponent::SAMPLER, ShaderComponent::SAMPLER };
+            break;
+        case ShaderType::SKYBOX:
+            results = { ShaderComponent::UNIFORM,ShaderComponent::SAMPLER };
+            break;
+        }
+        return results;
+    }
 private:
 	VkDescriptorSetLayout _descriptorSetLayout;
 };

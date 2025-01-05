@@ -8,14 +8,12 @@ DescriptorSetLayout::DescriptorSetLayout()
 DescriptorSetLayout::DescriptorSetLayout(Device& device, ShaderType type)
 {
 	std::vector<VkDescriptorSetLayoutBinding> bindings;
-	std::vector<ShaderComponent> components;
+	std::vector<ShaderComponent> components = DescriptorSetLayout::GetComponents(type);
 	switch (type) {
 	case ShaderType::DEFAULT:
-		components = { ShaderComponent::UNIFORM,ShaderComponent::SAMPLER ,ShaderComponent::SAMPLER };
 		bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
 		break;
 	case ShaderType::SKYBOX:
-		components = { ShaderComponent::UNIFORM,ShaderComponent::SAMPLER };
 		bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
 		break;
 	}

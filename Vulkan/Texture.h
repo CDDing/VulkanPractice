@@ -8,6 +8,8 @@ public:
 	Image image;
 	ImageView imageView;
 	Sampler sampler;
+
+	VkDescriptorSet descriptorSet;
 private:
 
 	VkImageLayout _imageLayout;
