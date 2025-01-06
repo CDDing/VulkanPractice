@@ -2,20 +2,20 @@
 #include "Model.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-Model::Model(Device& device, const std::string& modelPath)
+Model::Model(Device& device, const float& scale, const std::string& modelPath)
 {
-    loadModel(device, modelPath);
+    loadModel(device, modelPath,scale);
 }
 
-Model::Model(Device& device, const std::string& modelPath, const std::string& texturePath)
+Model::Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath)
 {
-    loadModel(device, modelPath);
+    loadModel(device, modelPath,scale);
     loadImage(device, texturePath);
 }
 
-Model::Model(Device& device, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath)
+Model::Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath)
 {
-    loadModel(device, modelPath);
+    loadModel(device, modelPath,scale);
     loadImage(device, texturePath);
     loadImage(device, normalMapPath);
 }
@@ -88,36 +88,51 @@ void Model::destroy(Device& device)
 
 }
 
-void Model::processNode(Device& device, aiNode* node, const aiScene* scene)
+void Model::processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale)
 {
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         // the node object only contains indices to index the actual objects in the scene. 
         // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(std::make_shared<Mesh>(processMesh(device, mesh, scene)));
+        meshes.push_back(std::make_shared<Mesh>(processMesh(device, mesh, scene,scale)));
     }
     // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        processNode(device, node->mChildren[i], scene);
+        processNode(device, node->mChildren[i], scene,scale);
     }
 }
 
-Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
+Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene, const float& scale)
 {// data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
+    glm::vec3 vmin(1000, 1000, 1000);
+    glm::vec3 vmax(-1000, -1000, -1000);
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+        Vertex v;
+            vmin.x = glm::min(vmin.x, mesh->mVertices[i].x);
+            vmin.y = glm::min(vmin.y, mesh->mVertices[i].x);
+            vmin.z = glm::min(vmin.z, mesh->mVertices[i].x);
+            vmax.x = glm::max(vmax.x, mesh->mVertices[i].x);
+            vmax.y = glm::max(vmax.y, mesh->mVertices[i].x);
+            vmax.z = glm::max(vmax.z, mesh->mVertices[i].x);
+    }
 
+    float dx = vmax.x - vmin.x, dy = vmax.y - vmin.y, dz = vmax.z - vmin.z;
+    float dl = glm::max(glm::max(dx, dy), dz);
+    float cx = (vmax.x + vmin.x) * 0.5f, cy = (vmax.y + vmin.y) * 0.5f,
+        cz = (vmax.z + vmin.z) * 0.5f;
     // walk through each of the mesh's vertices
     for (unsigned int i = 0; i < mesh->mNumVertices; i++)
     {
         Vertex vertex;
         glm::vec3 vector; // we declare a placeholder vector since assimp uses its own vector class that doesn't directly convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
         // positions
-        vector.x = mesh->mVertices[i].x;
-        vector.y = mesh->mVertices[i].y;
-        vector.z = mesh->mVertices[i].z;
+        vector.x = mesh->mVertices[i].x * scale;
+        vector.y = mesh->mVertices[i].y * scale;
+        vector.z = mesh->mVertices[i].z * scale;
         vertex.pos = vector;
         // normals
         if (mesh->HasNormals())
@@ -125,7 +140,7 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
             vector.x = mesh->mNormals[i].x;
             vector.y = mesh->mNormals[i].y;
             vector.z = mesh->mNormals[i].z;
-            vertex.normal = vector;
+            vertex.normal = glm::normalize(vector);
         }
         // texture coordinates
         if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
@@ -140,7 +155,7 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
             vector.x = mesh->mTangents[i].x;
             vector.y = mesh->mTangents[i].y;
             vector.z = mesh->mTangents[i].z;
-            vertex.tangent = vector;
+            vertex.tangent = glm::normalize(vector);
             //// bitangent
             //vector.x = mesh->mBitangents[i].x;
             //vector.y = mesh->mBitangents[i].y;
@@ -159,6 +174,12 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
         // retrieve all indices of the face and store them in the indices vector
         for (unsigned int j = 0; j < face.mNumIndices; j++)
             indices.push_back(face.mIndices[j]);
+    }
+
+    for (auto& v : vertices) {
+        v.pos.x = (v.pos.x - cx) / dl * scale;
+        v.pos.y = (v.pos.y - cx) / dl * scale;
+        v.pos.z = (v.pos.z - cx) / dl * scale;
     }
     // process materials
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
@@ -187,7 +208,7 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
 }
 
 
-void Model::loadModel(Device& device, const std::string& modelPath)
+void Model::loadModel(Device& device, const std::string& modelPath, const float& scale)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -201,7 +222,7 @@ void Model::loadModel(Device& device, const std::string& modelPath)
     //directory = path.substr(0, path.find_last_of('/'));
 
     // process ASSIMP's root node recursively
-    processNode(device, scene->mRootNode, scene);
+    processNode(device, scene->mRootNode, scene,scale);
 }
 
 void Model::loadImage(Device& device, const std::string& filePath)

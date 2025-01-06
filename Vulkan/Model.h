@@ -13,9 +13,9 @@ class Model
 {
 public:
 	Model() {};
-	Model(Device& device, const std::string& modelPath);
-	Model(Device& device, const std::string& modelPath, const std::string& texturePath);
-	Model(Device& device, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath);
+	Model(Device& device, const float& scale, const std::string& modelPath);
+	Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath);
+	Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath);
 
 
 	void Render();
@@ -24,12 +24,12 @@ public:
 
 	std::vector<std::shared_ptr<Mesh>> meshes;
 	std::vector<Texture> images;
-	void loadModel(Device& device, const std::string& modelPath);
+	void loadModel(Device& device, const std::string& modelPath, const float& scale);
 	void loadImage(Device& device, const std::string& filePath);
 private:
 	
-	void processNode(Device& device, aiNode* node, const aiScene* scene);
-	Mesh processMesh(Device& device, aiMesh* mesh, const aiScene* scene);
+	void processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale);
+	Mesh processMesh(Device& device, aiMesh* mesh, const aiScene* scene, const float& scale);
 	uint32_t _mipLevels;
 };
 
