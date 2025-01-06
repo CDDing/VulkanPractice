@@ -111,17 +111,19 @@ private:
 
 		Pipeline defaultPipeline = Pipeline(device,
 			swapChain.GetExtent(),
-			descriptorSetLayouts[static_cast<int>(ShaderType::DEFAULT)].Get(),
+			descriptorSetLayouts,
 			swapChain.GetRenderPass(),
 			"shaders/shader.vert.spv",
-			"shaders/shader.frag.spv");
+			"shaders/shader.frag.spv",
+			ShaderType::DEFAULT);
 
 		Pipeline skyboxPipeline = Pipeline(device,
 			swapChain.GetExtent(),
-			descriptorSetLayouts[static_cast<int>(ShaderType::SKYBOX)].Get(),
+			descriptorSetLayouts,
 			swapChain.GetRenderPass(),
 			"shaders/skybox.vert.spv",
-			"shaders/skybox.frag.spv");
+			"shaders/skybox.frag.spv",
+			ShaderType::SKYBOX);
 
 		pipelines[Pipeline::DEFAULT] = (defaultPipeline);
 		pipelines[Pipeline::SKYBOX]=(skyboxPipeline);

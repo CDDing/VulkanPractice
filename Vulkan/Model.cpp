@@ -413,7 +413,7 @@ void GenerateBox(Device& device, Model& model, const float& scale)
 Model makeSkyBox(Device& device)
 {
     Model model;
-    GenerateBox(device, model, 0.5f);
+    GenerateBox(device, model, 40.f);
 
     Texture image;
 

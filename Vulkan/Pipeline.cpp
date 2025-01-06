@@ -5,7 +5,7 @@ Pipeline::Pipeline()
 {
 }
 
-Pipeline::Pipeline(Device& device,VkExtent2D& swapChainExtent,VkDescriptorSetLayout& descriptorSetLayout,RenderPass &renderPass, const std::string& vsShaderPath, const std::string& psShaderPath)
+Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<DescriptorSetLayout>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
 {
     Shader vertShaderModule = Shader(device, vsShaderPath);
     Shader fragShaderModule = Shader(device, psShaderPath);
@@ -78,6 +78,9 @@ Pipeline::Pipeline(Device& device,VkExtent2D& swapChainExtent,VkDescriptorSetLay
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    if (type == ShaderType::SKYBOX) {
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    }
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f;
     rasterizer.depthBiasClamp = 0.0f;
@@ -128,7 +131,7 @@ Pipeline::Pipeline(Device& device,VkExtent2D& swapChainExtent,VkDescriptorSetLay
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayouts[static_cast<int>(type)].Get();
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
