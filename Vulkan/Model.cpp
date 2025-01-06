@@ -1,7 +1,5 @@
 #include "pch.h"
 #include "Model.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 Model::Model(Device& device, const float& scale, const std::string& modelPath)
 {
     loadModel(device, modelPath,scale);
@@ -10,30 +8,28 @@ Model::Model(Device& device, const float& scale, const std::string& modelPath)
 Model::Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath)
 {
     loadModel(device, modelPath,scale);
-    loadImage(device, texturePath);
+    material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
 }
 
 Model::Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath)
 {
     loadModel(device, modelPath,scale);
-    loadImage(device, texturePath);
-    loadImage(device, normalMapPath);
+    material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
 }
 
 Model makeSphere(Device& device, const float& scale, const std::string& texturePath)
 {
     Model model;
     GenerateSphere(device, model,scale);
-    model.loadImage(device,texturePath);
+    model.material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
     return model;
 }
 
 Model makeSphere(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath)
 {
     Model model;
-    GenerateSphere(device,model,scale);
-    model.loadImage(device, texturePath);
-    model.loadImage(device, normalMapPath);
+    GenerateSphere(device,model,scale); 
+    model.material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
     return model;
 }
 
@@ -41,7 +37,7 @@ Model makeSqaure(Device& device, const float& scale, const std::string& textureP
 {
     Model model;
     GenerateSquare(device, model, scale);
-    model.loadImage(device, texturePath);
+    model.material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
     return model;
 }
 
@@ -49,8 +45,7 @@ Model makeSqaure(Device& device, const float& scale, const std::string& textureP
 {
     Model model;
     GenerateSquare(device, model, scale);
-    model.loadImage(device, texturePath);
-    model.loadImage(device, normalMapPath);
+    model.material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
     return model;
 }
 
@@ -58,7 +53,7 @@ Model makeBox(Device& device, const float& scale, const std::string& texturePath
 {
     Model model;
     GenerateBox(device, model, scale);
-    model.loadImage(device, texturePath);
+    model.material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
     return model;
 }
 
@@ -66,8 +61,7 @@ Model makeBox(Device& device, const float& scale, const std::string& texturePath
 {
     Model model;
     GenerateBox(device, model, scale);
-    model.loadImage(device, texturePath);
-    model.loadImage(device, normalMapPath);
+    model.material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
     return model;
 }
 
@@ -81,9 +75,7 @@ void Model::destroy(Device& device)
         mesh->destroy(device);
     }
 
-    for (auto& image : images) {
-        image.destroy(device);
-    }
+    material.destroy(device);
 
 
 }
@@ -225,44 +217,6 @@ void Model::loadModel(Device& device, const std::string& modelPath, const float&
     processNode(device, scene->mRootNode, scene,scale);
 }
 
-void Model::loadImage(Device& device, const std::string& filePath)
-{
-    Texture image;
-
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
-    _mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
-    }
-
-    Buffer stagingBuffer;
-
-    stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    void* data;
-    vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
-
-    stbi_image_free(pixels);
-    image.image = Image(device, texWidth, texHeight, _mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    transitionImageLayout(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, _mipLevels);
-    copyBufferToImage(device,stagingBuffer.Get(), image.image.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    //transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-
-    vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
-    vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
-
-    generateMipmaps(device,image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, _mipLevels);
-
-    image.imageView = ImageView(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, _mipLevels);
-    image.sampler = Sampler(device, _mipLevels);
-
-    images.push_back(image);
-}
 void GenerateSphere(Device& device, Model& model,const float& scale)
 {
 
@@ -436,53 +390,9 @@ Model makeSkyBox(Device& device)
     Model model;
     GenerateBox(device, model, 40.f);
 
-    Texture image;
+    model.material = Material::createMaterialForSkybox(device);
 
-    int width,height, channels;
-    uint32_t mipLevels;
-    stbi_uc* faceData[6];
-    faceData[0] = stbi_load("Resources/textures/Cubemap/right.jpg", &width, &height, &channels, STBI_rgb_alpha);
-    faceData[1] = stbi_load("Resources/textures/Cubemap/left.jpg", &width, &height, &channels, STBI_rgb_alpha);
-    faceData[2] = stbi_load("Resources/textures/Cubemap/top.jpg", &width, &height, &channels, STBI_rgb_alpha);
-    faceData[3] = stbi_load("Resources/textures/Cubemap/bottom.jpg", &width, &height, &channels, STBI_rgb_alpha);
-    faceData[4] = stbi_load("Resources/textures/Cubemap/front.jpg", &width, &height, &channels, STBI_rgb_alpha);
-    faceData[5] = stbi_load("Resources/textures/Cubemap/back.jpg", &width, &height, &channels, STBI_rgb_alpha); 
-    VkDeviceSize imageSize = width * height * 4 * 6;
-    VkDeviceSize layerSize = width * height * 4;
-    mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-    //mipLevels = 01;
-
-    Buffer stagingBuffer;
-    stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    void* data;
-    vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
-    for (int i = 0; i < 6; i++) {
-        memcpy((stbi_uc*)data + i*layerSize, faceData[i], static_cast<size_t>(layerSize));
     
-    }
-    vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
-
-    for (int i = 0; i < 6; i++) {
-        stbi_image_free(faceData[i]);
-    }
-    
-    image.image = Image(device, width, height, mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,6);
-
-    transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    copyBufferToImageForCubemap(device, stagingBuffer.Get(), image.image.Get(), static_cast<uint32_t>(width), static_cast<uint32_t>(height),layerSize);
-    //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-
-    vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
-    vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
-
-    generateMipmapsForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, width, height, mipLevels);
-    
-    
-    image.imageView = ImageView(device, image.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels,6);
-    image.sampler = Sampler(device, mipLevels);
-
-    model.images.push_back(image);
 
     return model;
 }

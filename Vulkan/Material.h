@@ -1,13 +1,33 @@
 #pragma once
-class Texture;
+enum class MaterialComponent {
+	TEXTURE,
+	NORMAL,
+	ROUGHNESS,
+	METALNESS,
+	DISPLACEMENT,
+	END,
+};
+struct MaterialData {
+		Image image;
+		ImageView imageView;
+		Sampler sampler;
+		VkDescriptorSet descriptorSet;
+	};
 class Material
 {
 public:
+
 	Material() {};
-	void createDescriptorSet(Device& device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, uint32_t descriptorBindingFlags);	
+	Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath);
+	void destroy(Device& device);
+	MaterialData& Get(MaterialComponent component) { return _materials[static_cast<int>(component)]; }
+	MaterialData& Get(int idx) { return _materials[idx]; }
+
+	static Material createMaterialForSkybox(Device& device);
+	
 private:
-	Texture* baseColor;
-	Texture* normalMap;
-	DescriptorSet descriptorSet;
+	std::vector<MaterialData> _materials;
+	std::vector<bool> _components;
+	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component);
 };
 

@@ -184,8 +184,8 @@ private:
 
 				case ShaderComponent::SAMPLER:
 					imageInfos[imgCnt].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					imageInfos[imgCnt].imageView = skybox.images[imgCnt].imageView.Get();
-					imageInfos[imgCnt].sampler = skybox.images[imgCnt].sampler.Get();
+					imageInfos[imgCnt].imageView = skybox.material.Get(MaterialComponent::TEXTURE).imageView.Get();
+					imageInfos[imgCnt].sampler = skybox.material.Get(MaterialComponent::TEXTURE).sampler.Get();
 
 					descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 					descriptorWrite.dstSet = skyboxDescriptorSets[i].Get();
@@ -234,8 +234,8 @@ private:
 
 					case ShaderComponent::SAMPLER:
 						imageInfos[imgCnt].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-						imageInfos[imgCnt].imageView = models[i].images[imgCnt].imageView.Get();
-						imageInfos[imgCnt].sampler = models[i].images[imgCnt].sampler.Get();
+						imageInfos[imgCnt].imageView = models[i].material.Get(imgCnt).imageView.Get();
+						imageInfos[imgCnt].sampler = models[i].material.Get(imgCnt).sampler.Get();
 
 						descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 						descriptorWrite.dstSet = descriptorSets[i][j].Get();

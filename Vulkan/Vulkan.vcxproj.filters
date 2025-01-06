@@ -117,9 +117,6 @@
     <ClCompile Include="Model.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Texture.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="Material.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -195,9 +192,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Model.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Material.h">

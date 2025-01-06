@@ -159,7 +159,6 @@
     <ClCompile Include="Struct.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="SwapChain.cpp" />
-    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="VL.cpp" />
     <ClCompile Include="Vulkan.cpp">
@@ -191,7 +190,6 @@
     <ClInclude Include="Struct.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="SwapChain.h" />
-    <ClInclude Include="Texture.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="VL.h" />
   </ItemGroup>

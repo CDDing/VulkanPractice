@@ -6,6 +6,14 @@ layout(location = 0) in vec3 v_normal;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 v_tangent;
 
+layout(push_constant) uniform PushConsts{
+	float roughness;
+	float metallic;
+	float r;
+	float g;
+	float b;
+};
+
 layout(location = 0) out vec4 outColor;
 void main(){
 
