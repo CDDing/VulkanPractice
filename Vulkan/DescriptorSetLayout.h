@@ -37,7 +37,7 @@ public:
         std::vector<ShaderComponent> results;
         switch (type) {
         case ShaderType::DEFAULT:
-            results ={ ShaderComponent::UNIFORM, ShaderComponent::SAMPLER, ShaderComponent::SAMPLER };
+            results ={ ShaderComponent::UNIFORM, ShaderComponent::SAMPLER, ShaderComponent::SAMPLER, ShaderComponent::SAMPLER, ShaderComponent::SAMPLER };
             break;
         case ShaderType::SKYBOX:
             results = { ShaderComponent::UNIFORM,ShaderComponent::SAMPLER };

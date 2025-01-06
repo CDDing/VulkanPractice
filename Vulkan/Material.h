@@ -11,7 +11,6 @@ struct MaterialData {
 		Image image;
 		ImageView imageView;
 		Sampler sampler;
-		VkDescriptorSet descriptorSet;
 	};
 class Material
 {
@@ -22,9 +21,11 @@ public:
 	void destroy(Device& device);
 	MaterialData& Get(MaterialComponent component) { return _materials[static_cast<int>(component)]; }
 	MaterialData& Get(int idx) { return _materials[idx]; }
+	bool hasComponent(int idx) { return _components[idx]; }
 
 	static Material createMaterialForSkybox(Device& device);
-	
+
+	std::vector<DescriptorSet> descriptorSets;
 private:
 	std::vector<MaterialData> _materials;
 	std::vector<bool> _components;

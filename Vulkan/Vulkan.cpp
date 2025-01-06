@@ -24,7 +24,6 @@ private:
 
 	DescriptorPool descriptorPool;
 	std::vector<DescriptorSetLayout> descriptorSetLayouts;
-	std::vector<std::vector<DescriptorSet>> descriptorSets;
 
 	std::vector<Pipeline> pipelines;
 
@@ -131,9 +130,11 @@ private:
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
 		Model model2 = Model(device,1.f
-			,{ MaterialComponent::TEXTURE, MaterialComponent::NORMAL},
+			,{ MaterialComponent::TEXTURE, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS},
 			MODEL_PATH.c_str(), 
-			{ TEXTURE_PATH.c_str(), NORMALMAP_PATH.c_str() });
+			{ "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Albedo.jpg", 
+			"Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Normal_LOD0.jpg", 
+			"Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Roughness.jpg"});
 
 		//models.push_back(model);
 		models.push_back(model2);
@@ -142,15 +143,7 @@ private:
 	}
 
 	void createDescriptorSets() {
-
-		descriptorSets.resize(models.size());
-		for (auto& descriptorSetVector : descriptorSets) {
-			descriptorSetVector.resize(MAX_FRAMES_IN_FLIGHT);
-			for (auto& descriptorSet : descriptorSetVector) {
-				descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::DEFAULT)]);
-			}
-		}
-
+		//skybox용 디스크립터 셋
 		skyboxDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 		for (auto& descriptorSet : skyboxDescriptorSets) {
 			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::SKYBOX)]);
@@ -205,14 +198,23 @@ private:
 			vkUpdateDescriptorSets(device.Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
 
-		for (int i = 0; i < models.size(); i++) {
+
+		//기본 디스크립터 셋
+		for (auto& model:models) {
+			model.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+			for (auto& descriptorSet : model.material.descriptorSets) {
+				descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::DEFAULT)]);
+			}
+		}
+
+		
+		for (auto& model:models) {
 			for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
 				std::vector<VkWriteDescriptorSet> descriptorWrites;
 				std::vector<ShaderComponent> components = DescriptorSetLayout::GetComponents(ShaderType::DEFAULT);
 
 				int imgCnt = 0;
 				int bufCnt = 0;
-
 				// bufferInfo와 imageInfo를 벡터에 저장하여 유효 범위 보장
 				std::vector<VkDescriptorBufferInfo> bufferInfos(components.size());
 				std::vector<VkDescriptorImageInfo> imageInfos(components.size());
@@ -226,7 +228,7 @@ private:
 						bufferInfos[bufCnt].range = sizeof(UniformBufferObject);
 
 						descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						descriptorWrite.dstSet = descriptorSets[i][j].Get();
+						descriptorWrite.dstSet = model.material.descriptorSets[j].Get();
 						descriptorWrite.dstBinding = binding;
 						descriptorWrite.dstArrayElement = 0;
 						descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -236,12 +238,13 @@ private:
 						break;
 
 					case ShaderComponent::SAMPLER:
+						if (!model.material.hasComponent(imgCnt)) continue;
 						imageInfos[imgCnt].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-						imageInfos[imgCnt].imageView = models[i].material.Get(imgCnt).imageView.Get();
-						imageInfos[imgCnt].sampler = models[i].material.Get(imgCnt).sampler.Get();
+						imageInfos[imgCnt].imageView = model.material.Get(imgCnt).imageView.Get();
+						imageInfos[imgCnt].sampler = model.material.Get(imgCnt).sampler.Get();
 
 						descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						descriptorWrite.dstSet = descriptorSets[i][j].Get();
+						descriptorWrite.dstSet = model.material.descriptorSets[j].Get();
 						descriptorWrite.dstBinding = binding;
 						descriptorWrite.dstArrayElement = 0;
 						descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -354,8 +357,8 @@ private:
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
 		
-		for (int i = 0; i < models.size(); i++) {
-			for (auto& mesh : models[i].meshes) {
+		for (auto& model:models) {
+			for (auto& mesh : model.meshes) {
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
 
 				VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
@@ -365,7 +368,7 @@ private:
 
 
 
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].GetLayout(), 0, 1, &descriptorSets[i][currentFrame].Get(), 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].GetLayout(), 0, 1, &model.material.descriptorSets[currentFrame].Get(), 0, nullptr);
 
 				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
 

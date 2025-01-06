@@ -1,17 +1,18 @@
 #version 450
 layout(binding = 1) uniform sampler2D texSampler;
 layout(binding = 2) uniform sampler2D normalSampler;
+layout(binding = 3) uniform sampler2D roughnessSampler;
+layout(binding = 4) uniform sampler2D metalnessSampler;
 
 layout(location = 0) in vec3 v_normal;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 v_tangent;
 
 layout(push_constant) uniform PushConsts{
-	float roughness;
-	float metallic;
-	float r;
-	float g;
-	float b;
+	bool hasTexture;
+	bool hasNormal;
+	bool hasRoughness;
+	bool hasMetalness;
 };
 
 layout(location = 0) out vec4 outColor;
@@ -31,7 +32,6 @@ void main(){
 	mat3 TBN = mat3x3(T,B,N);
 
 	vec3 normalWorld = normalize(TBN * normalMap);
-	
 
 	float light = max(dot(normalWorld, -lightDir),0.0);
 	
