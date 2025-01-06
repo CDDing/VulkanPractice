@@ -1,68 +1,12 @@
 #include "pch.h"
 #include "Model.h"
-Model::Model(Device& device, const float& scale, const std::string& modelPath)
-{
-    loadModel(device, modelPath,scale);
-}
 
-Model::Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath)
-{
-    loadModel(device, modelPath,scale);
-    material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
-}
 
-Model::Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath)
+Model::Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths)
 {
-    loadModel(device, modelPath,scale);
-    material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
-}
+    loadModel(device, modelPath, scale);
+    material = Material(device, components, materialPaths);
 
-Model makeSphere(Device& device, const float& scale, const std::string& texturePath)
-{
-    Model model;
-    GenerateSphere(device, model,scale);
-    model.material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
-    return model;
-}
-
-Model makeSphere(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath)
-{
-    Model model;
-    GenerateSphere(device,model,scale); 
-    model.material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
-    return model;
-}
-
-Model makeSqaure(Device& device, const float& scale, const std::string& texturePath)
-{
-    Model model;
-    GenerateSquare(device, model, scale);
-    model.material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
-    return model;
-}
-
-Model makeSqaure(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath)
-{
-    Model model;
-    GenerateSquare(device, model, scale);
-    model.material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
-    return model;
-}
-
-Model makeBox(Device& device, const float& scale, const std::string& texturePath)
-{
-    Model model;
-    GenerateBox(device, model, scale);
-    model.material = Material(device, { MaterialComponent::TEXTURE }, { texturePath });
-    return model;
-}
-
-Model makeBox(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath)
-{
-    Model model;
-    GenerateBox(device, model, scale);
-    model.material = Material(device, { MaterialComponent::TEXTURE, MaterialComponent::NORMAL }, { texturePath,normalMapPath });
-    return model;
 }
 
 void Model::Render()
@@ -215,6 +159,30 @@ void Model::loadModel(Device& device, const std::string& modelPath, const float&
 
     // process ASSIMP's root node recursively
     processNode(device, scene->mRootNode, scene,scale);
+}
+
+Model makeSphere(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+{
+    Model model;
+    GenerateSphere(device, model, scale);
+    model.material = Material(device, components, materialPaths);
+    return model;
+}
+
+Model makeSqaure(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+{
+    Model model;
+    GenerateSquare(device, model, scale);
+    model.material = Material(device, components, materialPaths);
+    return model;
+}
+
+Model makeBox(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+{
+    Model model;
+    GenerateBox(device, model, scale);
+    model.material = Material(device, components, materialPaths);
+    return model;
 }
 
 void GenerateSphere(Device& device, Model& model,const float& scale)

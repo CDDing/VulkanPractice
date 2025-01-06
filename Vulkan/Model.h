@@ -13,10 +13,7 @@ class Model
 {
 public:
 	Model() {};
-	Model(Device& device, const float& scale, const std::string& modelPath);
-	Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath);
-	Model(Device& device, const float& scale, const std::string& modelPath, const std::string& texturePath, const std::string& normalMapPath);
-
+	Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths);
 
 	void Render();
 	void destroy(Device& device);
@@ -33,12 +30,9 @@ private:
 };
 
 
-Model makeSphere(Device& device, const float& scale, const std::string& texturePath);
-Model makeSphere(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath);
-Model makeSqaure(Device& device, const float& scale, const std::string& texturePath);
-Model makeSqaure(Device& device, const float& scale, const std::string& texturePath, const std::string& normalMapPath);
-Model makeBox(Device& device, const float& scale, const std::string& texturePath);
-Model makeBox(Device& device, const float& scale, const std::string& texturePath,const std::string& normalMapPath);
+Model makeSphere(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
+Model makeSqaure(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
+Model makeBox(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
 void GenerateSphere(Device& device, Model& model,const float& scale);
 void GenerateSquare(Device& device, Model& model, const float& scale);
 void GenerateBox(Device& device, Model& model, const float& scale);

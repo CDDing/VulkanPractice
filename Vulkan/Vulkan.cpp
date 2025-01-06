@@ -130,7 +130,10 @@ private:
 	}
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-		Model model2 = Model(device,1.f, MODEL_PATH.c_str(), TEXTURE_PATH.c_str(), NORMALMAP_PATH.c_str());
+		Model model2 = Model(device,1.f
+			,{ MaterialComponent::TEXTURE, MaterialComponent::NORMAL},
+			MODEL_PATH.c_str(), 
+			{ TEXTURE_PATH.c_str(), NORMALMAP_PATH.c_str() });
 
 		//models.push_back(model);
 		models.push_back(model2);
