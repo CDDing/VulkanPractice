@@ -17,7 +17,7 @@ public:
     static VkDescriptorSetLayoutBinding inputLayoutBinding(uint32_t binding, ShaderComponent component) {
         switch (component) {
         case ShaderComponent::UNIFORM:
-            return { binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+            return { binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr };
         case ShaderComponent::SAMPLER:
             return { binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr };
         default:

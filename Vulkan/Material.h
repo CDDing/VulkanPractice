@@ -4,7 +4,6 @@ enum class MaterialComponent {
 	NORMAL,
 	ROUGHNESS,
 	METALNESS,
-	DISPLACEMENT,
 	END,
 };
 struct MaterialData {

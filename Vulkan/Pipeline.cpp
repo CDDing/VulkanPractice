@@ -135,6 +135,16 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<Desc
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
+    VkPushConstantRange range = {};
+    if (type == ShaderType::DEFAULT) {
+        range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        range.offset = 0;
+        range.size = 16;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &range;
+    }
+
+
     if (vkCreatePipelineLayout(device.Get(), &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
     }

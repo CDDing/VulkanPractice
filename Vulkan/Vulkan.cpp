@@ -131,10 +131,10 @@ private:
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
 		Model model2 = Model(device,1.f
 			,{ MaterialComponent::TEXTURE, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS},
-			MODEL_PATH.c_str(), 
-			{ "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Albedo.jpg", 
-			"Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Normal_LOD0.jpg", 
-			"Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_2K_Roughness.jpg"});
+			"Resources/models/vk2vcdl/vk2vcdl.fbx",
+			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg", 
+			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg", 
+			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg"});
 
 		//models.push_back(model);
 		models.push_back(model2);
@@ -366,7 +366,12 @@ private:
 				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
 
-
+				int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
+				VkBool32 data[4];
+				for (int i = 0; i < maxMaterialCnt; i++) {
+					data[i] = model.material.hasComponent(i);
+				}
+				vkCmdPushConstants(commandBuffer, pipelines[Pipeline::DEFAULT].GetLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16, data);
 
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].GetLayout(), 0, 1, &model.material.descriptorSets[currentFrame].Get(), 0, nullptr);
 
@@ -423,6 +428,7 @@ private:
 		ubo.view = camera.GetView();
 		ubo.proj = camera.GetProj(swapChain.GetExtent().width, swapChain.GetExtent().height);
 		ubo.proj[1][1] *= -1;
+		ubo.camPos = camera.GetPos();
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 	}
