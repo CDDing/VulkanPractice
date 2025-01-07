@@ -268,6 +268,8 @@ private:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
+			
+			
 		}
 	}
 
@@ -429,6 +431,12 @@ private:
 		ubo.proj = camera.GetProj(swapChain.GetExtent().width, swapChain.GetExtent().height);
 		ubo.proj[1][1] *= -1;
 		ubo.camPos = camera.GetPos();
+
+		ubo.lights[0] = glm::vec4(0, 3, 0,0);
+		ubo.lights[1] = glm::vec4(1, 1, 1,0);
+		ubo.lights[2] = glm::vec4(1, 1, 1,0);
+		ubo.lights[3] = glm::vec4(1, 1, 1,0);
+
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 	}

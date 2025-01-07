@@ -3,6 +3,7 @@ layout(binding = 0) uniform UniformBufferObject{
 	mat4 model;
 	mat4 view;
 	mat4 proj;
+	vec4 lights[4];
 	vec3 camPos;
 }ubo;
 layout(binding = 1) uniform sampler2D texSampler;
@@ -107,7 +108,8 @@ vec3 GetNormal(){
 layout(location = 0) out vec4 outColor;
 void main(){
 
-	vec3 lightDir = normalize(vec3(1,1,1));
+	vec3 lightPos = ubo.lights[0].xyz;
+	vec3 lightDir = normalize(inWorldPos - lightPos);
 	vec3 normal = normalize(v_normal);
 
 
