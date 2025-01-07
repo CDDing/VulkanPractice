@@ -10,6 +10,7 @@ layout(binding = 1) uniform sampler2D texSampler;
 layout(binding = 2) uniform sampler2D normalSampler;
 layout(binding = 3) uniform sampler2D roughnessSampler;
 layout(binding = 4) uniform sampler2D metalnessSampler;
+layout(binding = 5) uniform sampler2D aoSampler;
 
 layout(location = 0) in vec3 v_normal;
 layout(location = 1) in vec2 fragTexCoord;
@@ -20,6 +21,7 @@ layout(push_constant) uniform PushConsts{
 	bool hasNormal;
 	bool hasRoughness;
 	bool hasMetalness;
+	bool hasao;
 };
 const float PI = 3.14159265359;
 

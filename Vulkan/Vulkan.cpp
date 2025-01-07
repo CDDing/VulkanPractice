@@ -130,11 +130,12 @@ private:
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
 		Model model2 = Model(device,1.f
-			,{ MaterialComponent::TEXTURE, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS},
+			,{ MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao},
 			"Resources/models/vk2vcdl/vk2vcdl.fbx",
 			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg", 
 			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg", 
-			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg"});
+			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
+			"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" });
 
 		//models.push_back(model);
 		models.push_back(model2);
@@ -180,8 +181,8 @@ private:
 
 				case ShaderComponent::SAMPLER:
 					imageInfos[imgCnt].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					imageInfos[imgCnt].imageView = skybox.material.Get(MaterialComponent::TEXTURE).imageView.Get();
-					imageInfos[imgCnt].sampler = skybox.material.Get(MaterialComponent::TEXTURE).sampler.Get();
+					imageInfos[imgCnt].imageView = skybox.material.Get(MaterialComponent::ALBEDO).imageView.Get();
+					imageInfos[imgCnt].sampler = skybox.material.Get(MaterialComponent::ALBEDO).sampler.Get();
 
 					descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 					descriptorWrite.dstSet = skyboxDescriptorSets[i].Get();
@@ -369,7 +370,7 @@ private:
 				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
 
 				int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
-				VkBool32 data[4];
+				VkBool32 data[5];
 				for (int i = 0; i < maxMaterialCnt; i++) {
 					data[i] = model.material.hasComponent(i);
 				}

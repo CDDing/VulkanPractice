@@ -79,7 +79,7 @@ Material Material::createMaterialForSkybox(Device& device)
     materialData.sampler = Sampler(device, mipLevels);
 
     material._components.resize(static_cast<int>(MaterialComponent::END));
-    material._components[static_cast<int>(MaterialComponent::TEXTURE)] = true;
+    material._components[static_cast<int>(MaterialComponent::ALBEDO)] = true;
     material._materials.push_back(materialData);
     return material;
 }

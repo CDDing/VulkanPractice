@@ -1,9 +1,10 @@
 #pragma once
 enum class MaterialComponent {
-	TEXTURE,
+	ALBEDO,
 	NORMAL,
 	ROUGHNESS,
 	METALNESS,
+	ao,
 	END,
 };
 struct MaterialData {
