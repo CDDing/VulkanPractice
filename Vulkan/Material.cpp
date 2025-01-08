@@ -1,3 +1,4 @@
+
 #include "pch.h"
 #include "Material.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -37,45 +38,59 @@ Material Material::createMaterialForSkybox(Device& device)
     int width, height, channels;
     uint32_t mipLevels;
     stbi_uc* faceData[6];
+    
     faceData[0] = stbi_load("Resources/textures/Cubemap/right.jpg", &width, &height, &channels, STBI_rgb_alpha);
     faceData[1] = stbi_load("Resources/textures/Cubemap/left.jpg", &width, &height, &channels, STBI_rgb_alpha);
     faceData[2] = stbi_load("Resources/textures/Cubemap/top.jpg", &width, &height, &channels, STBI_rgb_alpha);
     faceData[3] = stbi_load("Resources/textures/Cubemap/bottom.jpg", &width, &height, &channels, STBI_rgb_alpha);
     faceData[4] = stbi_load("Resources/textures/Cubemap/front.jpg", &width, &height, &channels, STBI_rgb_alpha);
     faceData[5] = stbi_load("Resources/textures/Cubemap/back.jpg", &width, &height, &channels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = width * height * 4 * 6;
-    VkDeviceSize layerSize = width * height * 4;
+    DirectX::ScratchImage imageData;
+    std::wstring name = L"Resources/textures/IBL/sampleSpecularHDR.dds";
+    DirectX::LoadFromDDSFile(name.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, imageData);
+    DirectX::TexMetadata metadata = imageData.GetMetadata();
+    width = metadata.width;
+    height = metadata.height;
+
+
+    size_t bpp = DirectX::BitsPerPixel(metadata.format);
+    VkDeviceSize layerSize = width * height * bpp /8;
+    VkDeviceSize imageSize = layerSize * 6;
     mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
     //mipLevels = 01;
 
     Buffer stagingBuffer;
     stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
+    
+
     void* data;
     vkMapMemory(device.Get(), stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
     for (int i = 0; i < 6; i++) {
-        memcpy((stbi_uc*)data + i * layerSize, faceData[i], static_cast<size_t>(layerSize));
+        const DirectX::Image* img = imageData.GetImage(0, i, 0);
 
-    }
+        memcpy((stbi_uc*)data + i * layerSize, img->pixels, static_cast<size_t>(layerSize));
+
+    };
     vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
     for (int i = 0; i < 6; i++) {
         stbi_image_free(faceData[i]);
     }
 
-    materialData.image = Image(device, width, height, mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 6);
+    materialData.image = Image(device, width, height, mipLevels, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 6);
 
-    transitionImageLayoutForCubemap(device, materialData.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+    transitionImageLayoutForCubemap(device, materialData.image.Get(), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     copyBufferToImageForCubemap(device, stagingBuffer.Get(), materialData.image.Get(), static_cast<uint32_t>(width), static_cast<uint32_t>(height), layerSize);
     //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 
     vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
     vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
 
-    generateMipmapsForCubemap(device, materialData.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, width, height, mipLevels);
+    generateMipmapsForCubemap(device, materialData.image.Get(), VK_FORMAT_R32G32B32A32_SFLOAT, width, height, mipLevels);
 
 
-    materialData.imageView = ImageView(device, materialData.image.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels, 6);
+    materialData.imageView = ImageView(device, materialData.image.Get(), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels, 6);
     materialData.sampler = Sampler(device, mipLevels);
 
     material._components.resize(static_cast<int>(MaterialComponent::END));

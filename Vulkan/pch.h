@@ -1,4 +1,6 @@
 #pragma once
+
+#include <DirectXTex.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -26,7 +28,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext/scalar_constants.hpp>
-
 #include "Utils.h"
 #include "Struct.h"
 #include "Instance.h"
