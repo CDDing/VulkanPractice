@@ -87,9 +87,6 @@
     <ClCompile Include="ImageView.cpp">
       <Filter>소스 파일\Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Sampler.cpp">
-      <Filter>소스 파일\Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Shader.cpp">
       <Filter>소스 파일\Shader</Filter>
     </ClCompile>
@@ -119,6 +116,9 @@
     </ClCompile>
     <ClCompile Include="Material.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Sampler.cpp">
+      <Filter>소스 파일\Resource</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -164,17 +164,11 @@
     <ClInclude Include="ImageView.h">
       <Filter>소스 파일\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Sampler.h">
-      <Filter>소스 파일\Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="Shader.h">
       <Filter>소스 파일\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Utils.h">
       <Filter>소스 파일\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorSetLayout.h">
-      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorSet.h">
       <Filter>소스 파일\Shader\Descriptor</Filter>
@@ -196,6 +190,12 @@
     </ClInclude>
     <ClInclude Include="Material.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorSetLayout.h">
+      <Filter>소스 파일\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Sampler.h">
+      <Filter>소스 파일\Resource</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

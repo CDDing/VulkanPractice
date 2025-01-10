@@ -6,11 +6,12 @@ layout(binding = 0) uniform UniformBufferObject{
 	vec4 lights[4];
 	vec3 camPos;
 }ubo;
-layout(binding = 1) uniform sampler2D texSampler;
-layout(binding = 2) uniform sampler2D normalSampler;
-layout(binding = 3) uniform sampler2D roughnessSampler;
-layout(binding = 4) uniform sampler2D metalnessSampler;
-layout(binding = 5) uniform sampler2D aoSampler;
+layout(binding = 1) uniform sampler2D samplers[5];
+//0 , Texture Sampler
+//1, NormalMap Sampler
+//2 , Roughness Sampler
+//3, Metalness Sampler
+//4 , ao Sampler
 
 layout(location = 0) in vec3 v_normal;
 layout(location = 1) in vec2 fragTexCoord;
@@ -29,7 +30,7 @@ const float PI = 3.14159265359;
 
 vec3 materialcolor()
 {
-	return texture(texSampler,fragTexCoord).xyz;
+	return texture(samplers[0],fragTexCoord).xyz;
 }
 
 // Normal Distribution function --------------------------------------
@@ -95,7 +96,7 @@ vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
 vec3 GetNormal(){
 	vec3 normalWorld = v_normal;
 	if(hasNormal){
-		vec3 normal = texture(normalSampler,fragTexCoord).xyz;
+		vec3 normal = texture(samplers[1],fragTexCoord).xyz;
 		normal = 2.0*normal -1.0;
 
 		vec3 N = normalWorld;
@@ -115,7 +116,7 @@ void main(){
 	vec3 normal = normalize(v_normal);
 
 
-	vec3 normalMap = texture(normalSampler,fragTexCoord).rgb;
+	vec3 normalMap = texture(samplers[1],fragTexCoord).rgb;
 	normalMap = normalize(normalMap * 2.0 - 1.0);
 
 	vec3 N = normal;
@@ -130,7 +131,7 @@ void main(){
 
 	float light = max(dot(normalWorld, -lightDir),0.0);
 	
-	outColor = texture(texSampler, fragTexCoord);
+	outColor = texture(samplers[0], fragTexCoord);
 	
 	outColor.rgb *= light;
 }

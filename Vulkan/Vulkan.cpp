@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+MaterialData notUsedData;
 class VulkanApp {
 public:
 	void run() {
@@ -125,15 +126,15 @@ private:
 			ShaderType::SKYBOX);
 
 		pipelines[Pipeline::DEFAULT] = (defaultPipeline);
-		pipelines[Pipeline::SKYBOX]=(skyboxPipeline);
+		pipelines[Pipeline::SKYBOX] = (skyboxPipeline);
 	}
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-		Model model2 = Model(device,1.f
-			,{ MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao},
+		Model model2 = Model(device, 1.f
+			, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
 			"Resources/models/vk2vcdl/vk2vcdl.fbx",
-			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg", 
-			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg", 
+			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
+			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
 			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
 			"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" });
 
@@ -144,7 +145,11 @@ private:
 	}
 
 	void createDescriptorSets() {
+		notUsedData = Material::GetDefaultMaterial(device);
+
+		
 		//skybox용 디스크립터 셋
+		
 		skyboxDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 		for (auto& descriptorSet : skyboxDescriptorSets) {
 			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::SKYBOX)]);
@@ -152,7 +157,7 @@ private:
 		}
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			std::vector<VkWriteDescriptorSet> descriptorWrites;
-			std::vector<ShaderComponent> components = DescriptorSetLayout::GetComponents(ShaderType::SKYBOX);
+			auto components = DescriptorSetLayout::GetComponents(ShaderType::SKYBOX);
 
 			int imgCnt = 0;
 			int bufCnt = 0;
@@ -163,7 +168,7 @@ private:
 
 			for (int binding = 0; binding < components.size(); binding++) {
 				VkWriteDescriptorSet descriptorWrite{};
-				switch (components[binding]) {
+				switch (components[binding].first) {
 				case ShaderComponent::UNIFORM:
 					bufferInfos[bufCnt].buffer = uniformBuffers[i].Get();
 					bufferInfos[bufCnt].offset = 0;
@@ -201,65 +206,83 @@ private:
 
 
 		//기본 디스크립터 셋
-		for (auto& model:models) {
+		for (auto& model : models) {
 			model.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 			for (auto& descriptorSet : model.material.descriptorSets) {
 				descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(ShaderType::DEFAULT)]);
 			}
 		}
 
-		
-		for (auto& model:models) {
+
+		for (auto& model : models) {
 			for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
 				std::vector<VkWriteDescriptorSet> descriptorWrites;
-				std::vector<ShaderComponent> components = DescriptorSetLayout::GetComponents(ShaderType::DEFAULT);
+				auto components = DescriptorSetLayout::GetComponents(ShaderType::DEFAULT);
 
 				int imgCnt = 0;
 				int bufCnt = 0;
 				// bufferInfo와 imageInfo를 벡터에 저장하여 유효 범위 보장
-				std::vector<VkDescriptorBufferInfo> bufferInfos(components.size());
-				std::vector<VkDescriptorImageInfo> imageInfos(components.size());
+
+				std::vector<VkDescriptorBufferInfo> bufferInfos(components[0].second);
+				std::vector<VkDescriptorImageInfo> imageInfos(components[1].second);
+
+				VkWriteDescriptorSet descriptorWrite{};
 
 				for (int binding = 0; binding < components.size(); binding++) {
-					VkWriteDescriptorSet descriptorWrite{};
-					switch (components[binding]) {
-					case ShaderComponent::UNIFORM:
-						bufferInfos[bufCnt].buffer = uniformBuffers[j].Get();
-						bufferInfos[bufCnt].offset = 0;
-						bufferInfos[bufCnt].range = sizeof(UniformBufferObject);
+					for (int cnt = 0; cnt < components[binding].second; cnt++) {
+						switch (components[binding].first) {
+						case ShaderComponent::UNIFORM:
+							bufferInfos[bufCnt].buffer = uniformBuffers[j].Get();
+							bufferInfos[bufCnt].offset = 0;
+							bufferInfos[bufCnt].range = sizeof(UniformBufferObject);
+							break;
 
+
+						case ShaderComponent::SAMPLER:
+							imageInfos[imgCnt].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+							imageInfos[imgCnt].imageView = model.material.Get(imgCnt).imageView.Get();
+							imageInfos[imgCnt].sampler = model.material.Get(imgCnt).sampler.Get();
+							if (!model.material.hasComponent(imgCnt)) {
+								imageInfos[imgCnt].imageView = notUsedData.imageView.Get();
+								imageInfos[imgCnt].sampler = notUsedData.sampler.Get();
+							}
+
+							imgCnt++;
+							break;
+						}
+					}
+					switch (components[binding].first) {
+					case ShaderComponent::UNIFORM:
 						descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 						descriptorWrite.dstSet = model.material.descriptorSets[j].Get();
-						descriptorWrite.dstBinding = binding;
+						descriptorWrite.dstBinding = 0;
 						descriptorWrite.dstArrayElement = 0;
 						descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-						descriptorWrite.descriptorCount = 1;
+						descriptorWrite.descriptorCount = components[binding].second;
 						descriptorWrite.pBufferInfo = &bufferInfos[bufCnt++];
 						descriptorWrites.push_back(descriptorWrite);
 						break;
-
 					case ShaderComponent::SAMPLER:
-						if (!model.material.hasComponent(imgCnt)) continue;
-						imageInfos[imgCnt].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-						imageInfos[imgCnt].imageView = model.material.Get(imgCnt).imageView.Get();
-						imageInfos[imgCnt].sampler = model.material.Get(imgCnt).sampler.Get();
+
 
 						descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 						descriptorWrite.dstSet = model.material.descriptorSets[j].Get();
-						descriptorWrite.dstBinding = binding;
+						descriptorWrite.dstBinding = 1;
 						descriptorWrite.dstArrayElement = 0;
 						descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-						descriptorWrite.descriptorCount = 1;
-						descriptorWrite.pImageInfo = &imageInfos[imgCnt++];
+						descriptorWrite.descriptorCount = components[binding].second;
+						descriptorWrite.pImageInfo = imageInfos.data();
 						descriptorWrites.push_back(descriptorWrite);
 						break;
 					}
 				}
 
 				vkUpdateDescriptorSets(device.Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+
 			}
 		}
 	}
+
 	void createUniformBuffers() {
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -269,8 +292,8 @@ private:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
-			
-			
+
+
 		}
 	}
 
@@ -352,15 +375,15 @@ private:
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].GetLayout(), 0, 1, &skyboxDescriptorSets[currentFrame].Get(), 0, nullptr);
 
-		VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer.Get()};
+		VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer.Get() };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
 
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
-		
-		for (auto& model:models) {
+
+		for (auto& model : models) {
 			for (auto& mesh : model.meshes) {
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
 
@@ -433,10 +456,10 @@ private:
 		ubo.proj[1][1] *= -1;
 		ubo.camPos = camera.GetPos();
 
-		ubo.lights[0] = glm::vec4(0, 3, 0,0);
-		ubo.lights[1] = glm::vec4(1, 1, 1,0);
-		ubo.lights[2] = glm::vec4(1, 1, 1,0);
-		ubo.lights[3] = glm::vec4(1, 1, 1,0);
+		ubo.lights[0] = glm::vec4(0, 3, 0, 0);
+		ubo.lights[1] = glm::vec4(1, 1, 1, 0);
+		ubo.lights[2] = glm::vec4(1, 1, 1, 0);
+		ubo.lights[3] = glm::vec4(1, 1, 1, 0);
 
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -502,6 +525,10 @@ private:
 	void cleanup() {
 		swapChain.destroy(device);
 
+		vkDestroyImageView(device.Get(), notUsedData.imageView.Get(), nullptr);
+		vkDestroyImage(device.Get(), notUsedData.image.Get(), nullptr);
+		vkFreeMemory(device.Get(), notUsedData.image.GetMemory(), nullptr);
+		vkDestroySampler(device.Get(), notUsedData.sampler.Get(), nullptr);
 		vkDestroyDescriptorPool(device.Get(), descriptorPool.Get(), nullptr);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroyBuffer(device.Get(), uniformBuffers[i].Get(), nullptr);
