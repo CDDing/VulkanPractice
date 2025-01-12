@@ -5,7 +5,7 @@ DescriptorSetLayout::DescriptorSetLayout()
 {
 }
 
-DescriptorSetLayout::DescriptorSetLayout(Device& device, ShaderType type)
+DescriptorSetLayout::DescriptorSetLayout(Device& device, DescriptorType type)
 {
 	std::vector<VkDescriptorSetLayoutBinding> bindings;
 	auto components = DescriptorSetLayout::GetComponents(type);

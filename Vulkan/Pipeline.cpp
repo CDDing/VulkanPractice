@@ -5,7 +5,7 @@ Pipeline::Pipeline()
 {
 }
 
-Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<DescriptorSetLayout>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
+Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std::vector<VkDescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
 {
     Shader vertShaderModule = Shader(device, vsShaderPath);
     Shader fragShaderModule = Shader(device, psShaderPath);
@@ -130,8 +130,8 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<Desc
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayouts[static_cast<int>(type)].Get();
+    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts[static_cast<int>(type)].size());
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts[static_cast<int>(type)].data();
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 

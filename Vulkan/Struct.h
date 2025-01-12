@@ -64,9 +64,11 @@ struct Vertex {
 
 };
 struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
     glm::vec4 lights[4];
     alignas(16) glm::vec3 camPos;
+};
+struct Transform {
+    alignas(16) glm::mat4 model;
 };

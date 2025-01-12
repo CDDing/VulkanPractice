@@ -4,6 +4,7 @@
 #include <assimp\scene.h>
 class Mesh;
 class Material;
+struct Transform;
 enum ImageType {
 	TEXTURE,
 	NORMALMAP,
@@ -13,17 +14,22 @@ class Model
 {
 public:
 	Model() {};
-	Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths);
+	Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths,glm::mat4 transform);
 
 	void Render();
 	void destroy(Device& device);
-	glm::mat4 world = glm::mat4();
 
 	std::vector<std::shared_ptr<Mesh>> meshes;
 	Material material;
+	void InitDescriptorSet(Device& device, DescriptorSet& descriptorSet);
+	void InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptorSet);
+	void InitDescriptorSetForModelMatrix(Device& device, DescriptorSet& desciprotrSet);
+	std::vector<DescriptorSet> descriptorSets;
 	void loadModel(Device& device, const std::string& modelPath, const float& scale);
 private:
-	
+	Transform _transform;
+	std::vector<Buffer> _uniformBuffers;
+	std::vector<void*> _uniformBuffersMapped;
 	void processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale);
 	Mesh processMesh(Device& device, aiMesh* mesh, const aiScene* scene, const float& scale);
 	uint32_t _mipLevels;

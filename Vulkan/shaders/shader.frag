@@ -1,12 +1,15 @@
 #version 450
-layout(binding = 0) uniform UniformBufferObject{
-	mat4 model;
+layout(set = 0, binding = 0) uniform UniformBufferObject{
 	mat4 view;
 	mat4 proj;
 	vec4 lights[4];
 	vec3 camPos;
 }ubo;
-layout(binding = 1) uniform sampler2D samplers[5];
+
+layout (set = 1, binding = 0) uniform samplerCube samplerCubeMap[3];
+layout (set = 1, binding = 1) uniform sampler2D brdfsampler;
+layout (set = 2, binding = 0) uniform sampler2D samplers[5];
+
 //0 , Texture Sampler
 //1, NormalMap Sampler
 //2 , Roughness Sampler

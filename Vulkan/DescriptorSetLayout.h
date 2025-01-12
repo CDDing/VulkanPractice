@@ -12,7 +12,7 @@ class DescriptorSetLayout
 {
 public:
 	DescriptorSetLayout();
-	DescriptorSetLayout(Device& device,ShaderType type);
+	DescriptorSetLayout(Device& device,DescriptorType type);
 	VkDescriptorSetLayout& Get() { return _descriptorSetLayout; }
     static VkDescriptorSetLayoutBinding inputLayoutBinding(uint32_t binding, ShaderComponent component,int cnt) {
         switch (component) {
@@ -35,16 +35,21 @@ public:
         }
         return result;
     }
-    static std::vector<std::pair<ShaderComponent,int>> GetComponents(ShaderType type) {
+    static std::vector<std::pair<ShaderComponent,int>> GetComponents(DescriptorType type) {
         std::vector<std::pair<ShaderComponent,int>> results;
         switch (type) {
-        case ShaderType::DEFAULT:
-            results = { {ShaderComponent::UNIFORM,1},
-                {ShaderComponent::SAMPLER,5}, };
+        case DescriptorType::Material:
+            results = { {ShaderComponent::SAMPLER,5}, };
             break;
-        case ShaderType::SKYBOX:
-            results = { {ShaderComponent::UNIFORM,1},
-                {ShaderComponent::SAMPLER,1} };
+        case DescriptorType::VP:
+            results = { {ShaderComponent::UNIFORM,1}, };
+            break;
+        case DescriptorType::Skybox:
+            results = { { ShaderComponent::SAMPLER,3 },
+            { ShaderComponent::SAMPLER,1 }, };
+            break;
+        case DescriptorType::Model:
+            results = { {ShaderComponent::UNIFORM,1},};
             break;
         }
         return results;

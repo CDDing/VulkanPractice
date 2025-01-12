@@ -11,7 +11,7 @@ public:
 		END,
 	};
 	Pipeline();
-	Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<DescriptorSetLayout>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
+	Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std::vector<VkDescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
 	VkPipeline& Get() { return _pipeline; }
 	VkPipelineLayout& GetLayout() { return _pipelineLayout; }
 private:

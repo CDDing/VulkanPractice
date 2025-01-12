@@ -2,11 +2,25 @@
 #include "Model.h"
 
 
-Model::Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths)
+Model::Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform)
 {
     loadModel(device, modelPath, scale);
     material = Material(device, components, materialPaths);
+    
 
+
+
+
+    VkDeviceSize bufferSize = sizeof(Transform);
+    _uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        _uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        vkMapMemory(device.Get(), _uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
+    }
+    _transform = { transform };
+    memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
+memcpy(_uniformBuffersMapped[1], &_transform, sizeof(_transform));
 }
 
 void Model::Render()
@@ -21,6 +35,10 @@ void Model::destroy(Device& device)
 
     material.destroy(device);
 
+    for (auto& uniformBuffer: _uniformBuffers) {
+        vkDestroyBuffer(device.Get(), uniformBuffer.Get(), nullptr);
+        vkFreeMemory(device.Get(), uniformBuffer.GetMemory(), nullptr);
+    }
 
 }
 
@@ -143,6 +161,95 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene, cons
     return Mesh(device, vertices, indices);
 }
 
+
+void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
+{
+    for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
+        std::vector<VkDescriptorImageInfo> imageInfos(static_cast<uint32_t>(MaterialComponent::END));
+        for (int i = 0; i<static_cast<int>(MaterialComponent::END);i++) {
+            auto& imageInfo = imageInfos[i];
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = material.Get(i).imageView.Get();
+            imageInfo.sampler = material.Get(i).sampler.Get();
+            if (!material.hasComponent(i)) {
+                imageInfo.imageView = Material::dummy.imageView.Get();
+                imageInfo.sampler = Material::dummy.sampler.Get();
+            }
+
+        }
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = material.descriptorSets[frame].Get();
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorCount = imageInfos.size();
+        descriptorWrite.pImageInfo = imageInfos.data();
+        
+        vkUpdateDescriptorSets(device.Get(), 1, &descriptorWrite, 0, nullptr);
+    }
+}
+
+void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptorSet)
+{
+    for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
+        std::vector<VkDescriptorImageInfo> imageInfos(4);
+        for (int i = 0; i < 3; i++) {
+            auto& imageInfo = imageInfos[i];
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = material.Get(i).imageView.Get();
+            imageInfo.sampler = material.Get(i).sampler.Get();
+        }
+        VkWriteDescriptorSet descriptorWriteForMap{};
+        descriptorWriteForMap.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWriteForMap.dstSet = material.descriptorSets[frame].Get();
+        descriptorWriteForMap.dstBinding = 0;
+        descriptorWriteForMap.dstArrayElement = 0;
+        descriptorWriteForMap.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWriteForMap.descriptorCount = imageInfos.size();
+        descriptorWriteForMap.pImageInfo = imageInfos.data();
+
+
+        VkDescriptorImageInfo lutImageInfo{};
+        lutImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        lutImageInfo.imageView = material.Get(3).imageView.Get();
+        lutImageInfo.sampler = material.Get(3).sampler.Get();
+        imageInfos[3] = lutImageInfo;
+        VkWriteDescriptorSet descriptorWriteForLut{};
+        descriptorWriteForLut.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWriteForLut.dstSet = material.descriptorSets[frame].Get();
+        descriptorWriteForLut.dstBinding = 1;
+        descriptorWriteForLut.dstArrayElement = 0;
+        descriptorWriteForLut.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWriteForLut.descriptorCount = 1;
+        descriptorWriteForLut.pImageInfo = &lutImageInfo;
+
+        std::vector<VkWriteDescriptorSet> descriptorWrites;
+        descriptorWrites = { descriptorWriteForMap,descriptorWriteForLut };
+        vkUpdateDescriptorSets(device.Get(),static_cast<uint32_t>( descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    }
+}
+
+void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& desciprotrSet)
+{
+    for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
+        VkDescriptorBufferInfo bufferInfo;
+        bufferInfo.buffer = _uniformBuffers[frame].Get();
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(Transform);
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = descriptorSets[frame].Get();
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+
+        vkUpdateDescriptorSets(device.Get(), 1, &descriptorWrite, 0, nullptr);
+    }
+}
 
 void Model::loadModel(Device& device, const std::string& modelPath, const float& scale)
 {
