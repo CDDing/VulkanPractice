@@ -139,7 +139,7 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     if (type == ShaderType::DEFAULT) {
         range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         range.offset = 0;
-        range.size = 16;
+        range.size = 20;
         pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges = &range;
     }

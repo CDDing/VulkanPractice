@@ -149,7 +149,7 @@ private:
 			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
 			"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
 			glm::mat4(1.0f));
-
+		//Model model = makeSphere(device, glm::mat4(1.0f), {}, {});
 		//models.push_back(model);
 		models.push_back(model2);
 

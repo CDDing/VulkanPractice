@@ -8,11 +8,6 @@ public:
 private:
 	VkDescriptorSet _descriptorSet;
 };
-
-enum class DescriptorInfoType{
-	Buffer,
-	Image
-};
 enum class DescriptorType {
 	VP,
 	Skybox,

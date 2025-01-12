@@ -28,73 +28,12 @@ layout(push_constant) uniform PushConsts{
 	bool hasao;
 };
 const float PI = 3.14159265359;
-
-//#define ROUGHNESS_PATTERN 1
-
-vec3 materialcolor()
+const vec3 Fdielectric = vec3(0.04,0.04,0.04); 
+vec3 SchlickFresnel(vec3 F0, float NdotH)
 {
-	return texture(samplers[0],fragTexCoord).xyz;
-}
-
-// Normal Distribution function --------------------------------------
-float D_GGX(float dotNH, float roughness)
-{
-	float alpha = roughness * roughness;
-	float alpha2 = alpha * alpha;
-	float denom = dotNH * dotNH * (alpha2 - 1.0) + 1.0;
-	return (alpha2)/(PI * denom*denom); 
-}
-
-// Geometric Shadowing function --------------------------------------
-float G_SchlicksmithGGX(float dotNL, float dotNV, float roughness)
-{
-	float r = (roughness + 1.0);
-	float k = (r*r) / 8.0;
-	float GL = dotNL / (dotNL * (1.0 - k) + k);
-	float GV = dotNV / (dotNV * (1.0 - k) + k);
-	return GL * GV;
-}
-
-// Fresnel function ----------------------------------------------------
-vec3 F_Schlick(float cosTheta, float metallic)
-{
-	vec3 F0 = mix(vec3(0.04), materialcolor(), metallic); // * material.specular
-	vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0); 
-	return F;    
-}
-
-// Specular BRDF composition --------------------------------------------
-
-vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness)
-{
-	// Precalculate vectors and dot products	
-	vec3 H = normalize (V + L);
-	float dotNV = clamp(dot(N, V), 0.0, 1.0);
-	float dotNL = clamp(dot(N, L), 0.0, 1.0);
-	float dotLH = clamp(dot(L, H), 0.0, 1.0);
-	float dotNH = clamp(dot(N, H), 0.0, 1.0);
-
-	// Light color fixed
-	vec3 lightColor = vec3(1.0);
-
-	vec3 color = vec3(0.0);
-
-	if (dotNL > 0.0)
-	{
-		float rroughness = max(0.05, roughness);
-		// D = Normal distribution (Distribution of the microfacets)
-		float D = D_GGX(dotNH, roughness); 
-		// G = Geometric shadowing term (Microfacets shadowing)
-		float G = G_SchlicksmithGGX(dotNL, dotNV, rroughness);
-		// F = Fresnel factor (Reflectance depending on angle of incidence)
-		vec3 F = F_Schlick(dotNV, metallic);
-
-		vec3 spec = D * F * G / (4.0 * dotNL * dotNV);
-
-		color += spec * dotNL * lightColor;
-	}
-
-	return color;
+    vec3 result = F0;
+    result += (1 - F0) * pow(2, (-5.55473 * NdotH - 6.98316) * NdotH);
+    return result;
 }
 vec3 GetNormal(){
 	vec3 normalWorld = v_normal;
@@ -111,30 +50,112 @@ vec3 GetNormal(){
 	}
 	return normalWorld;
 }
+float NdfGGX(float NdotH, float roughness)
+{
+    float a = roughness * roughness;
+    
+    float result = a * a;
+    result /= PI * pow(((NdotH * NdotH) * (a * a - 1)) + 1, 2);
+    
+    return result;
+}
+
+float SchlickGGX(float NdotI, float NdotO, float roughness)
+{
+    float k = pow((roughness * roughness + 1), 2) / 8.f;
+    float g1I = NdotI / (NdotI * (1 - k) + k);
+    float g1O = NdotO / (NdotO * (1 - k) + k);
+    return g1I * g1O;
+}
+vec3 DiffuseIBL(vec3 albedo, vec3 normalWorld, vec3 pixelToEye,
+                  float metallic)
+{
+    vec3 F0 = mix(Fdielectric, albedo, metallic);
+    vec3 F = SchlickFresnel(F0, max(0.0, dot(normalWorld, pixelToEye)));
+    vec3 kd = mix(1.0 - F, vec3(0.0), metallic);
+    
+	vec3 irradiance = texture(samplerCubeMap[1],normalWorld).rgb;
+    
+    return kd * albedo * irradiance;
+}
+
+vec3 SpecularIBL(vec3 albedo, vec3 normalWorld, vec3 pixelToEye,
+                   float metallic, float roughness)
+{
+    float NdotO = max(0.0, dot(normalWorld, pixelToEye));
+    NdotO /= length(normalWorld) * length(pixelToEye);
+
+	vec2 specularBRDF = texture(brdfsampler,vec2(dot(normalWorld,pixelToEye),1.0-roughness)).rg;
+    vec3 reflection = reflect(-pixelToEye, normalize(normalWorld));
+    vec3 specularIrradiance = texture(samplerCubeMap[2],reflection).rgb;
+    
+    vec3 F0 = mix(vec3(Fdielectric), albedo, metallic);
+
+    return (F0 * specularBRDF.r + specularBRDF.g) * specularIrradiance;
+
+}
+vec3 AmbientLightingByIBL(vec3 albedo, vec3 normalW, vec3 pixelToEye, float ao, float metallic, float roughness){
+	vec3 diffuseIBL = DiffuseIBL(albedo, normalW, pixelToEye, metallic);
+    vec3 specularIBL = SpecularIBL(albedo, normalW, pixelToEye, metallic, roughness);
+    
+    return (diffuseIBL + specularIBL) * ao;
+}
 layout(location = 0) out vec4 outColor;
 void main(){
+	vec3 pixelToEye = normalize(ubo.camPos - inWorldPos);
 
-	vec3 lightPos = ubo.lights[0].xyz;
-	vec3 lightDir = normalize(inWorldPos - lightPos);
-	vec3 normal = normalize(v_normal);
-
-
-	vec3 normalMap = texture(samplers[1],fragTexCoord).rgb;
-	normalMap = normalize(normalMap * 2.0 - 1.0);
-
-	vec3 N = normal;
-	vec3 T = normalize(v_tangent - dot(v_tangent,N) * N);
-	vec3 B = cross(N,T);
-
-	mat3 TBN = mat3x3(T,B,N);
-
-
-	vec3 normalWorld = normalize(TBN * normalMap);
-
-
-	float light = max(dot(normalWorld, -lightDir),0.0);
+	vec3 albedo = hasTexture ? texture(samplers[0],fragTexCoord).rgb : vec3(1.0,1.0,1.0);
+	vec3 normal = GetNormal();
+	float roughness = hasRoughness ? texture(samplers[2],fragTexCoord).r : 0;
+	float metallic = hasMetalness ? texture(samplers[3],fragTexCoord).r : 0;
+	float ao = hasao ? texture(samplers[4],fragTexCoord).r:1.0f;
 	
-	outColor = texture(samplers[0], fragTexCoord);
+	vec3 ambientLight = AmbientLightingByIBL(albedo,normal,pixelToEye,ao,metallic,roughness);
 	
-	outColor.rgb *= light;
+
+	vec3 directLight;
+
+
+	for(int i =0 ;i < 1;i++){
+		vec3 lightPos = ubo.lights[0].xyz;
+		vec3 lightVec = lightPos - inWorldPos;
+		vec3 halfWay = normalize(pixelToEye + lightVec);
+
+		float NdotI = max(0.0,dot(normal,lightVec));
+		float NdotH = max(0.0, dot(normal,halfWay));
+		float NdotO = max(0.0,dot(normal,pixelToEye));
+
+		vec3 F0 = mix(Fdielectric,albedo,metallic);
+		vec3 F = SchlickFresnel(F0, max(0.0,dot(halfWay,pixelToEye)));
+		vec3 kd = mix(vec3(1,1,1)- F, vec3(0,0,0),metallic);
+		vec3 diffuseBRDF = kd * albedo;
+
+		float D = NdfGGX(NdotH, roughness);
+		vec3 G = vec3(SchlickGGX(NdotI,NdotO,roughness));
+
+		vec3 specularBRDF = (F*D*G) / max(1e-5,4.0*NdotI*NdotO);
+
+		vec3 radiance = vec3(1.0);
+        vec3 irradiance = radiance * clamp(20.0 - length(lightVec) / (20.0 - 0.0), 0.0, 1.0);
+		
+		directLight = (diffuseBRDF+specularBRDF) * irradiance * NdotI;
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	outColor = vec4(ambientLight + directLight,1.0);
+	
+	
+	
+	//outColor = texture(samplers[0], fragTexCoord);
+	
+	outColor = clamp(outColor,0,1000);
 }

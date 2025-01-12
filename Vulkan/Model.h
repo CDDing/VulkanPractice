@@ -21,6 +21,7 @@ public:
 
 	std::vector<std::shared_ptr<Mesh>> meshes;
 	Material material;
+	void InitUniformBuffer(Device& device, glm::mat4 transform);
 	void InitDescriptorSet(Device& device, DescriptorSet& descriptorSet);
 	void InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptorSet);
 	void InitDescriptorSetForModelMatrix(Device& device, DescriptorSet& desciprotrSet);
@@ -36,10 +37,10 @@ private:
 };
 
 
-Model makeSphere(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
-Model makeSqaure(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
-Model makeBox(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
-void GenerateSphere(Device& device, Model& model,const float& scale);
-void GenerateSquare(Device& device, Model& model, const float& scale);
-void GenerateBox(Device& device, Model& model, const float& scale);
+Model makeSphere(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
+Model makeSqaure(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
+Model makeBox(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths);
+void GenerateSphere(Device& device, Model& model);
+void GenerateSquare(Device& device, Model& model);
+void GenerateBox(Device& device, Model& model);
 Model makeSkyBox(Device& device);

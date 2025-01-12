@@ -19,5 +19,5 @@ void main()
 {
 	outUVW = normalize(inPosition);
 	mat4 viewMat = mat4(mat3(ubo.view));
-	gl_Position = ubo.proj * viewMat * vec4(inPosition.xyz, 1.0);
+	gl_Position = ubo.proj * viewMat * vec4(inPosition.xyz * 40.0, 1.0);
 }

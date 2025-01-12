@@ -42,6 +42,20 @@ void Model::destroy(Device& device)
 
 }
 
+void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
+{
+    VkDeviceSize bufferSize = sizeof(Transform);
+    _uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        _uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        vkMapMemory(device.Get(), _uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
+    }
+    _transform = { transform };
+    memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
+    memcpy(_uniformBuffersMapped[1], &_transform, sizeof(_transform));
+}
+
 void Model::processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale)
 {
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -268,31 +282,34 @@ void Model::loadModel(Device& device, const std::string& modelPath, const float&
     processNode(device, scene->mRootNode, scene,scale);
 }
 
-Model makeSphere(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeSphere(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
-    GenerateSphere(device, model, scale);
+    GenerateSphere(device, model);
     model.material = Material(device, components, materialPaths);
+    model.InitUniformBuffer(device, transform);
     return model;
 }
 
-Model makeSqaure(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeSqaure(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
-    GenerateSquare(device, model, scale);
+    GenerateSquare(device, model);
     model.material = Material(device, components, materialPaths);
+    model.InitUniformBuffer(device, transform);
     return model;
 }
 
-Model makeBox(Device& device, const float& scale, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeBox(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
-    GenerateBox(device, model, scale);
+    GenerateBox(device, model);
     model.material = Material(device, components, materialPaths);
+    model.InitUniformBuffer(device, transform);
     return model;
 }
 
-void GenerateSphere(Device& device, Model& model,const float& scale)
+void GenerateSphere(Device& device, Model& model)
 {
 
 
@@ -304,7 +321,7 @@ void GenerateSphere(Device& device, Model& model,const float& scale)
     for (int j = 0; j <= slice; j++) {
         Vertex v;
 
-        glm::vec3 startPoint = glm::rotate(glm::mat4(1.0f), dPi * j, glm::vec3(0.0f, 0.0f, 1.0f)) * glm::vec4(0.0f, -scale, 0.0f, 1.0f);
+        glm::vec3 startPoint = glm::rotate(glm::mat4(1.0f), dPi * j, glm::vec3(0.0f, 0.0f, 1.0f)) * glm::vec4(0.0f, -1.0f, 0.0f, 1.0f);
 
         for (int i = 0; i <= slice; i++) {
             v.pos = glm::rotate(glm::mat4(1.0f), dTheta * float(i), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(startPoint, 1.0f);
@@ -343,14 +360,14 @@ void GenerateSphere(Device& device, Model& model,const float& scale)
     model.meshes.push_back(std::make_shared<Mesh>(mesh));
 }
 
-void GenerateSquare(Device& device, Model& model, const float& scale)
+void GenerateSquare(Device& device, Model& model)
 {
     std::vector<Vertex> vertices;
     Vertex v0, v1, v2, v3;
-    v0.pos = (glm::vec3(-1.0f, 1.0f, 0.0f) * scale);
-    v1.pos=(glm::vec3(1.0f, 1.0f, 0.0f) * scale);
-    v2.pos=(glm::vec3(1.0f, -1.0f, 0.0f) * scale);
-    v3.pos=(glm::vec3(-1.0f, -1.0f, 0.0f) * scale);
+    v0.pos = (glm::vec3(-1.0f, 1.0f, 0.0f));
+    v1.pos=(glm::vec3(1.0f, 1.0f, 0.0f));
+    v2.pos=(glm::vec3(1.0f, -1.0f, 0.0f));
+    v3.pos=(glm::vec3(-1.0f, -1.0f, 0.0f));
     v0.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
     v1.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
     v2.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
@@ -391,7 +408,7 @@ void GenerateSquare(Device& device, Model& model, const float& scale)
     model.meshes.push_back(std::make_shared<Mesh>(mesh));
 }
 
-void GenerateBox(Device& device, Model& model, const float& scale)
+void GenerateBox(Device& device, Model& model)
 {
     std::vector<Vertex> vertices(24);
     std::vector<uint32_t> indices = {
@@ -404,40 +421,40 @@ void GenerateBox(Device& device, Model& model, const float& scale)
     };
 
     // Front face
-    vertices[0] = { glm::vec3(-1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f) };
-    vertices[1] = { glm::vec3(-1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f) };
-    vertices[2] = { glm::vec3(1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f) };
-    vertices[3] = { glm::vec3(1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[0] = { glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[1] = { glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[2] = { glm::vec3(1.0f, 1.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[3] = { glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f) };
 
     // Back face
-    vertices[4] = { glm::vec3(-1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 0.0f) };
-    vertices[5] = { glm::vec3(1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 0.0f) };
-    vertices[6] = { glm::vec3(1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 1.0f) };
-    vertices[7] = { glm::vec3(-1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[4] = { glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[5] = { glm::vec3(1.0f, -1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[6] = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[7] = { glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 1.0f) };
 
     // Left face
-    vertices[8] = { glm::vec3(-1.0f, -1.0f, 1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
-    vertices[9] = { glm::vec3(-1.0f, 1.0f, 1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
-    vertices[10] = { glm::vec3(-1.0f, 1.0f, -1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
-    vertices[11] = { glm::vec3(-1.0f, -1.0f, -1.0f) * scale, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[8] = { glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[9] = { glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[10] = { glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[11] = { glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
 
     // Right face
-    vertices[12] = { glm::vec3(1.0f, -1.0f, 1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
-    vertices[13] = { glm::vec3(1.0f, -1.0f, -1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
-    vertices[14] = { glm::vec3(1.0f, 1.0f, -1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
-    vertices[15] = { glm::vec3(1.0f, 1.0f, 1.0f) * scale, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[12] = { glm::vec3(1.0f, -1.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[13] = { glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[14] = { glm::vec3(1.0f, 1.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[15] = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
 
     // Top face
-    vertices[16] = { glm::vec3(-1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
-    vertices[17] = { glm::vec3(-1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
-    vertices[18] = { glm::vec3(1.0f, 1.0f, 1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
-    vertices[19] = { glm::vec3(1.0f, 1.0f, -1.0f) * scale, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[16] = { glm::vec3(-1.0f, 1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[17] = { glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[18] = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[19] = { glm::vec3(1.0f, 1.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
 
     // Bottom face
-    vertices[20] = { glm::vec3(-1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
-    vertices[21] = { glm::vec3(1.0f, -1.0f, -1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
-    vertices[22] = { glm::vec3(1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
-    vertices[23] = { glm::vec3(-1.0f, -1.0f, 1.0f) * scale, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
+    vertices[20] = { glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 1.0f) };
+    vertices[21] = { glm::vec3(1.0f, -1.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 1.0f) };
+    vertices[22] = { glm::vec3(1.0f, -1.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 0.0f) };
+    vertices[23] = { glm::vec3(-1.0f, -1.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 0.0f) };
 
     for (int i = 0; i < vertices.size(); i += 4) {
         glm::vec3 edge1 = vertices[i + 1].pos - vertices[i].pos;
@@ -463,8 +480,7 @@ void GenerateBox(Device& device, Model& model, const float& scale)
 Model makeSkyBox(Device& device)
 {
     Model model;
-    GenerateBox(device, model, 40.f);
-
+    GenerateBox(device, model);
     model.material = Material::createMaterialForSkybox(device);
 
     
