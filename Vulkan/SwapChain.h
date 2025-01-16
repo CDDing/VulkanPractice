@@ -66,6 +66,13 @@ private:
     VkFormat _depthFormat;
     Image _depthImage;
     ImageView _depthImageView;
+
+    //Deferred
+    std::vector<Image> _deferredImages;
+    std::vector<ImageView> _deferredImageViews;
+    std::vector<VkFramebuffer> _deferredFramebuffers;
+    RenderPass _deferredRenderPass;
+
 };
 
 VkFormat findDepthFormat(Device& device);

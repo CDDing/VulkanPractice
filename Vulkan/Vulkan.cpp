@@ -141,17 +141,17 @@ private:
 	}
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-		Model model2 = Model(device, 1.f
-			, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
-			"Resources/models/vk2vcdl/vk2vcdl.fbx",
-			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
-			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
-			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
-			"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
-			glm::mat4(1.0f));
-		//Model model = makeSphere(device, glm::mat4(1.0f), {}, {});
-		//models.push_back(model);
-		models.push_back(model2);
+		////Model model2 = Model(device, 1.f
+		//	, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
+		//	"Resources/models/vk2vcdl/vk2vcdl.fbx",
+		//	{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
+		//	"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
+		//	"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
+		//	"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
+		//	glm::mat4(1.0f));
+		Model model = makeSphere(device, glm::mat4(1.0f), {}, {});
+		models.push_back(model);
+		//models.push_back(model2);
 
 		skybox = makeSkyBox(device);
 	}

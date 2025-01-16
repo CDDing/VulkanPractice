@@ -104,11 +104,63 @@ void SwapChain::create(Device& device)
         }
     }
 
+    //디퍼드 렌더링
+    //1. 이미지 4개 만들기(위치, 노말, 알베도, 깊이)
+    VkFormat positionFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+    VkFormat normalFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+    VkFormat albedoFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+        1, positionFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+        1, normalFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+        1, albedoFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+        1, depthFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+
+    //이미지 뷰 만들기
+    _deferredImageViews.push_back(ImageView(device, _deferredImages[0].Get(), positionFormat,
+        VK_IMAGE_ASPECT_COLOR_BIT, 1));
+    _deferredImageViews.push_back(ImageView(device, _deferredImages[1].Get(), normalFormat,
+        VK_IMAGE_ASPECT_COLOR_BIT, 1));
+    _deferredImageViews.push_back(ImageView(device, _deferredImages[2].Get(), albedoFormat,
+        VK_IMAGE_ASPECT_COLOR_BIT, 1));
+    if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+        _deferredImageViews.push_back(ImageView(device, _deferredImages[3].Get(), depthFormat,
+            VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 1));
+    }
+    else {
+        _deferredImageViews.push_back(ImageView(device, _deferredImages[3].Get(), depthFormat,
+            VK_IMAGE_ASPECT_DEPTH_BIT, 1));
+    }
 
 }
 
 void SwapChain::destroy(Device& device)
 {
+    for (auto& image : _deferredImages) {
+        vkDestroyImage(device.Get(), image.Get(), nullptr);
+        vkFreeMemory(device.Get(), image.GetMemory(), nullptr);
+    }
+    for (auto& imageViews : _deferredImageViews) {
+        vkDestroyImageView(device.Get(), imageViews.Get(), nullptr);
+    }
+    for (auto& framebuffer : _deferredFramebuffers) {
+        vkDestroyFramebuffer(device.Get(), framebuffer, nullptr);
+    }
+
     vkDestroyImageView(device.Get(), _depthImageView.Get(), nullptr);
     vkDestroyImage(device.Get(), _depthImage.Get(), nullptr);
     vkFreeMemory(device.Get(), _depthImage.GetMemory(), nullptr);
@@ -120,6 +172,7 @@ void SwapChain::destroy(Device& device)
         vkDestroyImageView(device.Get(), _swapChainImageViews[i].Get(), nullptr);
     }
     vkDestroySwapchainKHR(device.Get(), _swapChain, nullptr);
+
 }
 
 

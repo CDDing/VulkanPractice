@@ -191,11 +191,11 @@
     <ClInclude Include="Material.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="DescriptorSetLayout.h">
-      <Filter>소스 파일\Shader</Filter>
-    </ClInclude>
     <ClInclude Include="Sampler.h">
       <Filter>소스 파일\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorSetLayout.h">
+      <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
