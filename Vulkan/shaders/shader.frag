@@ -89,7 +89,9 @@ void main(){
 	float ao = texture(samplers[5],inUV).r;
 	vec3 ambientLight = AmbientLightingByIBL(albedo,normal,pixelToEye,ao,metallic,roughness);
 	
-
+	if(fragPos.x == 0&& fragPos.y==0&&fragPos.z==0){
+		discard;
+	}
 	vec3 directLight;
 
 

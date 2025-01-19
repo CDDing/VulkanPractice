@@ -396,7 +396,7 @@ private:
 		vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
 
 
-		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
 		std::vector<VkDescriptorSet> descriptorSetListForModel = {
