@@ -13,5 +13,6 @@ enum class DescriptorType {
 	Skybox,
 	Material,
 	Model,
+	GBuffer,
 	END
 };

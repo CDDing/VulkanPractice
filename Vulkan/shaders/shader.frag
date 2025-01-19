@@ -8,7 +8,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject{
 
 layout (set = 1, binding = 0) uniform samplerCube samplerCubeMap[3];
 layout (set = 1, binding = 1) uniform sampler2D brdfsampler;
-layout (set = 2, binding = 0) uniform sampler2D samplers[5];
+layout (set = 2, binding = 0) uniform sampler2D samplers[6];
 
 //0 , Texture Sampler
 //1, NormalMap Sampler
@@ -16,17 +16,9 @@ layout (set = 2, binding = 0) uniform sampler2D samplers[5];
 //3, Metalness Sampler
 //4 , ao Sampler
 
-layout(location = 0) in vec3 v_normal;
-layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec3 v_tangent;
-layout(location = 3) in vec3 inWorldPos;
-layout(push_constant) uniform PushConsts{
-	bool hasTexture;
-	bool hasNormal;
-	bool hasRoughness;
-	bool hasMetalness;
-	bool hasao;
-};
+layout (location = 0) in vec2 inUV;
+layout(location = 0) out vec4 outColor;
+
 const float PI = 3.14159265359;
 const vec3 Fdielectric = vec3(0.04,0.04,0.04); 
 vec3 SchlickFresnel(vec3 F0, float NdotH)
@@ -34,21 +26,6 @@ vec3 SchlickFresnel(vec3 F0, float NdotH)
     vec3 result = F0;
     result += (1 - F0) * pow(2, (-5.55473 * NdotH - 6.98316) * NdotH);
     return result;
-}
-vec3 GetNormal(){
-	vec3 normalWorld = v_normal;
-	if(hasNormal){
-		vec3 normal = texture(samplers[1],fragTexCoord).xyz;
-		normal = 2.0*normal -1.0;
-
-		vec3 N = normalWorld;
-		vec3 T = normalize(v_tangent - dot(v_tangent,N) * N);
-		vec3 B = cross(N,T);
-
-		mat3x3 TBN = mat3x3(T,B,N);
-		normalWorld = normalize(TBN*normal);
-	}
-	return normalWorld;
 }
 float NdfGGX(float NdotH, float roughness)
 {
@@ -100,16 +77,16 @@ vec3 AmbientLightingByIBL(vec3 albedo, vec3 normalW, vec3 pixelToEye, float ao, 
     
     return (diffuseIBL + specularIBL) * ao;
 }
-layout(location = 0) out vec4 outColor;
 void main(){
-	vec3 pixelToEye = normalize(ubo.camPos - inWorldPos);
+	// Get G-Buffer values
+	vec3 fragPos = texture(samplers[0], inUV).rgb;
+	vec3 pixelToEye = normalize(ubo.camPos - fragPos);
 
-	vec3 albedo = hasTexture ? texture(samplers[0],fragTexCoord).rgb : vec3(1.0,1.0,1.0);
-	vec3 normal = GetNormal();
-	float roughness = hasRoughness ? texture(samplers[2],fragTexCoord).r : 0;
-	float metallic = hasMetalness ? texture(samplers[3],fragTexCoord).r : 0;
-	float ao = hasao ? texture(samplers[4],fragTexCoord).r:1.0f;
-	
+	vec3 normal = texture(samplers[1], inUV).rgb;
+	vec3 albedo = texture(samplers[2], inUV).rgb;
+	float roughness = texture(samplers[3],inUV).r;
+	float metallic = texture(samplers[4],inUV).r;
+	float ao = texture(samplers[5],inUV).r;
 	vec3 ambientLight = AmbientLightingByIBL(albedo,normal,pixelToEye,ao,metallic,roughness);
 	
 
@@ -118,7 +95,7 @@ void main(){
 
 	for(int i =0 ;i < 1;i++){
 		vec3 lightPos = ubo.lights[0].xyz;
-		vec3 lightVec = lightPos - inWorldPos;
+		vec3 lightVec = lightPos - fragPos;
 		vec3 halfWay = normalize(pixelToEye + lightVec);
 
 		float NdotI = max(0.0,dot(normal,lightVec));
@@ -154,8 +131,6 @@ void main(){
 	outColor = vec4(ambientLight + directLight,1.0);
 	
 	
-	
-	//outColor = texture(samplers[0], fragTexCoord);
 	
 	outColor = clamp(outColor,0,1000);
 }

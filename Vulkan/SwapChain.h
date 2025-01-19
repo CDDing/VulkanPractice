@@ -1,6 +1,8 @@
 #pragma once
 class Image;
 class ImageView;
+class DescriptorSet;
+class Sampler;
 class SwapChain
 {
 public:
@@ -13,6 +15,11 @@ public:
     std::vector<ImageView>& GetImageViews() { return _swapChainImageViews; }
     std::vector<VkFramebuffer>& GetFrameBuffers() { return _swapChainFramebuffers; }
     RenderPass& GetRenderPass() { return _renderPass; }
+    RenderPass& GetDeferredRenderPass() { return _deferredRenderPass; }
+    std::vector<VkFramebuffer>& GetDeferredFrameBuffers() { return _deferredFramebuffers; }
+
+    void InitDescriptorSetForGBuffer(Device& device);
+    std::vector<DescriptorSet> descriptorSets;
     void create(Device& device);
     void destroy(Device& device);
 
@@ -72,6 +79,7 @@ private:
     std::vector<ImageView> _deferredImageViews;
     std::vector<VkFramebuffer> _deferredFramebuffers;
     RenderPass _deferredRenderPass;
+    Sampler _GBufferSampler;
 
 };
 

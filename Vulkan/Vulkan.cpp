@@ -106,19 +106,23 @@ private:
 			DescriptorSetLayout(device,DescriptorType::Skybox),
 			DescriptorSetLayout(device,DescriptorType::Material),
 			DescriptorSetLayout(device,DescriptorType::Model),
+			DescriptorSetLayout(device,DescriptorType::GBuffer),
 		};
 	}
 	void createPipelines() {
-		pipelines.resize(2);
+		pipelines.resize(3);
 		descriptorSetLayoutList = {
 			//기본 셰이더
 			{descriptorSetLayouts[0].Get(),
 			descriptorSetLayouts[1].Get(),
-			descriptorSetLayouts[2].Get(),
-			descriptorSetLayouts[3].Get()},
+			descriptorSetLayouts[4].Get()},
 			//스카이박스 셰이더
 			{descriptorSetLayouts[0].Get(),
-		descriptorSetLayouts[1].Get()}
+		descriptorSetLayouts[1].Get()},
+		//디퍼드 셰이더
+			{descriptorSetLayouts[0].Get(),
+				descriptorSetLayouts[2].Get(),
+		descriptorSetLayouts[3].Get()}
 		};
 		Pipeline defaultPipeline = Pipeline(device,
 			swapChain.GetExtent(),
@@ -136,8 +140,17 @@ private:
 			"shaders/skybox.frag.spv",
 			ShaderType::SKYBOX);
 
+		Pipeline deferredPipeline = Pipeline(device,
+			swapChain.GetExtent(),
+			descriptorSetLayoutList,
+			swapChain.GetDeferredRenderPass(),
+			"shaders/deferred.vert.spv",
+			"shaders/deferred.frag.spv",
+			ShaderType::DEFERRED);
+
 		pipelines[Pipeline::DEFAULT] = (defaultPipeline);
 		pipelines[Pipeline::SKYBOX] = (skyboxPipeline);
+		pipelines[Pipeline::DEFERRED] = (deferredPipeline);
 	}
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
@@ -159,6 +172,11 @@ private:
 	void createDescriptorSets() {
 		Material::dummy = Material::GetDefaultMaterial(device);
 
+		//GBuffer 디스크립터 셋
+		swapChain.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+		for (auto& descriptorSet : swapChain.descriptorSets) {
+			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::GBuffer)]);
+		}
 		
 		//skybox용 디스크립터 셋
 		skybox.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
@@ -193,7 +211,7 @@ private:
 			
 			//스카이박스
 			skybox.InitDescriptorSetForSkybox(device, skybox.material.descriptorSets[i]);
-			
+			swapChain.InitDescriptorSetForGBuffer(device);
 			//카메라 행렬 유니폼 버퍼
 			VkDescriptorBufferInfo bufferInfo;
 			bufferInfo.buffer = uniformBuffers[i].Get();
@@ -271,22 +289,23 @@ private:
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
 			throw std::runtime_error("failed to begin recording command buffer!");
 		}
+		VkRenderPassBeginInfo deferredRenderPassInfo{};
+		deferredRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		deferredRenderPassInfo.renderPass = swapChain.GetDeferredRenderPass().Get();
+		deferredRenderPassInfo.framebuffer = swapChain.GetDeferredFrameBuffers()[imageIndex];
+		deferredRenderPassInfo.renderArea.offset = { 0,0 };
+		deferredRenderPassInfo.renderArea.extent = swapChain.GetExtent();
 
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = swapChain.GetRenderPass().Get();
-		renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
-		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = swapChain.GetExtent();
-
-		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-		renderPassInfo.pClearValues = clearValues.data();
-
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
+		std::array<VkClearValue, 7> deferredClearValues{};
+		deferredClearValues[0].color = { {0.0f,0.0f,0.0f,0.0f} };
+		deferredClearValues[1].color = { {0.0f,0.0f,0.0f,0.0f} };
+		deferredClearValues[2].color = { {0.0f,0.0f,0.0f,0.0f} };
+		deferredClearValues[3].color = { {0.0f,0.0f,0.0f,0.0f} };
+		deferredClearValues[4].color = { {0.0f,0.0f,0.0f,0.0f} };
+		deferredClearValues[5].color = { {0.0f,0.0f,0.0f,0.0f} };
+		deferredClearValues[6].depthStencil = { 1.0f,0 };
+		deferredRenderPassInfo.clearValueCount = static_cast<uint32_t>(deferredClearValues.size());
+		deferredRenderPassInfo.pClearValues = deferredClearValues.data();
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
@@ -301,6 +320,62 @@ private:
 		scissor.offset = { 0,0 };
 		scissor.extent = swapChain.GetExtent();
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		vkCmdBeginRenderPass(commandBuffer, &deferredRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		
+		//GBuffer Draw
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFERRED].Get());
+		
+		for (auto& model : models) {
+			for (auto& mesh : model.meshes) {
+				VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+
+				int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
+				VkBool32 data[5];
+				for (int i = 0; i < maxMaterialCnt; i++) {
+					data[i] = model.material.hasComponent(i);
+				}
+				vkCmdPushConstants(commandBuffer, pipelines[Pipeline::DEFERRED].GetLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, 20, data);
+
+
+				std::vector<VkDescriptorSet> descriptorSetListForModel = {
+					uboDescriptorSets[currentFrame].Get(),
+					model.material.descriptorSets[currentFrame].Get(),
+					model.descriptorSets[currentFrame].Get(),
+				};
+				vkCmdBindDescriptorSets(commandBuffer,
+					VK_PIPELINE_BIND_POINT_GRAPHICS,
+					pipelines[Pipeline::DEFERRED].GetLayout(),
+					0, static_cast<uint32_t>(descriptorSetListForModel.size())
+					, descriptorSetListForModel.data(),
+					0, nullptr);
+
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
+
+			}
+		}
+		
+		vkCmdEndRenderPass(commandBuffer);
+
+		VkRenderPassBeginInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = swapChain.GetRenderPass().Get();
+		renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
+		renderPassInfo.renderArea.offset = { 0,0 };
+		renderPassInfo.renderArea.extent = swapChain.GetExtent();
+
+		std::array<VkClearValue, 2> clearValues{};
+		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+		renderPassInfo.pClearValues = clearValues.data();
+
+		//SkyboxDraw
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
+
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
 		
@@ -321,9 +396,24 @@ private:
 		vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
 
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
+		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
 
-		for (auto& model : models) {
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
+		std::vector<VkDescriptorSet> descriptorSetListForModel = {
+					uboDescriptorSets[currentFrame].Get(),
+					skybox.material.descriptorSets[currentFrame].Get(),
+					swapChain.descriptorSets[currentFrame].Get()
+		};
+		vkCmdBindDescriptorSets(commandBuffer,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelines[Pipeline::DEFAULT].GetLayout(),
+			0, static_cast<uint32_t>(descriptorSetListForModel.size())
+			, descriptorSetListForModel.data(),
+			0, nullptr);
+
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+		/*for (auto& model : models) {
 			for (auto& mesh : model.meshes) {
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
 
@@ -357,7 +447,7 @@ private:
 
 			}
 		}
-
+		*/
 		vkCmdEndRenderPass(commandBuffer);
 
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -501,11 +591,13 @@ private:
 		}
 		vkDestroyCommandPool(device.Get(), commandPool.Get(), nullptr);
 		vkDestroyCommandPool(device.Get(), CommandPool::TransientPool, nullptr);
-		for (auto& pipeline : pipelines) {
+		for (int i = 0; i < 3;i++) {
+			auto& pipeline = pipelines[i];
 			vkDestroyPipeline(device.Get(), pipeline.Get(), nullptr);
 			vkDestroyPipelineLayout(device.Get(), pipeline.GetLayout(), nullptr);
 		}
 		vkDestroyRenderPass(device.Get(), swapChain.GetRenderPass().Get(), nullptr);
+		vkDestroyRenderPass(device.Get(), swapChain.GetDeferredRenderPass().Get(), nullptr);
 		vkDestroyDevice(device.Get(), nullptr);
 		if (enableValidationLayers) {
 

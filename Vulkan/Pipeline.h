@@ -8,6 +8,7 @@ public:
 	enum {
 		DEFAULT,
 		SKYBOX,
+		DEFERRED,
 		END,
 	};
 	Pipeline();

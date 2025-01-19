@@ -3,6 +3,7 @@
 enum class ShaderType {
 	DEFAULT,
 	SKYBOX,
+    DEFERRED,
 };
 enum class ShaderComponent {
     UNIFORM,
@@ -50,6 +51,9 @@ public:
             break;
         case DescriptorType::Model:
             results = { {ShaderComponent::UNIFORM,1},};
+            break;
+        case DescriptorType::GBuffer:
+            results = { {ShaderComponent::SAMPLER,6} };
             break;
         }
         return results;

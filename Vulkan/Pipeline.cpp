@@ -45,7 +45,12 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size());
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescription.data();
-
+    if (type == ShaderType::DEFAULT) {
+        vertexInputInfo.pVertexBindingDescriptions = nullptr;
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.vertexBindingDescriptionCount = 0;
+    }
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -81,6 +86,13 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     if (type == ShaderType::SKYBOX) {
         rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     }
+    else if (type == ShaderType::DEFERRED) {
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    }
+    else if (type == ShaderType::DEFAULT) {
+        rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
+    }
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f;
     rasterizer.depthBiasClamp = 0.0f;
@@ -105,6 +117,15 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
+    std::array<VkPipelineColorBlendAttachmentState, 6> blendAttachmentStates = {
+        colorBlendAttachment,
+        colorBlendAttachment,
+        colorBlendAttachment,
+        colorBlendAttachment,
+        colorBlendAttachment,
+        colorBlendAttachment
+    };
+
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
@@ -115,6 +136,11 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     colorBlending.blendConstants[1] = 0.0f;
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
+
+    if (type == ShaderType::DEFERRED) {
+        colorBlending.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
+        colorBlending.pAttachments = blendAttachmentStates.data();
+    }
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -136,7 +162,7 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
     VkPushConstantRange range = {};
-    if (type == ShaderType::DEFAULT) {
+    if (type == ShaderType::DEFERRED) {
         range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         range.offset = 0;
         range.size = 20;
