@@ -1,5 +1,4 @@
 #pragma once
-
 #include <DirectXTex.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -55,6 +54,7 @@
 #include "Material.h"
 #include "Model.h"
 #include "Mesh.h"
+#include "ImGUI.h"
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -67,11 +67,3 @@ const std::vector<const char*> deviceExtensions = {
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 2;
-
-//const std::string MODEL_PATH = "Resources/models/viking_room.obj";
-const std::string ZZAM_PATH = "Resources/textures/viking_room.png";
-//
-//
-const std::string MODEL_PATH = "Resources/models/Nature_Tree_Log_xglncdl_2K_3d_ms/xglncdl_LOD0.fbx";
-//
-//

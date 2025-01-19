@@ -120,6 +120,9 @@
     <ClCompile Include="Sampler.cpp">
       <Filter>소스 파일\Resource</Filter>
     </ClCompile>
+    <ClCompile Include="ImGUI.cpp">
+      <Filter>소스 파일\Debug</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -197,6 +200,9 @@
     <ClInclude Include="DescriptorSetLayout.h">
       <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClInclude>
+    <ClInclude Include="ImGUI.h">
+      <Filter>소스 파일\Debug</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader.frag">
@@ -215,6 +221,12 @@
       <Filter>소스 파일\Shader</Filter>
     </None>
     <None Include="shaders\deferred.vert">
+      <Filter>소스 파일\Shader</Filter>
+    </None>
+    <None Include="shaders\imgui.frag">
+      <Filter>소스 파일\Shader</Filter>
+    </None>
+    <None Include="shaders\imgui.vert">
       <Filter>소스 파일\Shader</Filter>
     </None>
   </ItemGroup>

@@ -14,5 +14,6 @@ enum class DescriptorType {
 	Material,
 	Model,
 	GBuffer,
+	ImGUI,
 	END
 };

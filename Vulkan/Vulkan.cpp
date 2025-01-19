@@ -9,6 +9,7 @@ public:
 	}
 
 private:
+	ImGUI imgui;
 	Device device;
 	SwapChain swapChain;
 	CommandPool commandPool;
@@ -88,6 +89,8 @@ private:
 		descriptorPool = DescriptorPool(device);
 		commandPool = CommandPool(device, surface);
 		swapChain = SwapChain(device, surface);
+
+		initGUI();
 		createDescriptorSetLayouts();
 		InsertModels();
 		createUniformBuffers();
@@ -108,6 +111,12 @@ private:
 			DescriptorSetLayout(device,DescriptorType::Model),
 			DescriptorSetLayout(device,DescriptorType::GBuffer),
 		};
+	}
+	void initGUI() {
+
+		imgui = ImGUI(device);
+		imgui.init(static_cast<float>(WIDTH), static_cast<float>(HEIGHT));
+		imgui.initResources(swapChain.GetRenderPass());
 	}
 	void createPipelines() {
 		pipelines.resize(3);
@@ -256,6 +265,9 @@ private:
 		vkDeviceWaitIdle(device.Get());
 		swapChain.destroy(device);
 		swapChain.create(device);
+		swapChain.InitDescriptorSetForGBuffer(device);
+		//imgui.init(static_cast<float>(width), static_cast<float>(height));
+		//imgui.initResources(swapChain.GetRenderPass());
 	}
 
 	void createSyncObjects() {
@@ -372,8 +384,12 @@ private:
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
 
+		imgui.newFrame();
+		imgui.updateBuffers();
 		//SkyboxDraw
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
 
 
@@ -412,7 +428,7 @@ private:
 			0, nullptr);
 
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
+		imgui.drawFrame(commandBuffer);
 		/*for (auto& model : models) {
 			for (auto& mesh : model.meshes) {
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
@@ -565,7 +581,7 @@ private:
 
 	void cleanup() {
 		swapChain.destroy(device);
-
+		imgui.destroy();
 		vkDestroyImageView(device.Get(), Material::dummy.imageView.Get(), nullptr);
 		vkDestroyImage(device.Get(), Material::dummy.image.Get(), nullptr);
 		vkFreeMemory(device.Get(), Material::dummy.image.GetMemory(), nullptr);
@@ -596,8 +612,6 @@ private:
 			vkDestroyPipeline(device.Get(), pipeline.Get(), nullptr);
 			vkDestroyPipelineLayout(device.Get(), pipeline.GetLayout(), nullptr);
 		}
-		vkDestroyRenderPass(device.Get(), swapChain.GetRenderPass().Get(), nullptr);
-		vkDestroyRenderPass(device.Get(), swapChain.GetDeferredRenderPass().Get(), nullptr);
 		vkDestroyDevice(device.Get(), nullptr);
 		if (enableValidationLayers) {
 

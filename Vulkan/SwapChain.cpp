@@ -136,61 +136,63 @@ void SwapChain::create(Device& device)
     VkFormat roughnessFormat = VK_FORMAT_R8G8B8A8_UNORM;
     VkFormat metalnessFormat = VK_FORMAT_R8G8B8A8_UNORM;
     VkFormat aoFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages.resize(7);
+    _deferredImages[0]= (Image(device, _swapChainExtent.width, _swapChainExtent.height,
         1, positionFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[1] = (Image(device, _swapChainExtent.width, _swapChainExtent.height,
         1, normalFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[2] = (Image(device, _swapChainExtent.width, _swapChainExtent.height,
         1, albedoFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[3] = (Image(device, _swapChainExtent.width, _swapChainExtent.height,
         1, roughnessFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[4] = (Image(device, _swapChainExtent.width, _swapChainExtent.height,
         1, metalnessFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[5] = (Image(device, _swapChainExtent.width, _swapChainExtent.height,
         1, aoFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-    _deferredImages.push_back(Image(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[6] = (Image(device, _swapChainExtent.width, _swapChainExtent.height,
         1, depthFormat,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
     //이미지 뷰 만들기
-    _deferredImageViews.push_back(ImageView(device, _deferredImages[0].Get(), positionFormat,
+    _deferredImageViews.resize(7);
+    _deferredImageViews[0] = (ImageView(device, _deferredImages[0].Get(), positionFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews.push_back(ImageView(device, _deferredImages[1].Get(), normalFormat,
+    _deferredImageViews[1] = (ImageView(device, _deferredImages[1].Get(), normalFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews.push_back(ImageView(device, _deferredImages[2].Get(), albedoFormat,
+    _deferredImageViews[2] = (ImageView(device, _deferredImages[2].Get(), albedoFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews.push_back(ImageView(device, _deferredImages[3].Get(), roughnessFormat,
+    _deferredImageViews[3] = (ImageView(device, _deferredImages[3].Get(), roughnessFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews.push_back(ImageView(device, _deferredImages[4].Get(), metalnessFormat,
+    _deferredImageViews[4] = (ImageView(device, _deferredImages[4].Get(), metalnessFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews.push_back(ImageView(device, _deferredImages[5].Get(), aoFormat,
+    _deferredImageViews[5] = (ImageView(device, _deferredImages[5].Get(), aoFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
     if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-        _deferredImageViews.push_back(ImageView(device, _deferredImages[6].Get(), depthFormat,
+        _deferredImageViews[6] = (ImageView(device, _deferredImages[6].Get(), depthFormat,
             VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 1));
     }
     else {
-        _deferredImageViews.push_back(ImageView(device, _deferredImages[6].Get(), depthFormat,
+        _deferredImageViews[6] = (ImageView(device, _deferredImages[6].Get(), depthFormat,
             VK_IMAGE_ASPECT_DEPTH_BIT, 1));
     }
 
@@ -293,6 +295,7 @@ void SwapChain::create(Device& device)
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
+
 }
 
 void SwapChain::destroy(Device& device)
@@ -321,6 +324,8 @@ void SwapChain::destroy(Device& device)
     }
     vkDestroySwapchainKHR(device.Get(), _swapChain, nullptr);
 
+    vkDestroyRenderPass(device.Get(), _renderPass.Get(), nullptr);
+    vkDestroyRenderPass(device.Get(), _deferredRenderPass.Get(), nullptr);
 }
 
 

@@ -55,6 +55,9 @@ public:
         case DescriptorType::GBuffer:
             results = { {ShaderComponent::SAMPLER,6} };
             break;
+        case DescriptorType::ImGUI:
+            results = { {ShaderComponent::SAMPLER,1} };
+            break;
         }
         return results;
     }

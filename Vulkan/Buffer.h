@@ -6,9 +6,14 @@ public:
 	Buffer(Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 	VkBuffer& Get() { return _buffer; }
 	VkDeviceMemory& GetMemory() { return _memory; }
+	void* mapped = nullptr;
+	void unmap(Device& device);
+	VkResult map(Device& device, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	void destroy(Device& device);
+	VkResult flush(Device& device, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 private:
-	VkBuffer _buffer;
-	VkDeviceMemory _memory;
+	VkBuffer _buffer = VK_NULL_HANDLE;
+	VkDeviceMemory _memory = VK_NULL_HANDLE;
 };
 
 
