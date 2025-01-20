@@ -1,5 +1,5 @@
 #pragma once
-#include <imgui.h>
+#include "imgui.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "backends/imgui_impl_glfw.h"
 class Sampler;
@@ -11,7 +11,7 @@ class Buffer;
 class DescriptorSet;
 class RenderPass;
 class Device;
-class ImGUI
+class GUI
 {
 private:
 	Sampler _sampler;
@@ -35,8 +35,8 @@ private:
 	} pushConstBlock;
 
 public:
-	ImGUI();
-	ImGUI(Device& device) : _device(&device) 
+	GUI();
+	GUI(Device& device) : _device(&device) 
 	{
 		ImGui::CreateContext();
 
@@ -52,7 +52,7 @@ public:
 	void drawFrame(VkCommandBuffer commandBuffer);
 	void init(float width, float height); 
 	void initDescriptorSet();
-	void initResources(RenderPass renderPass);
+	void initResources(GLFWwindow* window, VkInstance Instance,RenderPass renderPass);
 	void setStyle(uint32_t index)
 	{
 		switch (index)

@@ -40,6 +40,12 @@
     <Filter Include="소스 파일\Shader\Descriptor">
       <UniqueIdentifier>{0fccc608-b60a-4ca1-a3b3-13d00210ba66}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Debug\ImGUI">
+      <UniqueIdentifier>{e02cf4b6-761e-4991-a102-ad6b7a34e460}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\ImGUI">
+      <UniqueIdentifier>{ffc5c9cc-4609-4a02-a8cd-0cb47094077f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Vulkan.cpp">
@@ -120,8 +126,29 @@
     <ClCompile Include="Sampler.cpp">
       <Filter>소스 파일\Resource</Filter>
     </ClCompile>
-    <ClCompile Include="ImGUI.cpp">
+    <ClCompile Include="GUI.cpp">
       <Filter>소스 파일\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui.cpp">
+      <Filter>소스 파일\Debug\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_demo.cpp">
+      <Filter>소스 파일\Debug\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_draw.cpp">
+      <Filter>소스 파일\Debug\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_tables.cpp">
+      <Filter>소스 파일\Debug\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_widgets.cpp">
+      <Filter>소스 파일\Debug\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\backends\imgui_impl_glfw.cpp">
+      <Filter>소스 파일\Debug\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\backends\imgui_impl_vulkan.cpp">
+      <Filter>소스 파일\Debug\ImGUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -200,8 +227,32 @@
     <ClInclude Include="DescriptorSetLayout.h">
       <Filter>소스 파일\Shader\Descriptor</Filter>
     </ClInclude>
-    <ClInclude Include="ImGUI.h">
+    <ClInclude Include="GUI.h">
       <Filter>소스 파일\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\backends\imgui_impl_glfw.h">
+      <Filter>헤더 파일\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\backends\imgui_impl_vulkan.h">
+      <Filter>헤더 파일\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\imconfig.h">
+      <Filter>헤더 파일\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\imgui.h">
+      <Filter>헤더 파일\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\imgui_internal.h">
+      <Filter>헤더 파일\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\imstb_rectpack.h">
+      <Filter>헤더 파일\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\imstb_textedit.h">
+      <Filter>헤더 파일\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\imstb_truetype.h">
+      <Filter>헤더 파일\ImGUI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

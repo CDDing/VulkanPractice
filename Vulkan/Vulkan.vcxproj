@@ -133,6 +133,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\include\backends\imgui_impl_glfw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\backends\imgui_impl_vulkan.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\include\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CommandBuffer.cpp" />
@@ -144,7 +165,7 @@
     <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="ImageView.cpp" />
-    <ClCompile Include="ImGUI.cpp" />
+    <ClCompile Include="GUI.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
@@ -168,6 +189,14 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\backends\imgui_impl_glfw.h" />
+    <ClInclude Include="..\include\backends\imgui_impl_vulkan.h" />
+    <ClInclude Include="..\include\imconfig.h" />
+    <ClInclude Include="..\include\imgui.h" />
+    <ClInclude Include="..\include\imgui_internal.h" />
+    <ClInclude Include="..\include\imstb_rectpack.h" />
+    <ClInclude Include="..\include\imstb_textedit.h" />
+    <ClInclude Include="..\include\imstb_truetype.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommandBuffer.h" />
@@ -179,7 +208,7 @@
     <ClInclude Include="FileLoader.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="ImageView.h" />
-    <ClInclude Include="ImGUI.h" />
+    <ClInclude Include="GUI.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />

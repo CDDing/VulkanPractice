@@ -9,7 +9,7 @@ public:
 	}
 
 private:
-	ImGUI imgui;
+	GUI imgui;
 	Device device;
 	SwapChain swapChain;
 	CommandPool commandPool;
@@ -114,9 +114,9 @@ private:
 	}
 	void initGUI() {
 
-		imgui = ImGUI(device);
+		imgui = GUI(device);
 		imgui.init(static_cast<float>(WIDTH), static_cast<float>(HEIGHT));
-		imgui.initResources(swapChain.GetRenderPass());
+		imgui.initResources(window,instance.Get(), swapChain.GetRenderPass());
 	}
 	void createPipelines() {
 		pipelines.resize(3);
@@ -385,7 +385,7 @@ private:
 		renderPassInfo.pClearValues = clearValues.data();
 
 		imgui.newFrame();
-		imgui.updateBuffers();
+		//imgui.updateBuffers();
 		//SkyboxDraw
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
