@@ -246,19 +246,26 @@ void GUI::destroy()
 	vkDestroyDescriptorPool(_device->Get(), _descriptorPool.Get(), nullptr);
 	vkDestroyDescriptorSetLayout(_device->Get(), _descriptorSetLayout.Get(), nullptr);
 }
-
 void GUI::newFrame()
 {
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	// Debug window
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
 	// Render to generate draw buffers
+}
+void GUI::AddFloatGUI(std::string text, float& value) {
+	ImGui::InputFloat(text.c_str(), &value);
+}
+void GUI::AddBoolGUI(std::string text, bool& value) {
+	ImGui::Checkbox(text.c_str(), &value);
+}
+void GUI::End(){
+
 	ImGui::Render();
 }
-
 void GUI::updateBuffers()
 {
 	ImDrawData* imDrawData = ImGui::GetDrawData();

@@ -7,7 +7,6 @@ public:
 		mainLoop();
 		cleanup();
 	}
-
 private:
 	GUI imgui;
 	Device device;
@@ -385,6 +384,8 @@ private:
 		renderPassInfo.pClearValues = clearValues.data();
 
 		imgui.newFrame();
+		imgui.AddBoolGUI("Test", camera.enableVerticalRotate);
+		imgui.End();
 		//imgui.updateBuffers();
 		//SkyboxDraw
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

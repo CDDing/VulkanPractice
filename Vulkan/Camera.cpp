@@ -37,6 +37,7 @@ void Camera::rotate(double mouse_dx, double mouse_dy)
     _viewDir = glm::vec3(viewDir);
     _rightDir = glm::cross(_upDir, _viewDir);
     
+    if (!enableVerticalRotate) return;
     
     glm::mat4 rotateMatrixY = glm::rotate(glm::mat4(1.0f), glm::radians((float)mouse_dy * _rotateSpeed), _rightDir);
 

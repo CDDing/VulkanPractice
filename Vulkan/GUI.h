@@ -11,6 +11,7 @@ class Buffer;
 class DescriptorSet;
 class RenderPass;
 class Device;
+class VulkanApp;
 class GUI
 {
 private:
@@ -48,6 +49,9 @@ public:
 	}
 	void destroy();
 	void newFrame();
+	void AddFloatGUI(std::string text, float& value);
+	void End();
+	void AddBoolGUI(std::string text, bool& value);
 	void updateBuffers();
 	void drawFrame(VkCommandBuffer commandBuffer);
 	void init(float width, float height); 

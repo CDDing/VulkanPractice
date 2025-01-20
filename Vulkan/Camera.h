@@ -11,6 +11,7 @@ public:
 	void Update(float dt, bool* keyPressed,double mouse_dx,double mouse_dy);
 
 
+	bool enableVerticalRotate = false;
 private:
 	void moveForward(float dt);
 	void moveRight(float dt);
