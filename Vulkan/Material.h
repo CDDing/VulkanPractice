@@ -60,7 +60,7 @@ public:
 private:
 	std::vector<MaterialData> _materials;
 	std::vector<bool> _components;
-	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component);
+	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component,VkFormat format);
 	void loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt);
 };
 

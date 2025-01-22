@@ -326,7 +326,7 @@ void GenerateSphere(Device& device, Model& model)
         for (int i = 0; i <= slice; i++) {
             v.pos = glm::rotate(glm::mat4(1.0f), dTheta * float(i), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(startPoint, 1.0f);
             v.normal = glm::normalize(v.pos);
-            v.texCoord = glm::vec2(float(i) / slice, 1.0f- float(j) / slice) * 2.0f;
+            v.texCoord = glm::vec2(1-float(i) / slice, 1.0f- float(j) / slice);
 
             glm::vec3 biTangent = glm::vec3(0.0f, 1.0f, 0.0f);
 

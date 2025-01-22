@@ -17,6 +17,7 @@ layout(location = 2) in vec3 inColor;
 layout(location = 3) in vec3 inWorldPos;
 layout(location = 4) in vec3 inTangent;
 
+
 layout(location = 0) out vec4 outPosition;
 layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outAlbedo;
@@ -26,12 +27,13 @@ layout(location = 5) out vec4 outao;
 vec3 GetNormal(){
 	vec3 normalWorld = normalize(inNormal);
 	if(hasNormal){
-	vec3 N = normalize(inNormal);
 	vec3 T = normalize(inTangent);
+	vec3 N = normalize(inNormal);
+	T = normalize(T - dot(T, N) * N);
 	vec3 B = cross(N, T);
 	mat3 TBN = mat3(T, B, N);
 	vec3 tnorm = TBN * normalize(texture(samplers[1], inUV).xyz * 2.0 - vec3(1.0));
-		normalWorld = tnorm;
+		normalWorld = normalize(tnorm);
 	}
 	return normalWorld;
 }
@@ -47,6 +49,7 @@ void main(){
 	
 
 	outAlbedo = vec4(albedo,1.0);
+
 	outRoughness = vec4(roughness,0,0,0);
 	outMetalness = vec4(metallic,0,0,0);
 	outao = vec4(ao,0,0,0);

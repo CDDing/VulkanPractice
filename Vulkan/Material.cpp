@@ -17,7 +17,10 @@ Material::Material(Device& device, std::vector<MaterialComponent> components, co
     for (int i = 0; i < components.size(); i++) {
         auto filePath = filesPath[i];
         auto component = components[i];
-        loadImage(device, filePath, component);
+        if(component == MaterialComponent::ALBEDO)
+            loadImage(device, filePath, component,VK_FORMAT_R8G8B8A8_SRGB);
+        else
+            loadImage(device, filePath, component, VK_FORMAT_R8G8B8A8_UNORM);
     }
 }
 
@@ -43,10 +46,9 @@ Material Material::createMaterialForSkybox(Device& device)
     return material;
 }
 
-void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component)
+void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component,VkFormat format)
 {
     MaterialData materialData;
-
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -65,18 +67,18 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
     vkUnmapMemory(device.Get(), stagingBuffer.GetMemory());
 
     stbi_image_free(pixels);
-    materialData.image = Image(device, texWidth, texHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    materialData.image = Image(device, texWidth, texHeight, mipLevels, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    transitionImageLayout(device, materialData.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+    transitionImageLayout(device, materialData.image.Get(), format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     copyBufferToImage(device, stagingBuffer.Get(), materialData.image.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    //transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+    //transitionImageLayout(textureImage, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 
     vkDestroyBuffer(device.Get(), stagingBuffer.Get(), nullptr);
     vkFreeMemory(device.Get(), stagingBuffer.GetMemory(), nullptr);
 
-    generateMipmaps(device, materialData.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
+    generateMipmaps(device, materialData.image.Get(), format, texWidth, texHeight, mipLevels);
 
-    materialData.imageView = ImageView(device, materialData.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+    materialData.imageView = ImageView(device, materialData.image.Get(), format, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     materialData.sampler = Sampler(device, mipLevels);
 
     _materials[static_cast<int>(component)] = materialData;

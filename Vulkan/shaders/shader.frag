@@ -135,5 +135,4 @@ void main(){
 	
 	
 	outColor = clamp(outColor,0,1000);
-	outColor = vec4(normal,1.0);
 }
