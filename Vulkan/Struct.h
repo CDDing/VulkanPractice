@@ -72,3 +72,7 @@ struct UniformBufferObject {
 struct Transform {
     alignas(16) glm::mat4 model;
 };
+
+struct GUIControl {
+    alignas(16) bool useNormalMap;
+};

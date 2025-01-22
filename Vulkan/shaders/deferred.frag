@@ -8,6 +8,9 @@ layout(push_constant) uniform PushConsts{
 };
 
 layout (set = 1, binding = 0) uniform sampler2D samplers[5];
+layout (set = 3, binding = 0) uniform GUIControl{
+	bool useNormalMap;
+}gc;
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 inColor;
@@ -21,17 +24,14 @@ layout(location = 3) out vec4 outRoughness;
 layout(location = 4) out vec4 outMetalness;
 layout(location = 5) out vec4 outao;
 vec3 GetNormal(){
-	vec3 normalWorld = inNormal;
+	vec3 normalWorld = normalize(inNormal);
 	if(hasNormal){
-		vec3 normal = texture(samplers[1],inUV).xyz;
-		normal = 2.0*normal -1.0;
-
-		vec3 N = normalWorld;
-		vec3 T = normalize(inTangent - dot(inTangent,N) * N);
-		vec3 B = cross(N,T);
-
-		mat3x3 TBN = mat3x3(T,B,N);
-		normalWorld = normalize(TBN*normal);
+	vec3 N = normalize(inNormal);
+	vec3 T = normalize(inTangent);
+	vec3 B = cross(N, T);
+	mat3 TBN = mat3(T, B, N);
+	vec3 tnorm = TBN * normalize(texture(samplers[1], inUV).xyz * 2.0 - vec3(1.0));
+		normalWorld = tnorm;
 	}
 	return normalWorld;
 }
@@ -43,7 +43,9 @@ void main(){
 	float ao = hasao ? texture(samplers[4],inUV).r:1.0f;
 	
 	outPosition = vec4(inWorldPos,1.0);
-	outNormal = vec4(GetNormal(),1.0);
+	outNormal = gc.useNormalMap ? vec4(GetNormal(),1.0) : vec4(normalize(inNormal),1.0);
+	
+
 	outAlbedo = vec4(albedo,1.0);
 	outRoughness = vec4(roughness,0,0,0);
 	outMetalness = vec4(metallic,0,0,0);

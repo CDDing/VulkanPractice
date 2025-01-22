@@ -17,8 +17,8 @@ private:
 	void moveRight(float dt);
 	void rotate(double mouse_dx, double mouse_dy);
 
-	glm::vec3 _position = glm::vec3(0.0f,0.0f,2.0f);
-	glm::vec3 _viewDir = glm::vec3(0.0f,0.0f,-1.0f);
+	glm::vec3 _position = glm::vec3(0.0f,0.0f,0.0f);
+	glm::vec3 _viewDir = glm::vec3(0.0f,0.0f,1.0f);
 	glm::vec3 _upDir = glm::vec3(0.0f,1.0f,0.0f);
 	glm::vec3 _rightDir = glm::vec3(1.0f,0.0f,0.0f);
 
@@ -26,7 +26,7 @@ private:
 	float _rotateSpeed = 0.5f;
 
 	float _nearZ = 0.01f;
-	float _farZ = 1000.0f;
+	float _farZ = 100.0f;
 	float _aspect = 800.0f / 600.0f;
 
 };

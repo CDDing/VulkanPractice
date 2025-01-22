@@ -64,7 +64,7 @@ vec3 SpecularIBL(vec3 albedo, vec3 normalWorld, vec3 pixelToEye,
 
 	vec2 specularBRDF = texture(brdfsampler,vec2(dot(normalWorld,pixelToEye),1.0-roughness)).rg;
     vec3 reflection = reflect(-pixelToEye, normalize(normalWorld));
-    vec3 specularIrradiance = texture(samplerCubeMap[2],reflection).rgb;
+    vec3 specularIrradiance = textureLod(samplerCubeMap[2],reflection,roughness * 5.0f).rgb;
     
     vec3 F0 = mix(vec3(Fdielectric), albedo, metallic);
 
@@ -117,7 +117,7 @@ void main(){
 		vec3 radiance = vec3(1.0);
         vec3 irradiance = radiance * clamp(20.0 - length(lightVec) / (20.0 - 0.0), 0.0, 1.0);
 		
-		directLight = (diffuseBRDF+specularBRDF) * irradiance * NdotI;
+		directLight = (diffuseBRDF + specularBRDF) * irradiance * NdotI;
 		
 	}
 	
@@ -135,4 +135,5 @@ void main(){
 	
 	
 	outColor = clamp(outColor,0,1000);
+	outColor = vec4(normal,1.0);
 }

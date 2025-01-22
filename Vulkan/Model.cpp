@@ -313,10 +313,10 @@ void GenerateSphere(Device& device, Model& model)
 {
 
 
-    const int slice = 50;
+    const int slice = 100;
     std::vector<Vertex> vertices;
-    const float dTheta = 2 * glm::pi<float>() / (float)(slice);
-    const float dPi = glm::pi<float>() / (float)(slice);
+    const float dTheta = -2 * glm::pi<float>() / (float)(slice);
+    const float dPi = -glm::pi<float>() / (float)(slice);
 
     for (int j = 0; j <= slice; j++) {
         Vertex v;
@@ -347,12 +347,12 @@ void GenerateSphere(Device& device, Model& model)
         const int offset = (slice + 1) * j;
         for (int i = 0; i < slice; i++) {
             indices.push_back(offset + i);
-            indices.push_back(offset + i + 1 + slice + 1);
             indices.push_back(offset + i + slice + 1);
+            indices.push_back(offset + i + 1 + slice + 1);
 
             indices.push_back(offset + i);
-            indices.push_back(offset + i + 1);
             indices.push_back(offset + i + 1 + slice + 1);
+            indices.push_back(offset + i + 1);
         }
     }
 

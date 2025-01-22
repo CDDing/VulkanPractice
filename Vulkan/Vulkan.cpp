@@ -18,9 +18,14 @@ private:
 	ImageView depthImageView;
 	std::vector<Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
+
+	std::vector<Buffer> GUIBuffers;
+	std::vector<void*> GUIBuffersMapped;
+	GUIControl guiControl{};
 	std::vector<Model> models;
 	Model skybox;
 	std::vector<DescriptorSet> uboDescriptorSets;
+	std::vector<DescriptorSet> GUIDescriptorSets;
 
 	DescriptorPool descriptorPool;
 	std::vector<DescriptorSetLayout> descriptorSetLayouts;
@@ -130,7 +135,8 @@ private:
 		//디퍼드 셰이더
 			{descriptorSetLayouts[0].Get(),
 				descriptorSetLayouts[2].Get(),
-		descriptorSetLayouts[3].Get()}
+		descriptorSetLayouts[3].Get(),
+		descriptorSetLayouts[0].Get()}
 		};
 		Pipeline defaultPipeline = Pipeline(device,
 			swapChain.GetExtent(),
@@ -162,17 +168,21 @@ private:
 	}
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-		////Model model2 = Model(device, 1.f
-		//	, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
-		//	"Resources/models/vk2vcdl/vk2vcdl.fbx",
-		//	{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
-		//	"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
-		//	"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
-		//	"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
-		//	glm::mat4(1.0f));
-		Model model = makeSphere(device, glm::mat4(1.0f), {}, {});
+	Model model2 = Model(device, 1.f
+			, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
+			"Resources/models/vk2vcdl/vk2vcdl.fbx",
+			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
+			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
+			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
+			"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
+			glm::mat4(1.0f));
+		Model model = makeSphere(device, glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)) , { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
+			{ "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png",
+			"Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png",
+			"Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Roughness.png",
+			"Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_AmbientOcclusion.png" });
 		models.push_back(model);
-		//models.push_back(model2);
+		models.push_back(model2);
 
 		skybox = makeSkyBox(device);
 	}
@@ -211,6 +221,11 @@ private:
 		for (auto& descriptorSet : uboDescriptorSets) {
 			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
 		}
+		//GUI 버퍼 디스크립터 셋
+		GUIDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+		for (auto& descriptorSet : GUIDescriptorSets) {
+			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
+		}
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			for (auto& model : models) {
 				model.InitDescriptorSet(device, model.material.descriptorSets[i]);
@@ -236,6 +251,24 @@ private:
 			descriptorWrite.pBufferInfo = &bufferInfo;
 
 			vkUpdateDescriptorSets(device.Get(), 1, &descriptorWrite, 0, nullptr);
+		
+			//GUI 행렬 유니폼 버퍼
+			VkDescriptorBufferInfo guibufferInfo;
+			guibufferInfo.buffer = GUIBuffers[i].Get();
+			guibufferInfo.offset = 0;
+			guibufferInfo.range = sizeof(GUIControl);
+
+			VkWriteDescriptorSet guidescriptorWrite{};
+			guidescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			guidescriptorWrite.dstSet = GUIDescriptorSets[i].Get();
+			guidescriptorWrite.dstBinding = 0;
+			guidescriptorWrite.dstArrayElement = 0;
+			guidescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			guidescriptorWrite.descriptorCount = 1;
+			guidescriptorWrite.pBufferInfo = &guibufferInfo;
+
+			vkUpdateDescriptorSets(device.Get(), 1, &guidescriptorWrite, 0, nullptr);
+
 		}
 	}
 
@@ -248,6 +281,17 @@ private:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
+
+
+		}
+		VkDeviceSize guibufferSize = sizeof(GUIControl);
+
+		GUIBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+		GUIBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			GUIBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			vkMapMemory(device.Get(), GUIBuffers[i].GetMemory(), 0, guibufferSize, 0, &GUIBuffersMapped[i]);
 
 
 		}
@@ -355,6 +399,7 @@ private:
 					uboDescriptorSets[currentFrame].Get(),
 					model.material.descriptorSets[currentFrame].Get(),
 					model.descriptorSets[currentFrame].Get(),
+					GUIDescriptorSets[currentFrame].Get()
 				};
 				vkCmdBindDescriptorSets(commandBuffer,
 					VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -384,7 +429,8 @@ private:
 		renderPassInfo.pClearValues = clearValues.data();
 
 		imgui.newFrame();
-		imgui.AddBoolGUI("Test", camera.enableVerticalRotate);
+		imgui.AddBoolGUI("EnableVerticalRotate", camera.enableVerticalRotate);
+		imgui.AddBoolGUI("UseNormalMap", guiControl.useNormalMap);
 		imgui.End();
 		//imgui.updateBuffers();
 		//SkyboxDraw
@@ -514,13 +560,16 @@ private:
 		ubo.proj[1][1] *= -1;
 		ubo.camPos = camera.GetPos();
 
-		ubo.lights[0] = glm::vec4(0, 3, 0, 0);
+		ubo.lights[0] = glm::vec4(0, 1, 0, 0);
 		ubo.lights[1] = glm::vec4(1, 1, 1, 0);
 		ubo.lights[2] = glm::vec4(1, 1, 1, 0);
 		ubo.lights[3] = glm::vec4(1, 1, 1, 0);
 
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+
+		
+		memcpy(GUIBuffersMapped[currentImage], &guiControl, sizeof(GUIControl));
 	}
 	void drawFrame() {
 		vkWaitForFences(device.Get(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -591,6 +640,8 @@ private:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroyBuffer(device.Get(), uniformBuffers[i].Get(), nullptr);
 			vkFreeMemory(device.Get(), uniformBuffers[i].GetMemory(), nullptr);
+			vkDestroyBuffer(device.Get(), GUIBuffers[i].Get(), nullptr);
+			vkFreeMemory(device.Get(), GUIBuffers[i].GetMemory(), nullptr);
 		}
 
 		for (auto& descriptorSetLayout : descriptorSetLayouts) {
