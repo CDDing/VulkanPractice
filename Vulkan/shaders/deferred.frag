@@ -10,6 +10,8 @@ layout(push_constant) uniform PushConsts{
 layout (set = 1, binding = 0) uniform sampler2D samplers[5];
 layout (set = 3, binding = 0) uniform GUIControl{
 	bool useNormalMap;
+	float roughness;
+	float metallic;
 }gc;
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec2 inUV;
@@ -38,10 +40,10 @@ vec3 GetNormal(){
 	return normalWorld;
 }
 void main(){
-	vec3 albedo = hasTexture ? texture(samplers[0],inUV).rgb : vec3(1.0,1.0,1.0);
+	vec3 albedo = hasTexture ? texture(samplers[0],inUV).rgb : vec3(0.5,0.5,0.5);
 	vec3 normal = GetNormal();
-	float roughness = hasRoughness ? texture(samplers[2],inUV).r : 0;
-	float metallic = hasMetalness ? texture(samplers[3],inUV).r : 0;
+	float roughness = hasRoughness ? texture(samplers[2],inUV).r : gc.roughness;
+	float metallic = hasMetalness ? texture(samplers[3],inUV).r : gc.metallic;
 	float ao = hasao ? texture(samplers[4],inUV).r:1.0f;
 	
 	outPosition = vec4(inWorldPos,1.0);

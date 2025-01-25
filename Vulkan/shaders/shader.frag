@@ -20,7 +20,7 @@ layout (location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;
 
 const float PI = 3.14159265359;
-const vec3 Fdielectric = vec3(0.04,0.04,0.04); 
+const vec3 Fdielectric = vec3(0.04); 
 vec3 SchlickFresnel(vec3 F0, float NdotH)
 {
     vec3 result = F0;
@@ -64,7 +64,7 @@ vec3 SpecularIBL(vec3 albedo, vec3 normalWorld, vec3 pixelToEye,
 
 	vec2 specularBRDF = texture(brdfsampler,vec2(dot(normalWorld,pixelToEye),1.0-roughness)).rg;
     vec3 reflection = reflect(-pixelToEye, normalize(normalWorld));
-    vec3 specularIrradiance = textureLod(samplerCubeMap[2],reflection,roughness * 5.0f).rgb;
+    vec3 specularIrradiance = textureLod(samplerCubeMap[2],reflection,roughness * 9.0f).rgb;
     
     vec3 F0 = mix(vec3(Fdielectric), albedo, metallic);
 
@@ -92,7 +92,7 @@ void main(){
 	if(fragPos.x == 0&& fragPos.y==0&&fragPos.z==0){
 		discard;
 	}
-	vec3 directLight;
+	vec3 directLight = vec3(0);
 
 
 	for(int i =0 ;i < 1;i++){

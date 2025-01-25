@@ -256,8 +256,8 @@ void GUI::newFrame()
 
 	// Render to generate draw buffers
 }
-void GUI::AddFloatGUI(std::string text, float& value) {
-	ImGui::InputFloat(text.c_str(), &value);
+void GUI::AddFloatGUI(std::string text, float& value,float min, float max) {
+	ImGui::SliderFloat(text.c_str(), &value,min,max);
 }
 void GUI::AddBoolGUI(std::string text, bool& value) {
 	ImGui::Checkbox(text.c_str(), &value);

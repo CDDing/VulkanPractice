@@ -168,22 +168,19 @@ private:
 	}
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-	/*Model model2 = Model(device, 1.f
+	Model model2 = Model(device, 1.f
 			, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
 			"Resources/models/vk2vcdl/vk2vcdl.fbx",
 			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
 			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
 			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
 			"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
-			glm::mat4(1.0f));
-		*/Model model = makeSphere(device, glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)) ,
-			{ MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
-			{ "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png",
-			"Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalGL.png",
-			"Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Roughness.png",
-			"Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_AmbientOcclusion.png" });
+			glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(1.5,0,2)), glm::radians(45.0f), glm::vec3(-2, 3, 1)));
+		Model model = makeSphere(device, glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)) ,
+			{ },
+			{ });
 		models.push_back(model);
-		//models.push_back(model2);
+		models.push_back(model2);
 
 		skybox = makeSkyBox(device);
 	}
@@ -432,6 +429,8 @@ private:
 		imgui.newFrame();
 		imgui.AddBoolGUI("EnableVerticalRotate", camera.enableVerticalRotate);
 		imgui.AddBoolGUI("UseNormalMap", guiControl.useNormalMap);
+		imgui.AddFloatGUI("Roughness", guiControl.roughness, 0.0f, 1.0f);
+		imgui.AddFloatGUI("metallic", guiControl.metallic, 0.0f, 1.0f);
 		imgui.End();
 		//imgui.updateBuffers();
 		//SkyboxDraw
