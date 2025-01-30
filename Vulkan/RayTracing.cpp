@@ -15,6 +15,7 @@ void RayTracing::init(Device& device, int currentFrame)
 	createBlas(device,currentFrame);
 	createTlas(device);
 	createRTPipeline(device, currentFrame);
+	createSBT(device);
 }
 
 void RayTracing::createTlas(Device& device)
@@ -220,7 +221,32 @@ void RayTracing::createBlas(Device&device, int currentFrame)
 
 void RayTracing::createSBT(Device& device)
 {
+	const uint32_t handleSize = rayTracingPipelineProperties.shaderGroupHandleSize;
 
+	const uint32_t value = rayTracingPipelineProperties.shaderGroupHandleSize;
+	const uint32_t alignment = rayTracingPipelineProperties.shaderGroupHandleAlignment;
+	const uint32_t handleSizeAligned = (value + alignment - 1) & ~(alignment - 1);
+
+	const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
+
+	const uint32_t sbtSize = groupCount * handleSizeAligned;
+
+	std::vector<uint8_t> shaderHandleStorage(sbtSize);
+	vkGetRayTracingShaderGroupHandlesKHR(device.Get(), pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data());
+
+	const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+	const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	raygenShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
+	missShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
+	hitShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
+
+
+	raygenShaderBindingTable.map(device);
+	missShaderBindingTable.map(device);
+	hitShaderBindingTable.map(device);
+	memcpy(raygenShaderBindingTable.mapped, shaderHandleStorage.data(), handleSize);
+	memcpy(missShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned, handleSize);
+	memcpy(hitShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned * 2, handleSize);
 }
 
 void RayTracing::createRTPipeline(Device& device,int currentFrame)
@@ -352,6 +378,9 @@ void RayTracing::destroy(Device& device)
 	vkDestroyBuffer(device.Get(), tlas.buffer.Get(), nullptr);
 	vkFreeMemory(device.Get(), tlas.buffer.GetMemory(), nullptr);
 	vkDestroyAccelerationStructureKHR(device.Get(), tlas.handle, nullptr);
+	raygenShaderBindingTable.destroy(device);
+	missShaderBindingTable.destroy(device);
+	hitShaderBindingTable.destroy(device);
 }
 
 void RayTracing::loadFunctions(Device& device)

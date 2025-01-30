@@ -28,6 +28,9 @@ private:
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 	VkPipeline pipeline;
+	Buffer raygenShaderBindingTable;
+	Buffer missShaderBindingTable;
+	Buffer hitShaderBindingTable;
 
 	uint64_t getBufferDeviceAddress(Device& device, Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
