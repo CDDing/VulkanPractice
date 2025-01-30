@@ -15,7 +15,7 @@ public:
 	AccelerationStructure blas{};
 	AccelerationStructure tlas{};
 private:
-	void createTlas();
+	void createTlas(Device& device);
 	void createBlas(Device& device, int currentFrame);
 	void loadFunctions(Device& device);
 
