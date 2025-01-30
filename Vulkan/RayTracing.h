@@ -14,13 +14,20 @@ public:
 
 	AccelerationStructure blas{};
 	AccelerationStructure tlas{};
+	DescriptorSetLayout descriptorSetLayout;
+	DescriptorSet descriptorSet;
+	VkPipelineLayout pipelineLayout;
 private:
 	void createTlas(Device& device);
 	void createBlas(Device& device, int currentFrame);
+	void createSBT(Device& device);
+	void createRTPipeline(Device& device,int currentFrame);
 	void loadFunctions(Device& device);
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
+	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
+	VkPipeline pipeline;
 
 	uint64_t getBufferDeviceAddress(Device& device, Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;

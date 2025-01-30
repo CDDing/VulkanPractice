@@ -46,6 +46,12 @@
     <Filter Include="헤더 파일\ImGUI">
       <UniqueIdentifier>{ffc5c9cc-4609-4a02-a8cd-0cb47094077f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Shader\RayTracing">
+      <UniqueIdentifier>{08fbbc2f-b4ba-47dc-aa56-cabbd176b898}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Shader\imgui">
+      <UniqueIdentifier>{7119bd9e-3798-4d62-b554-f1a3a9bae04e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Vulkan.cpp">
@@ -286,11 +292,20 @@
     <None Include="shaders\deferred.vert">
       <Filter>소스 파일\Shader</Filter>
     </None>
+    <None Include="shaders\hit.rchit">
+      <Filter>소스 파일\Shader\RayTracing</Filter>
+    </None>
+    <None Include="shaders\miss.rmiss">
+      <Filter>소스 파일\Shader\RayTracing</Filter>
+    </None>
+    <None Include="shaders\raygen.rgen">
+      <Filter>소스 파일\Shader\RayTracing</Filter>
+    </None>
     <None Include="shaders\imgui.frag">
-      <Filter>소스 파일\Shader</Filter>
+      <Filter>소스 파일\Shader\imgui</Filter>
     </None>
     <None Include="shaders\imgui.vert">
-      <Filter>소스 파일\Shader</Filter>
+      <Filter>소스 파일\Shader\imgui</Filter>
     </None>
   </ItemGroup>
 </Project>
