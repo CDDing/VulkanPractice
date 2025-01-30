@@ -51,7 +51,7 @@ private:
 
 	static void keyboardInput(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
-
+		
 		if (action == GLFW_PRESS) {
 			app->keyPressed[key] = true;
 
@@ -168,7 +168,8 @@ private:
 	}
 	void InsertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-	Model model2 = Model(device, 1.f
+		Model plane = makeSqaure(device, glm::translate(glm::mat4(30.0f),glm::vec3(0,-2.f/30.f,0)), {}, {});
+		Model model2 = Model(device, 1.f
 			, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
 			"Resources/models/vk2vcdl/vk2vcdl.fbx",
 			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
@@ -181,7 +182,7 @@ private:
 			{ });
 		models.push_back(model);
 		models.push_back(model2);
-
+		models.push_back(plane);
 		skybox = makeSkyBox(device);
 	}
 

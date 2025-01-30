@@ -364,20 +364,27 @@ void GenerateSquare(Device& device, Model& model)
 {
     std::vector<Vertex> vertices;
     Vertex v0, v1, v2, v3;
-    v0.pos = (glm::vec3(-1.0f, 1.0f, 0.0f));
-    v1.pos=(glm::vec3(1.0f, 1.0f, 0.0f));
-    v2.pos=(glm::vec3(1.0f, -1.0f, 0.0f));
-    v3.pos=(glm::vec3(-1.0f, -1.0f, 0.0f));
-    v0.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
-    v1.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
-    v2.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
-    v3.normal=(glm::vec3(0.0f, 0.0f, -1.0f));
-    v0.texCoord = (glm::vec2(0.0f, 0.0f));
-    v1.texCoord = (glm::vec2(1.0f, 0.0f));
-    v2.texCoord = (glm::vec2(1.0f, 1.0f));
-    v3.texCoord = (glm::vec2(0.0f, 1.0f));
+
+    // Position: Make the quad lie flat in the XZ plane, facing upwards
+    v0.pos = glm::vec3(-1.0f, 0.0f, -1.0f);
+    v1.pos = glm::vec3(1.0f, 0.0f, -1.0f);
+    v2.pos = glm::vec3(1.0f, 0.0f, 1.0f);
+    v3.pos = glm::vec3(-1.0f, 0.0f, 1.0f);
+
+    // Normal: Facing upwards (Y+)
+    v0.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+    v1.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+    v2.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+    v3.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    // Texture Coordinates (unchanged)
+    v0.texCoord = glm::vec2(0.0f, 0.0f);
+    v1.texCoord = glm::vec2(1.0f, 0.0f);
+    v2.texCoord = glm::vec2(1.0f, 1.0f);
+    v3.texCoord = glm::vec2(0.0f, 1.0f);
+
     std::vector<uint32_t> indices = {
-        0,1,2,0,2,3
+        0,2,1,0,3,2
     
     };
     glm::vec3 tangent0, tangent1, tangent2, tangent3;
