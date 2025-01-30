@@ -27,9 +27,9 @@ public:
 	void InitDescriptorSetForModelMatrix(Device& device, DescriptorSet& desciprotrSet);
 	std::vector<DescriptorSet> descriptorSets;
 	void loadModel(Device& device, const std::string& modelPath, const float& scale);
+	std::vector<Buffer> uniformBuffers;
 private:
 	Transform _transform;
-	std::vector<Buffer> _uniformBuffers;
 	std::vector<void*> _uniformBuffersMapped;
 	void processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale);
 	Mesh processMesh(Device& device, aiMesh* mesh, const aiScene* scene, const float& scale);

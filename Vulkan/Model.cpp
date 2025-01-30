@@ -12,15 +12,15 @@ Model::Model(Device& device, const float& scale, const std::vector<MaterialCompo
 
 
     VkDeviceSize bufferSize = sizeof(Transform);
-    _uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        _uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        vkMapMemory(device.Get(), _uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
+        uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
     }
     _transform = { transform };
     memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
-memcpy(_uniformBuffersMapped[1], &_transform, sizeof(_transform));
+    memcpy(_uniformBuffersMapped[1], &_transform, sizeof(_transform));
 }
 
 void Model::Render()
@@ -35,7 +35,7 @@ void Model::destroy(Device& device)
 
     material.destroy(device);
 
-    for (auto& uniformBuffer: _uniformBuffers) {
+    for (auto& uniformBuffer: uniformBuffers) {
         vkDestroyBuffer(device.Get(), uniformBuffer.Get(), nullptr);
         vkFreeMemory(device.Get(), uniformBuffer.GetMemory(), nullptr);
     }
@@ -45,11 +45,11 @@ void Model::destroy(Device& device)
 void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
 {
     VkDeviceSize bufferSize = sizeof(Transform);
-    _uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        _uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        vkMapMemory(device.Get(), _uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
+        uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
     }
     _transform = { transform };
     memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
@@ -248,7 +248,7 @@ void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& descip
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         VkDescriptorBufferInfo bufferInfo;
-        bufferInfo.buffer = _uniformBuffers[frame].Get();
+        bufferInfo.buffer = uniformBuffers[frame].Get();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Transform);
 

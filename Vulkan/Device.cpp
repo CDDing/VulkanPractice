@@ -55,14 +55,28 @@ void Device::createLogicalDevice(Surface& surface)
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    //For RT
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
+    accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    accelerationStructureFeatures.accelerationStructure = VK_TRUE;  
+
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
+    bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    bufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+
+    accelerationStructureFeatures.pNext = &bufferDeviceAddressFeatures;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures{};
+    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures.features.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.pNext = &accelerationStructureFeatures;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.pEnabledFeatures = &deviceFeatures;
+    //createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.pNext = &deviceFeatures;
 
     //현대 코드에선 필요없지만 구식 코드와의 호환을 위해
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());

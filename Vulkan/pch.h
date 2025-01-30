@@ -55,13 +55,24 @@
 #include "Model.h"
 #include "Mesh.h"
 #include "GUI.h"
+#include "RayTracing.h"
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
 const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+    
+    VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+    
+    VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+
+    VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
 };
 
 const uint32_t WIDTH = 800;
