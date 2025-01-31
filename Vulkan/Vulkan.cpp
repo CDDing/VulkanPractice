@@ -41,7 +41,7 @@ private:
 	std::vector<VkFence> inFlightFences;
 	uint32_t currentFrame = 0;
 
-	std::vector<RayTracing> rts;
+	RayTracing rt;
 	bool keyPressed[256] = { false, };
 
 	bool framebufferResized = false;
@@ -95,7 +95,6 @@ private:
 		descriptorPool = DescriptorPool(device);
 		commandPool = CommandPool(device, surface);
 		swapChain = SwapChain(device, surface);
-		initRayTracing();
 		
 		initGUI();
 		createDescriptorSetLayouts();
@@ -103,6 +102,7 @@ private:
 		createUniformBuffers();
 		createDescriptorSets();
 		createPipelines();
+		//initRayTracing();
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			CommandBuffer cb = CommandBuffer(device, commandPool);
 			commandBuffers.push_back(cb);
@@ -121,9 +121,8 @@ private:
 	}
 	void initRayTracing() {
 
-		rts = { RayTracing(),RayTracing() };
-		rts[0].init(device, 0);
-		rts[1].init(device, 1);
+		rt = RayTracing();
+		rt.init(device,uniformBuffers,swapChain);
 	}
 	void initGUI() {
 
@@ -674,9 +673,7 @@ private:
 			vkDestroyPipeline(device.Get(), pipeline.Get(), nullptr);
 			vkDestroyPipelineLayout(device.Get(), pipeline.GetLayout(), nullptr);
 		}
-		for (auto& raytracing : rts) {
-			raytracing.destroy(device);
-		}
+		rt.destroy(device);
 		vkDestroyDevice(device.Get(), nullptr);
 		if (enableValidationLayers) {
 

@@ -1,4 +1,5 @@
 #version 450
+#include "common.glsl"
 layout(set = 0, binding = 0) uniform UniformBufferObject{
 	mat4 view;
 	mat4 proj;
@@ -130,7 +131,7 @@ void main(){
 	
 	
 	
-	outColor = vec4(ambientLight + directLight,1.0);
+	outColor = vec4(ToSRGB(ambientLight + directLight),1.0);
 	
 	
 	

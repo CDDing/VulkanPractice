@@ -3,7 +3,7 @@ class RayTracing
 {
 
 public:
-	void init(Device& device, int currentFrame);
+	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain swapChain);
 	void destroy(Device& device);
 
 	struct AccelerationStructure {
@@ -12,16 +12,21 @@ public:
 		Buffer buffer;
 	};
 
-	AccelerationStructure blas{};
-	AccelerationStructure tlas{};
+	std::vector<AccelerationStructure> BLASs{};
+	std::vector<AccelerationStructure> TLASs{};
+	std::vector<Image> outputImages;
+	std::vector<ImageView> outputImageViews;
 	DescriptorSetLayout descriptorSetLayout;
-	DescriptorSet descriptorSet;
+	std::vector<DescriptorSet> descriptorSets;
+	DescriptorPool descriptorPool;
 	VkPipelineLayout pipelineLayout;
 private:
 	void createTlas(Device& device);
-	void createBlas(Device& device, int currentFrame);
+	void createBlas(Device& device);
 	void createSBT(Device& device);
-	void createRTPipeline(Device& device,int currentFrame);
+	void createRTPipeline(Device& device);
+	void createOutputImage(Device& device,SwapChain swapChain);
+	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers);
 	void loadFunctions(Device& device);
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};

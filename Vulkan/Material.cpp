@@ -17,10 +17,7 @@ Material::Material(Device& device, std::vector<MaterialComponent> components, co
     for (int i = 0; i < components.size(); i++) {
         auto filePath = filesPath[i];
         auto component = components[i];
-        if(component == MaterialComponent::ALBEDO)
-            loadImage(device, filePath, component,VK_FORMAT_R8G8B8A8_SRGB);
-        else
-            loadImage(device, filePath, component, VK_FORMAT_R8G8B8A8_UNORM);
+        loadImage(device, filePath, component, VK_FORMAT_R8G8B8A8_UNORM);
     }
 }
 

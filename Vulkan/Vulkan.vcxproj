@@ -229,6 +229,7 @@
     <ClInclude Include="VL.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\common.glsl" />
     <None Include="shaders\deferred.frag" />
     <None Include="shaders\deferred.vert" />
     <None Include="shaders\hit.rchit" />
