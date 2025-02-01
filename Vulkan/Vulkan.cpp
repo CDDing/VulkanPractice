@@ -585,8 +585,8 @@ private:
 		}
 		vkResetFences(device, 1, &inFlightFences[currentFrame]);
 		updateUniformBuffer(currentFrame);
-		vkResetCommandBuffer(commandBuffers[currentFrame].Get(), 0);
-		recordCommandBuffer(commandBuffers[currentFrame].Get(), imageIndex, models);
+		vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, models);
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -596,8 +596,10 @@ private:
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffers[currentFrame].Get();
+
+		std::vector<VkCommandBuffer> commandBuffersToSubmit = { commandBuffers[currentFrame]};
+		submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit.size());
+		submitInfo.pCommandBuffers = commandBuffersToSubmit.data();
 
 		VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
 		submitInfo.signalSemaphoreCount = 1;
@@ -657,7 +659,7 @@ private:
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
 			vkDestroyFence(device, inFlightFences[i], nullptr);
 		}
-		vkDestroyCommandPool(device, commandPool.Get(), nullptr);
+		vkDestroyCommandPool(device, commandPool, nullptr);
 		vkDestroyCommandPool(device, CommandPool::TransientPool, nullptr);
 		for (int i = 0; i < 3;i++) {
 			auto& pipeline = pipelines[i];

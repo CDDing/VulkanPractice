@@ -5,8 +5,10 @@ class CommandPool
 public:
 	CommandPool();
 	CommandPool(Device& device, Surface& surface);
-	VkCommandPool& Get() { return _commandPool; }
 	static VkCommandPool TransientPool;
+	operator VkCommandPool& () {
+		return _commandPool;
+	}
 private:
 
 	VkCommandPool _commandPool;
