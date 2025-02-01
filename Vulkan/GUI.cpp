@@ -21,9 +21,9 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	stagingBuffer = Buffer(*_device, uploadSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	void* data;
-	vkMapMemory(_device->Get(), stagingBuffer.GetMemory(), 0, uploadSize, 0, &data);
+	vkMapMemory(*_device, stagingBuffer.GetMemory(), 0, uploadSize, 0, &data);
 	memcpy(data, fontData, static_cast<size_t>(uploadSize));
-	vkUnmapMemory(_device->Get(), stagingBuffer.GetMemory());
+	vkUnmapMemory(*_device, stagingBuffer.GetMemory());
 	_fontImage = Image(*_device, texWidth, texHeight, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	_fontImageView = ImageView(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
@@ -32,8 +32,8 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	transitionImageLayout(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
 
-	vkDestroyBuffer(_device->Get(), stagingBuffer.Get(), nullptr);
-	vkFreeMemory(_device->Get(), stagingBuffer.GetMemory(), nullptr);
+	vkDestroyBuffer(*_device, stagingBuffer.Get(), nullptr);
+	vkFreeMemory(*_device, stagingBuffer.GetMemory(), nullptr);
 	_sampler = Sampler(*_device, 1);
 	VkDescriptorPoolSize pool_sizes[] =
 	{
@@ -47,7 +47,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		pool_info.maxSets += pool_size.descriptorCount;
 	pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
 	pool_info.pPoolSizes = pool_sizes;
-	auto err = vkCreateDescriptorPool(_device->Get(), &pool_info, nullptr, &_descriptorPool.Get());
+	auto err = vkCreateDescriptorPool(*_device, &pool_info, nullptr, &_descriptorPool.Get());
 	check_vk_result(err);
 	_descriptorSetLayout = DescriptorSetLayout(*_device, DescriptorType::ImGUI);
 	_descriptorSet = DescriptorSet(*_device, _descriptorPool, _descriptorSetLayout);
@@ -56,7 +56,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	//파이프라인
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 	pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-	vkCreatePipelineCache(_device->Get(), &pipelineCacheCreateInfo, nullptr, &_pipelineCache);
+	vkCreatePipelineCache(*_device, &pipelineCacheCreateInfo, nullptr, &_pipelineCache);
 
 	// Pipeline layout
 	// Push constants for UI rendering parameters
@@ -70,7 +70,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	pipelineLayoutCreateInfo.pSetLayouts = &_descriptorSetLayout.Get();
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-	vkCreatePipelineLayout(_device->Get(), &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
+	vkCreatePipelineLayout(*_device, &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
 
 	// Setup graphics pipeline for UI rendering
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
@@ -197,20 +197,20 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	shaderStages[1].pName = "main";
 	shaderStages[1].module = fragmentShaderModule.Get();
 
-	vkCreateGraphicsPipelines(_device->Get(), _pipelineCache, 1, &pipelineCreateInfo, nullptr, &_pipeline);
+	vkCreateGraphicsPipelines(*_device, _pipelineCache, 1, &pipelineCreateInfo, nullptr, &_pipeline);
 
 
-	vkDestroyShaderModule(_device->Get(), vertexShaderModule.Get(), nullptr);
-	vkDestroyShaderModule(_device->Get(), fragmentShaderModule.Get(), nullptr);
+	vkDestroyShaderModule(*_device, vertexShaderModule.Get(), nullptr);
+	vkDestroyShaderModule(*_device, fragmentShaderModule.Get(), nullptr);
 
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance = Instance;
-	init_info.PhysicalDevice = _device->GetPhysical();
-	init_info.Device = _device->Get();
-	init_info.QueueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(_device->GetPhysical());
+	init_info.PhysicalDevice = *_device;
+	init_info.Device = *_device;
+	init_info.QueueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(*_device);
 	VkQueue queue;
-	vkGetDeviceQueue(_device->Get(), init_info.QueueFamily, 0, &queue);
+	vkGetDeviceQueue(*_device, init_info.QueueFamily, 0, &queue);
 	init_info.Queue = queue;
 	init_info.PipelineCache = _pipelineCache;
 	init_info.DescriptorPool = _descriptorPool.Get();
@@ -236,15 +236,15 @@ void GUI::destroy()
 	ImGui_ImplGlfw_Shutdown();
 	_vertexBuffer.destroy(*_device);
 	_indexBuffer.destroy(*_device);
-	vkDestroyImage(_device->Get(), _fontImage.Get(), nullptr);
-	vkDestroyImageView(_device->Get(), _fontImageView.Get(), nullptr);
-	vkFreeMemory(_device->Get(), _fontImage.GetMemory(), nullptr);
-	vkDestroySampler(_device->Get(), _sampler.Get(), nullptr);
-	vkDestroyPipelineCache(_device->Get(), _pipelineCache, nullptr);
-	vkDestroyPipeline(_device->Get(), _pipeline, nullptr);
-	vkDestroyPipelineLayout(_device->Get(), _pipelineLayout, nullptr);
-	vkDestroyDescriptorPool(_device->Get(), _descriptorPool.Get(), nullptr);
-	vkDestroyDescriptorSetLayout(_device->Get(), _descriptorSetLayout.Get(), nullptr);
+	vkDestroyImage(*_device, _fontImage.Get(), nullptr);
+	vkDestroyImageView(*_device, _fontImageView.Get(), nullptr);
+	vkFreeMemory(*_device, _fontImage.GetMemory(), nullptr);
+	vkDestroySampler(*_device, _sampler.Get(), nullptr);
+	vkDestroyPipelineCache(*_device, _pipelineCache, nullptr);
+	vkDestroyPipeline(*_device, _pipeline, nullptr);
+	vkDestroyPipelineLayout(*_device, _pipelineLayout, nullptr);
+	vkDestroyDescriptorPool(*_device, _descriptorPool.Get(), nullptr);
+	vkDestroyDescriptorSetLayout(*_device, _descriptorSetLayout.Get(), nullptr);
 }
 void GUI::newFrame()
 {
@@ -440,7 +440,7 @@ void GUI::initDescriptorSet()
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
 
-	vkUpdateDescriptorSets(_device->Get(), 1, &descriptorWrite, 0, nullptr);
+	vkUpdateDescriptorSets(*_device, 1, &descriptorWrite, 0, nullptr);
 
 
 }

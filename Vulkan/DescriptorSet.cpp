@@ -13,7 +13,7 @@ DescriptorSet::DescriptorSet(Device& device, DescriptorPool& descriptorPool, Des
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &descriptorSetLayout.Get();
 
-    if (vkAllocateDescriptorSets(device.Get(), &allocInfo, &_descriptorSet) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(device, &allocInfo, &_descriptorSet) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 }

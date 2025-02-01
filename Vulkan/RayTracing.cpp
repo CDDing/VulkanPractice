@@ -10,7 +10,7 @@ void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain
 	VkPhysicalDeviceProperties2 deviceProperties2{};
 	deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
 	deviceProperties2.pNext = &rayTracingPipelineProperties;
-	vkGetPhysicalDeviceProperties2(device.GetPhysical(), &deviceProperties2);
+	vkGetPhysicalDeviceProperties2(device, &deviceProperties2);
 
 	loadFunctions(device);
 
@@ -70,7 +70,7 @@ void RayTracing::createTlas(Device& device)
 
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-		vkGetAccelerationStructureBuildSizesKHR(device.Get(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+		vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 			&accelerationStructureBuildGeometryInfo,
 			&primitive_count,
 			&accelerationStructureBuildSizesInfo);
@@ -84,7 +84,7 @@ void RayTracing::createTlas(Device& device)
 		accelerationStructureCreateInfo.buffer = TLASs[i].buffer.Get();
 		accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 		accelerationStructureCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-		vkCreateAccelerationStructureKHR(device.Get(), &accelerationStructureCreateInfo, nullptr, &TLASs[i].handle);
+		vkCreateAccelerationStructureKHR(device, &accelerationStructureCreateInfo, nullptr, &TLASs[i].handle);
 
 		Buffer scratchBuffer = Buffer(device, accelerationStructureBuildSizesInfo.buildScratchSize,
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -115,7 +115,7 @@ void RayTracing::createTlas(Device& device)
 		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
 		accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
 		accelerationDeviceAddressInfo.accelerationStructure = TLASs[i].handle;
-		TLASs[i].deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(device.Get(), &accelerationDeviceAddressInfo);
+		TLASs[i].deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(device, &accelerationDeviceAddressInfo);
 
 		scratchBuffer.destroy(device);
 		instanceBuffer.destroy(device);
@@ -186,7 +186,7 @@ void RayTracing::createBlas(Device&device, std::vector<Model>& models)
 
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR; 
-		vkGetAccelerationStructureBuildSizesKHR(device.Get(),
+		vkGetAccelerationStructureBuildSizesKHR(device,
 			VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 			&accelerationStructureBuildGeometryInfo,
 			maxPrimitiveCounts.data(),
@@ -201,7 +201,7 @@ void RayTracing::createBlas(Device&device, std::vector<Model>& models)
 		accelerationStructureCreateInfo.buffer = BLASs[i].buffer.Get();
 		accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 		accelerationStructureCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-		vkCreateAccelerationStructureKHR(device.Get(), &accelerationStructureCreateInfo, nullptr, &BLASs[i].handle);
+		vkCreateAccelerationStructureKHR(device, &accelerationStructureCreateInfo, nullptr, &BLASs[i].handle);
 
 		Buffer scratchBuffer = Buffer(device,
 			accelerationStructureBuildSizesInfo.buildScratchSize,
@@ -231,7 +231,7 @@ void RayTracing::createBlas(Device&device, std::vector<Model>& models)
 		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
 		accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
 		accelerationDeviceAddressInfo.accelerationStructure = BLASs[i].handle;
-		BLASs[i].deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(device.Get(), &accelerationDeviceAddressInfo);
+		BLASs[i].deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(device, &accelerationDeviceAddressInfo);
 
 		scratchBuffer.destroy(device);
 	}
@@ -248,7 +248,7 @@ void RayTracing::createSBT(Device& device)
 	const uint32_t sbtSize = groupCount * handleSizeAligned;
 
 	std::vector<uint8_t> shaderHandleStorage(sbtSize);
-	vkGetRayTracingShaderGroupHandlesKHR(device.Get(), pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data());
+	vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleStorage.data());
 
 	const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -295,13 +295,13 @@ void RayTracing::createRTPipeline(Device& device)
 	descriptorSetlayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptorSetlayoutCI.bindingCount = static_cast<uint32_t>(bindings.size());
 	descriptorSetlayoutCI.pBindings = bindings.data();
-	vkCreateDescriptorSetLayout(device.Get(), &descriptorSetlayoutCI, nullptr, &descriptorSetLayout.Get());
+	vkCreateDescriptorSetLayout(device, &descriptorSetlayoutCI, nullptr, &descriptorSetLayout.Get());
 
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
 	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout.Get();
-	vkCreatePipelineLayout(device.Get(), &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+	vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
@@ -369,13 +369,13 @@ void RayTracing::createRTPipeline(Device& device)
 	rayTracingPipelineCreateInfo.pGroups = shaderGroups.data();
 	rayTracingPipelineCreateInfo.maxPipelineRayRecursionDepth = 1;
 	rayTracingPipelineCreateInfo.layout = pipelineLayout;
-	vkCreateRayTracingPipelinesKHR(device.Get(), VK_NULL_HANDLE, VK_NULL_HANDLE,
+	vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE,
 		1, &rayTracingPipelineCreateInfo,
 		nullptr, &pipeline);
 
-	vkDestroyShaderModule(device.Get(), rayGenShader.Get(), nullptr);
-	vkDestroyShaderModule(device.Get(), missShader.Get(), nullptr);
-	vkDestroyShaderModule(device.Get(), hitShader.Get(), nullptr);
+	vkDestroyShaderModule(device, rayGenShader.Get(), nullptr);
+	vkDestroyShaderModule(device, missShader.Get(), nullptr);
+	vkDestroyShaderModule(device, hitShader.Get(), nullptr);
 
 }
 
@@ -393,7 +393,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 	descriptorPoolCreateInfo.pPoolSizes = poolSizes.data();
 	descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 
-	vkCreateDescriptorPool(device.Get(), &descriptorPoolCreateInfo, nullptr, &descriptorPool.Get());
+	vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool.Get());
 
 	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -448,27 +448,27 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 				resultImageWrite,
 				uniformBufferWrite
 		};
-		vkUpdateDescriptorSets(device.Get(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 	}
 }
 
 void RayTracing::destroy(Device& device)
 {
 
-	vkDestroyPipeline(device.Get(), pipeline, nullptr);
-	vkDestroyPipelineLayout(device.Get(), pipelineLayout, nullptr);
-	vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
-	vkDestroyDescriptorPool(device.Get(), descriptorPool.Get(), nullptr);
+	vkDestroyPipeline(device, pipeline, nullptr);
+	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayout.Get(), nullptr);
+	vkDestroyDescriptorPool(device, descriptorPool.Get(), nullptr);
 	for (auto& blas : BLASs) {
-		vkDestroyBuffer(device.Get(), blas.buffer.Get(), nullptr);
-		vkFreeMemory(device.Get(), blas.buffer.GetMemory(), nullptr);
-		vkDestroyAccelerationStructureKHR(device.Get(), blas.handle, nullptr);
+		vkDestroyBuffer(device, blas.buffer.Get(), nullptr);
+		vkFreeMemory(device, blas.buffer.GetMemory(), nullptr);
+		vkDestroyAccelerationStructureKHR(device, blas.handle, nullptr);
 	}
 
 	for (auto& tlas : TLASs) {
-		vkDestroyBuffer(device.Get(), tlas.buffer.Get(), nullptr);
-		vkFreeMemory(device.Get(), tlas.buffer.GetMemory(), nullptr);
-		vkDestroyAccelerationStructureKHR(device.Get(), tlas.handle, nullptr);
+		vkDestroyBuffer(device, tlas.buffer.Get(), nullptr);
+		vkFreeMemory(device, tlas.buffer.GetMemory(), nullptr);
+		vkDestroyAccelerationStructureKHR(device, tlas.handle, nullptr);
 	}
 
 	raygenShaderBindingTable.destroy(device);
@@ -552,16 +552,16 @@ void RayTracing::recordCommandBuffer(Device& device, VkCommandBuffer commandBuff
 
 void RayTracing::loadFunctions(Device& device)
 {
-	vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device.Get(), "vkGetBufferDeviceAddressKHR"));
-	vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device.Get(), "vkCmdBuildAccelerationStructuresKHR"));
-	vkBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device.Get(), "vkBuildAccelerationStructuresKHR"));
-	vkCreateAccelerationStructureKHR = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(vkGetDeviceProcAddr(device.Get(), "vkCreateAccelerationStructureKHR"));
-	vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(vkGetDeviceProcAddr(device.Get(), "vkDestroyAccelerationStructureKHR"));
-	vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(vkGetDeviceProcAddr(device.Get(), "vkGetAccelerationStructureBuildSizesKHR"));
-	vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(vkGetDeviceProcAddr(device.Get(), "vkGetAccelerationStructureDeviceAddressKHR"));
-	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device.Get(), "vkCmdTraceRaysKHR"));
-	vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(device.Get(), "vkGetRayTracingShaderGroupHandlesKHR"));
-	vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device.Get(), "vkCreateRayTracingPipelinesKHR"));
+	vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device, "vkGetBufferDeviceAddressKHR"));
+	vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device, "vkCmdBuildAccelerationStructuresKHR"));
+	vkBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device, "vkBuildAccelerationStructuresKHR"));
+	vkCreateAccelerationStructureKHR = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(vkGetDeviceProcAddr(device, "vkCreateAccelerationStructureKHR"));
+	vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(vkGetDeviceProcAddr(device, "vkDestroyAccelerationStructureKHR"));
+	vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(vkGetDeviceProcAddr(device, "vkGetAccelerationStructureBuildSizesKHR"));
+	vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(vkGetDeviceProcAddr(device, "vkGetAccelerationStructureDeviceAddressKHR"));
+	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device, "vkCmdTraceRaysKHR"));
+	vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(device, "vkGetRayTracingShaderGroupHandlesKHR"));
+	vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device, "vkCreateRayTracingPipelinesKHR"));
 
 }
 
@@ -570,5 +570,5 @@ uint64_t RayTracing::getBufferDeviceAddress(Device& device, Buffer& buffer)
 	VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
 	bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
 	bufferDeviceAI.buffer = buffer.Get();
-	return vkGetBufferDeviceAddressKHR(device.Get(), &bufferDeviceAI);
+	return vkGetBufferDeviceAddressKHR(device, &bufferDeviceAI);
 }

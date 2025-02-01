@@ -257,7 +257,7 @@ private:
 			descriptorWrite.descriptorCount = 1;
 			descriptorWrite.pBufferInfo = &bufferInfo;
 
-			vkUpdateDescriptorSets(device.Get(), 1, &descriptorWrite, 0, nullptr);
+			vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
 		
 			//GUI 행렬 유니폼 버퍼
 			VkDescriptorBufferInfo guibufferInfo;
@@ -274,7 +274,7 @@ private:
 			guidescriptorWrite.descriptorCount = 1;
 			guidescriptorWrite.pBufferInfo = &guibufferInfo;
 
-			vkUpdateDescriptorSets(device.Get(), 1, &guidescriptorWrite, 0, nullptr);
+			vkUpdateDescriptorSets(device, 1, &guidescriptorWrite, 0, nullptr);
 
 		}
 	}
@@ -287,7 +287,7 @@ private:
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
+			vkMapMemory(device, uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
 
 
 		}
@@ -298,7 +298,7 @@ private:
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			GUIBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			vkMapMemory(device.Get(), GUIBuffers[i].GetMemory(), 0, guibufferSize, 0, &GUIBuffersMapped[i]);
+			vkMapMemory(device, GUIBuffers[i].GetMemory(), 0, guibufferSize, 0, &GUIBuffersMapped[i]);
 
 
 		}
@@ -312,7 +312,7 @@ private:
 			glfwGetFramebufferSize(window, &width, &height);
 			glfwWaitEvents();
 		}
-		vkDeviceWaitIdle(device.Get());
+		vkDeviceWaitIdle(device);
 		swapChain.destroy(device);
 		swapChain.create(device);
 		swapChain.InitDescriptorSetForGBuffer(device);
@@ -335,9 +335,9 @@ private:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 
 
-			if (vkCreateSemaphore(device.Get(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-				vkCreateSemaphore(device.Get(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-				vkCreateFence(device.Get(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+				vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+				vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
 				throw std::runtime_error("failed to create semaphores!");
 			}
 		}
@@ -551,7 +551,7 @@ private:
 			}
 			drawFrame();
 		}
-		vkDeviceWaitIdle(device.Get());
+		vkDeviceWaitIdle(device);
 	}
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
@@ -572,10 +572,10 @@ private:
 		memcpy(GUIBuffersMapped[currentImage], &guiControl, sizeof(GUIControl));
 	}
 	void drawFrame() {
-		vkWaitForFences(device.Get(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+		vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(device.Get(), swapChain.Get(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(device, swapChain.Get(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			recreateSwapChain();
 			return;
@@ -583,7 +583,7 @@ private:
 		else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
-		vkResetFences(device.Get(), 1, &inFlightFences[currentFrame]);
+		vkResetFences(device, 1, &inFlightFences[currentFrame]);
 		updateUniformBuffer(currentFrame);
 		vkResetCommandBuffer(commandBuffers[currentFrame].Get(), 0);
 		recordCommandBuffer(commandBuffers[currentFrame].Get(), imageIndex, models);
@@ -632,20 +632,20 @@ private:
 	void cleanup() {
 		swapChain.destroy(device);
 		imgui.destroy();
-		vkDestroyImageView(device.Get(), Material::dummy.imageView.Get(), nullptr);
-		vkDestroyImage(device.Get(), Material::dummy.image.Get(), nullptr);
-		vkFreeMemory(device.Get(), Material::dummy.image.GetMemory(), nullptr);
-		vkDestroySampler(device.Get(), Material::dummy.sampler.Get(), nullptr);
-		vkDestroyDescriptorPool(device.Get(), descriptorPool.Get(), nullptr);
+		vkDestroyImageView(device, Material::dummy.imageView.Get(), nullptr);
+		vkDestroyImage(device, Material::dummy.image.Get(), nullptr);
+		vkFreeMemory(device, Material::dummy.image.GetMemory(), nullptr);
+		vkDestroySampler(device, Material::dummy.sampler.Get(), nullptr);
+		vkDestroyDescriptorPool(device, descriptorPool.Get(), nullptr);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vkDestroyBuffer(device.Get(), uniformBuffers[i].Get(), nullptr);
-			vkFreeMemory(device.Get(), uniformBuffers[i].GetMemory(), nullptr);
-			vkDestroyBuffer(device.Get(), GUIBuffers[i].Get(), nullptr);
-			vkFreeMemory(device.Get(), GUIBuffers[i].GetMemory(), nullptr);
+			vkDestroyBuffer(device, uniformBuffers[i].Get(), nullptr);
+			vkFreeMemory(device, uniformBuffers[i].GetMemory(), nullptr);
+			vkDestroyBuffer(device, GUIBuffers[i].Get(), nullptr);
+			vkFreeMemory(device, GUIBuffers[i].GetMemory(), nullptr);
 		}
 
 		for (auto& descriptorSetLayout : descriptorSetLayouts) {
-			vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
+			vkDestroyDescriptorSetLayout(device, descriptorSetLayout.Get(), nullptr);
 		}
 
 		for (auto& model : models) {
@@ -653,19 +653,19 @@ private:
 		}
 		skybox.destroy(device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vkDestroySemaphore(device.Get(), imageAvailableSemaphores[i], nullptr);
-			vkDestroySemaphore(device.Get(), renderFinishedSemaphores[i], nullptr);
-			vkDestroyFence(device.Get(), inFlightFences[i], nullptr);
+			vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(device, inFlightFences[i], nullptr);
 		}
-		vkDestroyCommandPool(device.Get(), commandPool.Get(), nullptr);
-		vkDestroyCommandPool(device.Get(), CommandPool::TransientPool, nullptr);
+		vkDestroyCommandPool(device, commandPool.Get(), nullptr);
+		vkDestroyCommandPool(device, CommandPool::TransientPool, nullptr);
 		for (int i = 0; i < 3;i++) {
 			auto& pipeline = pipelines[i];
-			vkDestroyPipeline(device.Get(), pipeline.Get(), nullptr);
-			vkDestroyPipelineLayout(device.Get(), pipeline.GetLayout(), nullptr);
+			vkDestroyPipeline(device, pipeline.Get(), nullptr);
+			vkDestroyPipelineLayout(device, pipeline.GetLayout(), nullptr);
 		}
 		rt.destroy(device);
-		vkDestroyDevice(device.Get(), nullptr);
+		vkDestroyDevice(device, nullptr);
 		if (enableValidationLayers) {
 
 			DestroyDebugUtilsMessengerEXT(instance.Get(), instance.GetDebugMessenger(), nullptr);

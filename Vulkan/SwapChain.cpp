@@ -32,13 +32,13 @@ void SwapChain::InitDescriptorSetForGBuffer(Device& device)
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
 
-        vkUpdateDescriptorSets(device.Get(), 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 }
 
 void SwapChain::create(Device& device)
 {
-    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(_device->GetPhysical(), _surface->Get());
+    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(*_device, _surface->Get());
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -60,7 +60,7 @@ void SwapChain::create(Device& device)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
-    QueueFamilyIndices indices = findQueueFamilies(_device->GetPhysical(), _surface->Get());
+    QueueFamilyIndices indices = findQueueFamilies(*_device, _surface->Get());
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily) {
@@ -80,14 +80,14 @@ void SwapChain::create(Device& device)
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(_device->Get(), &createInfo, nullptr, &_swapChain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(*_device, &createInfo, nullptr, &_swapChain) != VK_SUCCESS) {
         throw std::runtime_error("failed to create swap chain!");
     }
 
-    vkGetSwapchainImagesKHR(_device->Get(), _swapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(*_device, _swapChain, &imageCount, nullptr);
     _swapChainImages.resize(imageCount);
     std::vector<VkImage> temp(imageCount,0);
-    vkGetSwapchainImagesKHR(_device->Get(), _swapChain, &imageCount, temp.data());
+    vkGetSwapchainImagesKHR(*_device, _swapChain, &imageCount, temp.data());
     for (int i = 0; i < imageCount;i++) {
         _swapChainImages[i].Get() = temp[i];
     }
@@ -123,7 +123,7 @@ void SwapChain::create(Device& device)
         framebufferInfo.height = _swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(device.Get(), &framebufferInfo, nullptr, &_swapChainFramebuffers[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &_swapChainFramebuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
@@ -269,7 +269,7 @@ void SwapChain::create(Device& device)
     renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
 
-    vkCreateRenderPass(device.Get(), &renderPassInfo, nullptr, &_deferredRenderPass.Get());
+    vkCreateRenderPass(device, &renderPassInfo, nullptr, &_deferredRenderPass.Get());
 
     _deferredFramebuffers.resize(_swapChainImageViews.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
@@ -291,7 +291,7 @@ void SwapChain::create(Device& device)
         framebufferInfo.height = _swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(device.Get(), &framebufferInfo, nullptr, &_deferredFramebuffers[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &_deferredFramebuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
@@ -300,32 +300,32 @@ void SwapChain::create(Device& device)
 
 void SwapChain::destroy(Device& device)
 {
-    vkDestroySampler(device.Get(), _GBufferSampler.Get(), nullptr);
+    vkDestroySampler(device, _GBufferSampler.Get(), nullptr);
     for (auto& image : _deferredImages) {
-        vkDestroyImage(device.Get(), image.Get(), nullptr);
-        vkFreeMemory(device.Get(), image.GetMemory(), nullptr);
+        vkDestroyImage(device, image.Get(), nullptr);
+        vkFreeMemory(device, image.GetMemory(), nullptr);
     }
     for (auto& imageViews : _deferredImageViews) {
-        vkDestroyImageView(device.Get(), imageViews.Get(), nullptr);
+        vkDestroyImageView(device, imageViews.Get(), nullptr);
     }
     for (auto& framebuffer : _deferredFramebuffers) {
-        vkDestroyFramebuffer(device.Get(), framebuffer, nullptr);
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
 
-    vkDestroyImageView(device.Get(), _depthImageView.Get(), nullptr);
-    vkDestroyImage(device.Get(), _depthImage.Get(), nullptr);
-    vkFreeMemory(device.Get(), _depthImage.GetMemory(), nullptr);
+    vkDestroyImageView(device, _depthImageView.Get(), nullptr);
+    vkDestroyImage(device, _depthImage.Get(), nullptr);
+    vkFreeMemory(device, _depthImage.GetMemory(), nullptr);
     for (size_t i = 0; i < _swapChainFramebuffers.size(); i++) {
-        vkDestroyFramebuffer(device.Get(), _swapChainFramebuffers[i], nullptr);
+        vkDestroyFramebuffer(device, _swapChainFramebuffers[i], nullptr);
     }
 
     for (size_t i = 0; i < _swapChainImageViews.size(); i++) {
-        vkDestroyImageView(device.Get(), _swapChainImageViews[i].Get(), nullptr);
+        vkDestroyImageView(device, _swapChainImageViews[i].Get(), nullptr);
     }
-    vkDestroySwapchainKHR(device.Get(), _swapChain, nullptr);
+    vkDestroySwapchainKHR(device, _swapChain, nullptr);
 
-    vkDestroyRenderPass(device.Get(), _renderPass.Get(), nullptr);
-    vkDestroyRenderPass(device.Get(), _deferredRenderPass.Get(), nullptr);
+    vkDestroyRenderPass(device, _renderPass.Get(), nullptr);
+    vkDestroyRenderPass(device, _deferredRenderPass.Get(), nullptr);
 }
 
 
@@ -382,7 +382,7 @@ VkFormat findDepthFormat(Device& device) {
 VkFormat findSupportedFormat(Device& device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
     for (VkFormat format : candidates) {
         VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(device.GetPhysical(), format, &props);
+        vkGetPhysicalDeviceFormatProperties(device, format, &props);
 
         if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
             return format;

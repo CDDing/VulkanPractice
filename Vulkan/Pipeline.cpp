@@ -171,7 +171,7 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     }
 
 
-    if (vkCreatePipelineLayout(device.Get(), &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
@@ -193,9 +193,9 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (vkCreateGraphicsPipelines(device.Get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_pipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
-    vkDestroyShaderModule(device.Get(), fragShaderModule.Get(), nullptr);
-    vkDestroyShaderModule(device.Get(), vertShaderModule.Get(), nullptr);
+    vkDestroyShaderModule(device, fragShaderModule.Get(), nullptr);
+    vkDestroyShaderModule(device, vertShaderModule.Get(), nullptr);
 }

@@ -13,12 +13,12 @@ Buffer::Buffer(Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMe
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(device.Get(), &bufferInfo, nullptr, &_buffer) != VK_SUCCESS) {
+    if (vkCreateBuffer(device, &bufferInfo, nullptr, &_buffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to create buffer!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device.Get(), _buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(device, _buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -31,11 +31,11 @@ Buffer::Buffer(Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMe
 
         allocInfo.pNext = &memoryAllocateFlagsInfo;
     }
-    if (vkAllocateMemory(device.Get(), &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate buffer memory!");
     }
 
-    vkBindBufferMemory(device.Get(), _buffer, _memory, 0);
+    vkBindBufferMemory(device, _buffer, _memory, 0);
 }
 
 void Buffer::unmap(Device& device)
@@ -43,25 +43,25 @@ void Buffer::unmap(Device& device)
 
     if (mapped)
     {
-        vkUnmapMemory(device.Get(), _memory);
+        vkUnmapMemory(device, _memory);
         mapped = nullptr;
     }
 }
 
 VkResult Buffer::map(Device& device,VkDeviceSize size, VkDeviceSize offset)
 {
-    return vkMapMemory(device.Get(), _memory, offset, size, 0, &mapped);
+    return vkMapMemory(device, _memory, offset, size, 0, &mapped);
 }
 
 void Buffer::destroy(Device& device)
 {
     if (_buffer)
     {
-        vkDestroyBuffer(device.Get(), _buffer, nullptr);
+        vkDestroyBuffer(device, _buffer, nullptr);
     }
     if (_memory)
     {
-        vkFreeMemory(device.Get(), _memory, nullptr);
+        vkFreeMemory(device, _memory, nullptr);
     }
 }
 
@@ -72,7 +72,7 @@ VkResult Buffer::flush(Device& device, VkDeviceSize size, VkDeviceSize offset)
     mappedRange.memory = _memory;
     mappedRange.offset = offset;
     mappedRange.size = size;
-    return vkFlushMappedMemoryRanges(device.Get(), 1, &mappedRange);
+    return vkFlushMappedMemoryRanges(device, 1, &mappedRange);
 }
 
 void copyBuffer(Device& device, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {

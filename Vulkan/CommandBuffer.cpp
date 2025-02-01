@@ -13,7 +13,7 @@ CommandBuffer::CommandBuffer(Device& device, CommandPool& commandPool)
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
 
-    if (vkAllocateCommandBuffers(device.Get(), &allocInfo, &_commandBuffer) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(device, &allocInfo, &_commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate command buffers!");
     }
 }
@@ -25,7 +25,7 @@ VkCommandBuffer beginSingleTimeCommands(Device& device) {
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device.Get(), &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -46,5 +46,5 @@ void endSingleTimeCommands(Device& device, VkCommandBuffer commandBuffer) {
     vkQueueSubmit(device.GetQueue(Device::QueueType::GRAPHICS), 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(device.GetQueue(Device::QueueType::GRAPHICS));
 
-    vkFreeCommandBuffers(device.Get(), CommandPool::TransientPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(device, CommandPool::TransientPool, 1, &commandBuffer);
 }

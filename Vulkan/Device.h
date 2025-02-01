@@ -10,8 +10,13 @@ public:
     Device();
     Device(Instance& instance, Surface& surface);
     ~Device();
-    VkDevice& Get() { return _device; }
-    VkPhysicalDevice& GetPhysical() { return _physicalDevice; }
+
+    operator VkDevice& () {
+        return _device;
+    }
+    operator VkPhysicalDevice& () {
+        return _physicalDevice;
+    }
     VkQueue& GetQueue(int type) { return _queues[type]; }
 private:
     void pickPhysicalDevice(Instance& instance,Surface& surface);

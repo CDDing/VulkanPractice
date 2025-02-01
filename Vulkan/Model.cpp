@@ -26,8 +26,8 @@ void Model::destroy(Device& device)
     material.destroy(device);
 
     for (auto& uniformBuffer: uniformBuffers) {
-        vkDestroyBuffer(device.Get(), uniformBuffer.Get(), nullptr);
-        vkFreeMemory(device.Get(), uniformBuffer.GetMemory(), nullptr);
+        vkDestroyBuffer(device, uniformBuffer.Get(), nullptr);
+        vkFreeMemory(device, uniformBuffer.GetMemory(), nullptr);
     }
 
 }
@@ -39,7 +39,7 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
     _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
+        vkMapMemory(device, uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
     }
     _transform = { transform };
     memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
@@ -190,7 +190,7 @@ void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
         
-        vkUpdateDescriptorSets(device.Get(), 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 }
 
@@ -230,7 +230,7 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
 
         std::vector<VkWriteDescriptorSet> descriptorWrites;
         descriptorWrites = { descriptorWriteForMap,descriptorWriteForLut };
-        vkUpdateDescriptorSets(device.Get(),static_cast<uint32_t>( descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device,static_cast<uint32_t>( descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
@@ -251,7 +251,7 @@ void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& descip
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &bufferInfo;
 
-        vkUpdateDescriptorSets(device.Get(), 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 }
 

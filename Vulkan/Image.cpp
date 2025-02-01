@@ -25,23 +25,23 @@ Image::Image(Device& device, uint32_t width, uint32_t height, uint32_t mipLevels
         imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-	if (vkCreateImage(device.Get(), &imageInfo, nullptr, &_image) != VK_SUCCESS) {
+	if (vkCreateImage(device, &imageInfo, nullptr, &_image) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create image!");
 	}
 
 	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(device.Get(), _image, &memRequirements);
+	vkGetImageMemoryRequirements(device, _image, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
 	allocInfo.memoryTypeIndex = findMemoryType(device, memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(device.Get(), &allocInfo, nullptr, &_imageMemory) != VK_SUCCESS) {
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &_imageMemory) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate image memory!");
 	}
 
-	vkBindImageMemory(device.Get(), _image, _imageMemory, 0);
+	vkBindImageMemory(device, _image, _imageMemory, 0);
 
 }
 
@@ -70,7 +70,7 @@ void copyBufferToImage(Device& device, VkBuffer buffer, VkImage image, uint32_t 
 void generateMipmaps(Device& device, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
 
     VkFormatProperties formatProperties;
-    vkGetPhysicalDeviceFormatProperties(device.GetPhysical(), imageFormat, &formatProperties);
+    vkGetPhysicalDeviceFormatProperties(device, imageFormat, &formatProperties);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
         throw std::runtime_error("texture image format does not linear blitting!");
     }
@@ -287,7 +287,7 @@ void copyBufferToImageForCubemap(Device& device, VkBuffer buffer, VkImage image,
 void generateMipmapsForCubemap(Device& device, VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)
 {
     VkFormatProperties formatProperties;
-    vkGetPhysicalDeviceFormatProperties(device.GetPhysical(), imageFormat, &formatProperties);
+    vkGetPhysicalDeviceFormatProperties(device, imageFormat, &formatProperties);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
         throw std::runtime_error("texture image format does not support linear blitting!");
     }
