@@ -4,7 +4,16 @@ class Image
 public:
     Image();
     Image(Device& device, uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,uint32_t arrayLayers = 1);
-    VkImage& Get() { return _image; }
+    operator VkImage& () {
+        return _image;
+    }
+    void operator=(VkImage& image) {
+        _image = image;
+    }
+    void destroy(Device& device) {
+        vkDestroyImage(device, _image, nullptr);
+        vkFreeMemory(device, _imageMemory, nullptr);
+    }
     VkDeviceMemory& GetMemory() { return _imageMemory; }
 private:
     VkImage _image;

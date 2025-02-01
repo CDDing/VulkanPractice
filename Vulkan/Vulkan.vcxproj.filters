@@ -70,6 +70,9 @@
     <Filter Include="소스 파일\VulkanWrapping\Display">
       <UniqueIdentifier>{7bbf3b15-7928-493c-b9fc-6b68805a05b6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\VulkanWrapping\Resource\Image">
+      <UniqueIdentifier>{c97a9a43-46cb-4c4f-bb6c-4c352a52f211}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Vulkan.cpp">
@@ -97,12 +100,6 @@
       <Filter>소스 파일\VulkanWrapping\Command</Filter>
     </ClCompile>
     <ClCompile Include="Buffer.cpp">
-      <Filter>소스 파일\VulkanWrapping\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Image.cpp">
-      <Filter>소스 파일\VulkanWrapping\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="ImageView.cpp">
       <Filter>소스 파일\VulkanWrapping\Resource</Filter>
     </ClCompile>
     <ClCompile Include="Utils.cpp">
@@ -180,6 +177,15 @@
     <ClCompile Include="Material.cpp">
       <Filter>소스 파일\Scene\Object</Filter>
     </ClCompile>
+    <ClCompile Include="Image.cpp">
+      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageView.cpp">
+      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageSet.cpp">
+      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -204,12 +210,6 @@
       <Filter>소스 파일\VulkanWrapping\Command</Filter>
     </ClInclude>
     <ClInclude Include="Buffer.h">
-      <Filter>소스 파일\VulkanWrapping\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Image.h">
-      <Filter>소스 파일\VulkanWrapping\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="ImageView.h">
       <Filter>소스 파일\VulkanWrapping\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Utils.h">
@@ -289,6 +289,15 @@
     </ClInclude>
     <ClInclude Include="Model.h">
       <Filter>소스 파일\Scene\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Image.h">
+      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageView.h">
+      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageSet.h">
+      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

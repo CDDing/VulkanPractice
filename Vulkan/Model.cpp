@@ -172,10 +172,10 @@ void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
         for (int i = 0; i<static_cast<int>(MaterialComponent::END);i++) {
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = material.Get(i).imageView.Get();
+            imageInfo.imageView = material.Get(i).imageView;
             imageInfo.sampler = material.Get(i).sampler;
             if (!material.hasComponent(i)) {
-                imageInfo.imageView = Material::dummy.imageView.Get();
+                imageInfo.imageView = Material::dummy.imageView;
                 imageInfo.sampler = Material::dummy.sampler;
             }
 
@@ -200,7 +200,7 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
         for (int i = 0; i < 3; i++) {
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = material.Get(i).imageView.Get();
+            imageInfo.imageView = material.Get(i).imageView;
             imageInfo.sampler = material.Get(i).sampler;
         }
         VkWriteDescriptorSet descriptorWriteForMap{};
@@ -215,7 +215,7 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
 
         VkDescriptorImageInfo lutImageInfo{};
         lutImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        lutImageInfo.imageView = material.Get(3).imageView.Get();
+        lutImageInfo.imageView = material.Get(3).imageView;
         lutImageInfo.sampler = material.Get(3).sampler;
         imageInfos[3] = lutImageInfo;
         VkWriteDescriptorSet descriptorWriteForLut{};

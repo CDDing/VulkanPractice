@@ -634,9 +634,8 @@ private:
 	void cleanup() {
 		swapChain.destroy(device);
 		imgui.destroy();
-		vkDestroyImageView(device, Material::dummy.imageView.Get(), nullptr);
-		vkDestroyImage(device, Material::dummy.image.Get(), nullptr);
-		vkFreeMemory(device, Material::dummy.image.GetMemory(), nullptr);
+		Material::dummy.imageView.destroy(device);
+		Material::dummy.image.destroy(device);
 		vkDestroySampler(device, Material::dummy.sampler, nullptr);
 		descriptorPool.destroy(device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {

@@ -26,10 +26,10 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	vkUnmapMemory(*_device, stagingBuffer.GetMemory());
 	_fontImage = Image(*_device, texWidth, texHeight, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	_fontImageView = ImageView(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-	transitionImageLayout(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-	copyBufferToImage(*_device, stagingBuffer, _fontImage.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-	transitionImageLayout(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	_fontImageView = ImageView(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	transitionImageLayout(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	copyBufferToImage(*_device, stagingBuffer, _fontImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+	transitionImageLayout(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
 	stagingBuffer.destroy(*_device);
 	_sampler = Sampler(*_device, 1);
@@ -233,9 +233,8 @@ void GUI::destroy()
 	ImGui_ImplGlfw_Shutdown();
 	_vertexBuffer.destroy(*_device);
 	_indexBuffer.destroy(*_device);
-	vkDestroyImage(*_device, _fontImage.Get(), nullptr);
-	vkDestroyImageView(*_device, _fontImageView.Get(), nullptr);
-	vkFreeMemory(*_device, _fontImage.GetMemory(), nullptr);
+	_fontImage.destroy(*_device);
+	_fontImageView.destroy(*_device);
 	vkDestroySampler(*_device, _sampler, nullptr);
 	vkDestroyPipelineCache(*_device, _pipelineCache, nullptr);
 	vkDestroyPipeline(*_device, _pipeline, nullptr);
@@ -426,7 +425,7 @@ void GUI::initDescriptorSet()
 	VkDescriptorImageInfo imageInfo{};
 	imageInfo.sampler = _sampler;
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = _fontImageView.Get();
+	imageInfo.imageView = _fontImageView;
 
 	VkWriteDescriptorSet descriptorWrite{};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

@@ -1,6 +1,6 @@
 #pragma once
-class Image;
-class ImageView;
+#include "Image.h"
+#include "ImageView.h"
 class DescriptorSet;
 class Sampler;
 class SwapChain
@@ -54,8 +54,6 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createImageViews();
 
-
-    //For Recreate, TODO : 추후 surface랑 window 통합.
 
     RenderPass _renderPass;
     Device* _device;

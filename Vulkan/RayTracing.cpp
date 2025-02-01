@@ -416,7 +416,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
 		VkDescriptorImageInfo storageImageDescriptor{};
-		storageImageDescriptor.imageView = swapChainImageViews[i].Get();
+		storageImageDescriptor.imageView = swapChainImageViews[i];
 		storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		VkDescriptorBufferInfo bufferInfo{};
@@ -502,7 +502,7 @@ void RayTracing::recordCommandBuffer(Device& device, VkCommandBuffer commandBuff
 	iMB.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	iMB.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	iMB.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-	iMB.image = _swapChain->GetImages()[imageIndex].Get();
+	iMB.image = _swapChain->GetImages()[imageIndex];
 	iMB.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	iMB.subresourceRange.baseMipLevel = 0;
 	iMB.subresourceRange.baseArrayLayer = 0;

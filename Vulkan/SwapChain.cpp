@@ -19,7 +19,7 @@ void SwapChain::InitDescriptorSetForGBuffer(Device& device)
         for (int i = 0; i < 6; i++) {
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = _deferredImageViews[i].Get();
+            imageInfo.imageView = _deferredImageViews[i];
             imageInfo.sampler = _GBufferSampler;
 
         }
@@ -89,7 +89,7 @@ void SwapChain::create(Device& device)
     std::vector<VkImage> temp(imageCount,0);
     vkGetSwapchainImagesKHR(*_device, _swapChain, &imageCount, temp.data());
     for (int i = 0; i < imageCount;i++) {
-        _swapChainImages[i].Get() = temp[i];
+        _swapChainImages[i] = temp[i];
     }
 
 
@@ -102,17 +102,17 @@ void SwapChain::create(Device& device)
     //Depth
     VkFormat depthFormat = findDepthFormat(device);
     _depthImage = Image(device, _swapChainExtent.width, _swapChainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    _depthImageView = ImageView(device, _depthImage.Get(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+    _depthImageView = ImageView(device, _depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
-    transitionImageLayout(device, _depthImage.Get(), depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+    transitionImageLayout(device, _depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
     _renderPass = RenderPass(device, _swapChainImageFormat, findDepthFormat(device));
     
     _swapChainFramebuffers.resize(_swapChainImageViews.size());
     for (size_t i = 0; i < _swapChainImageViews.size(); i++) {
         std::array<VkImageView, 2> attachments = {
-            _swapChainImageViews[i].Get(),
-            _depthImageView.Get()
+            _swapChainImageViews[i],
+            _depthImageView
         };
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -175,24 +175,24 @@ void SwapChain::create(Device& device)
 
     //이미지 뷰 만들기
     _deferredImageViews.resize(7);
-    _deferredImageViews[0] = (ImageView(device, _deferredImages[0].Get(), positionFormat,
+    _deferredImageViews[0] = (ImageView(device, _deferredImages[0], positionFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews[1] = (ImageView(device, _deferredImages[1].Get(), normalFormat,
+    _deferredImageViews[1] = (ImageView(device, _deferredImages[1], normalFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews[2] = (ImageView(device, _deferredImages[2].Get(), albedoFormat,
+    _deferredImageViews[2] = (ImageView(device, _deferredImages[2], albedoFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews[3] = (ImageView(device, _deferredImages[3].Get(), roughnessFormat,
+    _deferredImageViews[3] = (ImageView(device, _deferredImages[3], roughnessFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews[4] = (ImageView(device, _deferredImages[4].Get(), metalnessFormat,
+    _deferredImageViews[4] = (ImageView(device, _deferredImages[4], metalnessFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
-    _deferredImageViews[5] = (ImageView(device, _deferredImages[5].Get(), aoFormat,
+    _deferredImageViews[5] = (ImageView(device, _deferredImages[5], aoFormat,
         VK_IMAGE_ASPECT_COLOR_BIT, 1));
     if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-        _deferredImageViews[6] = (ImageView(device, _deferredImages[6].Get(), depthFormat,
+        _deferredImageViews[6] = (ImageView(device, _deferredImages[6], depthFormat,
             VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 1));
     }
     else {
-        _deferredImageViews[6] = (ImageView(device, _deferredImages[6].Get(), depthFormat,
+        _deferredImageViews[6] = (ImageView(device, _deferredImages[6], depthFormat,
             VK_IMAGE_ASPECT_DEPTH_BIT, 1));
     }
 
@@ -274,13 +274,13 @@ void SwapChain::create(Device& device)
     _deferredFramebuffers.resize(_swapChainImageViews.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
         std::array<VkImageView, 7> attachments = {
-            _deferredImageViews[0].Get(),
-            _deferredImageViews[1].Get(),
-            _deferredImageViews[2].Get(),
-            _deferredImageViews[3].Get(),
-            _deferredImageViews[4].Get(),
-            _deferredImageViews[5].Get(),
-            _deferredImageViews[6].Get(),
+            _deferredImageViews[0],
+            _deferredImageViews[1],
+            _deferredImageViews[2],
+            _deferredImageViews[3],
+            _deferredImageViews[4],
+            _deferredImageViews[5],
+            _deferredImageViews[6],
         };
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -302,25 +302,23 @@ void SwapChain::destroy(Device& device)
 {
     vkDestroySampler(device, _GBufferSampler, nullptr);
     for (auto& image : _deferredImages) {
-        vkDestroyImage(device, image.Get(), nullptr);
-        vkFreeMemory(device, image.GetMemory(), nullptr);
+        image.destroy(device);
     }
-    for (auto& imageViews : _deferredImageViews) {
-        vkDestroyImageView(device, imageViews.Get(), nullptr);
+    for (auto& imageView : _deferredImageViews) {
+        imageView.destroy(device);
     }
     for (auto& framebuffer : _deferredFramebuffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
 
-    vkDestroyImageView(device, _depthImageView.Get(), nullptr);
-    vkDestroyImage(device, _depthImage.Get(), nullptr);
-    vkFreeMemory(device, _depthImage.GetMemory(), nullptr);
+    _depthImageView.destroy(device);
+    _depthImage.destroy(device);
     for (size_t i = 0; i < _swapChainFramebuffers.size(); i++) {
         vkDestroyFramebuffer(device, _swapChainFramebuffers[i], nullptr);
     }
 
-    for (size_t i = 0; i < _swapChainImageViews.size(); i++) {
-        vkDestroyImageView(device, _swapChainImageViews[i].Get(), nullptr);
+    for (auto& imageView : _swapChainImageViews) {
+        imageView.destroy(device);
     }
     vkDestroySwapchainKHR(device, _swapChain, nullptr);
 
@@ -371,7 +369,7 @@ void SwapChain::createImageViews()
 {
     _swapChainImageViews.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
-        _swapChainImageViews[i] = ImageView(*_device, _swapChainImages[i].Get(), _swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        _swapChainImageViews[i] = ImageView(*_device, _swapChainImages[i], _swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 }
 
