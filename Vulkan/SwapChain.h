@@ -8,7 +8,9 @@ class SwapChain
 public:
     SwapChain();
     SwapChain(Device& device, Surface& surface);
-    VkSwapchainKHR& Get() { return _swapChain; }
+    operator VkSwapchainKHR& () {
+        return _swapChain;
+    }
     VkFormat& GetImageFormat() { return _swapChainImageFormat; }
     VkExtent2D& GetExtent() { return _swapChainExtent; }
     std::vector<Image>& GetImages() { return _swapChainImages; }

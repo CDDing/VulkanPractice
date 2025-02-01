@@ -13,13 +13,13 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule.Get();
+    vertShaderStageInfo.module = vertShaderModule;
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule.Get();
+    fragShaderStageInfo.module = fragShaderModule;
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo,fragShaderStageInfo };
@@ -188,7 +188,7 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = _pipelineLayout;
-    pipelineInfo.renderPass = renderPass.Get();
+    pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
@@ -196,6 +196,6 @@ Pipeline::Pipeline(Device& device, VkExtent2D& swapChainExtent, std::vector<std:
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
-    vkDestroyShaderModule(device, fragShaderModule.Get(), nullptr);
-    vkDestroyShaderModule(device, vertShaderModule.Get(), nullptr);
+    fragShaderModule.destroy(device);
+    vertShaderModule.destroy(device);
 }

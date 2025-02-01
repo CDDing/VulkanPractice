@@ -14,7 +14,15 @@ class DescriptorSetLayout
 public:
 	DescriptorSetLayout();
 	DescriptorSetLayout(Device& device,DescriptorType type);
-	VkDescriptorSetLayout& Get() { return _descriptorSetLayout; }
+    operator VkDescriptorSetLayout& () {
+        return _descriptorSetLayout;
+    }
+    VkDescriptorSetLayout* operator&() {
+        return &_descriptorSetLayout;
+    }
+    void destroy(Device& device) {
+        vkDestroyDescriptorSetLayout(device, _descriptorSetLayout, nullptr);
+    }
     static VkDescriptorSetLayoutBinding inputLayoutBinding(uint32_t binding, ShaderComponent component,int cnt) {
         switch (component) {
         case ShaderComponent::UNIFORM:

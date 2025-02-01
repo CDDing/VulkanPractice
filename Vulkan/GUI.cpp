@@ -28,12 +28,10 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	_fontImageView = ImageView(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 	transitionImageLayout(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-	copyBufferToImage(*_device, stagingBuffer.Get(), _fontImage.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+	copyBufferToImage(*_device, stagingBuffer, _fontImage.Get(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 	transitionImageLayout(*_device, _fontImage.Get(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
-
-	vkDestroyBuffer(*_device, stagingBuffer.Get(), nullptr);
-	vkFreeMemory(*_device, stagingBuffer.GetMemory(), nullptr);
+	stagingBuffer.destroy(*_device);
 	_sampler = Sampler(*_device, 1);
 	VkDescriptorPoolSize pool_sizes[] =
 	{
@@ -47,7 +45,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		pool_info.maxSets += pool_size.descriptorCount;
 	pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
 	pool_info.pPoolSizes = pool_sizes;
-	auto err = vkCreateDescriptorPool(*_device, &pool_info, nullptr, &_descriptorPool.Get());
+	auto err = vkCreateDescriptorPool(*_device, &pool_info, nullptr, &_descriptorPool);
 	check_vk_result(err);
 	_descriptorSetLayout = DescriptorSetLayout(*_device, DescriptorType::ImGUI);
 	_descriptorSet = DescriptorSet(*_device, _descriptorPool, _descriptorSetLayout);
@@ -67,7 +65,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
-	pipelineLayoutCreateInfo.pSetLayouts = &_descriptorSetLayout.Get();
+	pipelineLayoutCreateInfo.pSetLayouts = &_descriptorSetLayout;
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 	vkCreatePipelineLayout(*_device, &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
@@ -138,7 +136,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineCreateInfo.layout = _pipelineLayout;
-	pipelineCreateInfo.renderPass = renderPass.Get();
+	pipelineCreateInfo.renderPass = renderPass;
 	pipelineCreateInfo.flags = 0;
 	pipelineCreateInfo.basePipelineIndex = -1;
 	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -190,18 +188,17 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 	shaderStages[0].pName = "main";
-	shaderStages[0].module = vertexShaderModule.Get();
+	shaderStages[0].module = vertexShaderModule;
 
 	shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 	shaderStages[1].pName = "main";
-	shaderStages[1].module = fragmentShaderModule.Get();
+	shaderStages[1].module = fragmentShaderModule;
 
 	vkCreateGraphicsPipelines(*_device, _pipelineCache, 1, &pipelineCreateInfo, nullptr, &_pipeline);
 
-
-	vkDestroyShaderModule(*_device, vertexShaderModule.Get(), nullptr);
-	vkDestroyShaderModule(*_device, fragmentShaderModule.Get(), nullptr);
+	vertexShaderModule.destroy(*_device);
+	fragmentShaderModule.destroy(*_device);
 
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 	ImGui_ImplVulkan_InitInfo init_info = {};
@@ -213,8 +210,8 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	vkGetDeviceQueue(*_device, init_info.QueueFamily, 0, &queue);
 	init_info.Queue = queue;
 	init_info.PipelineCache = _pipelineCache;
-	init_info.DescriptorPool = _descriptorPool.Get();
-	init_info.RenderPass = renderPass.Get();
+	init_info.DescriptorPool = _descriptorPool;
+	init_info.RenderPass = renderPass;
 	init_info.Subpass = 0;
 	init_info.MinImageCount = 2;
 	init_info.ImageCount = 2;
@@ -239,12 +236,12 @@ void GUI::destroy()
 	vkDestroyImage(*_device, _fontImage.Get(), nullptr);
 	vkDestroyImageView(*_device, _fontImageView.Get(), nullptr);
 	vkFreeMemory(*_device, _fontImage.GetMemory(), nullptr);
-	vkDestroySampler(*_device, _sampler.Get(), nullptr);
+	vkDestroySampler(*_device, _sampler, nullptr);
 	vkDestroyPipelineCache(*_device, _pipelineCache, nullptr);
 	vkDestroyPipeline(*_device, _pipeline, nullptr);
 	vkDestroyPipelineLayout(*_device, _pipelineLayout, nullptr);
-	vkDestroyDescriptorPool(*_device, _descriptorPool.Get(), nullptr);
-	vkDestroyDescriptorSetLayout(*_device, _descriptorSetLayout.Get(), nullptr);
+	_descriptorPool.destroy(*_device);
+	_descriptorSetLayout.destroy(*_device);
 }
 void GUI::newFrame()
 {
@@ -278,7 +275,7 @@ void GUI::updateBuffers()
 	}
 	
 	// Vertex buffer
-	if ((_vertexBuffer.Get() == VK_NULL_HANDLE) || (_vertexCount != imDrawData->TotalVtxCount)) {
+	if ((_vertexBuffer == VK_NULL_HANDLE) || (_vertexCount != imDrawData->TotalVtxCount)) {
 		_vertexBuffer.unmap(*_device);
 		_vertexBuffer.destroy(*_device);
 		_vertexBuffer = Buffer(*_device, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
@@ -287,7 +284,7 @@ void GUI::updateBuffers()
 	}
 
 	// Index buffer
-	if ((_indexBuffer.Get() == VK_NULL_HANDLE) || (_indexCount < imDrawData->TotalIdxCount)) {
+	if ((_indexBuffer == VK_NULL_HANDLE) || (_indexCount < imDrawData->TotalIdxCount)) {
 		_indexBuffer.unmap(*_device);
 		_indexBuffer.destroy(*_device);
 		_indexBuffer = Buffer(*_device, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
@@ -427,13 +424,13 @@ void GUI::init(float width, float height)
 void GUI::initDescriptorSet()
 {
 	VkDescriptorImageInfo imageInfo{};
-	imageInfo.sampler = _sampler.Get();
+	imageInfo.sampler = _sampler;
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfo.imageView = _fontImageView.Get();
 
 	VkWriteDescriptorSet descriptorWrite{};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = _descriptorSet.Get();
+	descriptorWrite.dstSet = _descriptorSet;
 	descriptorWrite.dstBinding = 0;
 	descriptorWrite.dstArrayElement = 0;
 	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

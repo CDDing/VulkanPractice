@@ -20,12 +20,12 @@ void SwapChain::InitDescriptorSetForGBuffer(Device& device)
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = _deferredImageViews[i].Get();
-            imageInfo.sampler = _GBufferSampler.Get();
+            imageInfo.sampler = _GBufferSampler;
 
         }
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSets[frame].Get();
+        descriptorWrite.dstSet = descriptorSets[frame];
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -38,7 +38,7 @@ void SwapChain::InitDescriptorSetForGBuffer(Device& device)
 
 void SwapChain::create(Device& device)
 {
-    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(*_device, _surface->Get());
+    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(*_device, *_surface);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -52,7 +52,7 @@ void SwapChain::create(Device& device)
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = _surface->Get();
+    createInfo.surface = *_surface;
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -60,7 +60,7 @@ void SwapChain::create(Device& device)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
-    QueueFamilyIndices indices = findQueueFamilies(*_device, _surface->Get());
+    QueueFamilyIndices indices = findQueueFamilies(*_device, *_surface);
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily) {
@@ -116,7 +116,7 @@ void SwapChain::create(Device& device)
         };
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = _renderPass.Get();
+        framebufferInfo.renderPass = _renderPass;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = _swapChainExtent.width;
@@ -269,7 +269,7 @@ void SwapChain::create(Device& device)
     renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
 
-    vkCreateRenderPass(device, &renderPassInfo, nullptr, &_deferredRenderPass.Get());
+    vkCreateRenderPass(device, &renderPassInfo, nullptr, &_deferredRenderPass);
 
     _deferredFramebuffers.resize(_swapChainImageViews.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
@@ -284,7 +284,7 @@ void SwapChain::create(Device& device)
         };
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = _deferredRenderPass.Get();
+        framebufferInfo.renderPass = _deferredRenderPass;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = _swapChainExtent.width;
@@ -300,7 +300,7 @@ void SwapChain::create(Device& device)
 
 void SwapChain::destroy(Device& device)
 {
-    vkDestroySampler(device, _GBufferSampler.Get(), nullptr);
+    vkDestroySampler(device, _GBufferSampler, nullptr);
     for (auto& image : _deferredImages) {
         vkDestroyImage(device, image.Get(), nullptr);
         vkFreeMemory(device, image.GetMemory(), nullptr);
@@ -324,8 +324,8 @@ void SwapChain::destroy(Device& device)
     }
     vkDestroySwapchainKHR(device, _swapChain, nullptr);
 
-    vkDestroyRenderPass(device, _renderPass.Get(), nullptr);
-    vkDestroyRenderPass(device, _deferredRenderPass.Get(), nullptr);
+    vkDestroyRenderPass(device, _renderPass, nullptr);
+    vkDestroyRenderPass(device, _deferredRenderPass, nullptr);
 }
 
 

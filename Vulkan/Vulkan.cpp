@@ -128,23 +128,23 @@ private:
 
 		imgui = GUI(device);
 		imgui.init(static_cast<float>(WIDTH), static_cast<float>(HEIGHT));
-		imgui.initResources(window,instance.Get(), swapChain.GetRenderPass());
+		imgui.initResources(window,instance, swapChain.GetRenderPass());
 	}
 	void createPipelines() {
 		pipelines.resize(3);
 		descriptorSetLayoutList = {
 			//기본 셰이더
-			{descriptorSetLayouts[0].Get(),
-			descriptorSetLayouts[1].Get(),
-			descriptorSetLayouts[4].Get()},
+			{descriptorSetLayouts[0],
+			descriptorSetLayouts[1],
+			descriptorSetLayouts[4]},
 			//스카이박스 셰이더
-			{descriptorSetLayouts[0].Get(),
-		descriptorSetLayouts[1].Get()},
+			{descriptorSetLayouts[0],
+		descriptorSetLayouts[1]},
 		//디퍼드 셰이더
-			{descriptorSetLayouts[0].Get(),
-				descriptorSetLayouts[2].Get(),
-		descriptorSetLayouts[3].Get(),
-		descriptorSetLayouts[0].Get()}
+			{descriptorSetLayouts[0],
+				descriptorSetLayouts[2],
+		descriptorSetLayouts[3],
+		descriptorSetLayouts[0]}
 		};
 		Pipeline defaultPipeline = Pipeline(device,
 			swapChain.GetExtent(),
@@ -244,13 +244,13 @@ private:
 			swapChain.InitDescriptorSetForGBuffer(device);
 			//카메라 행렬 유니폼 버퍼
 			VkDescriptorBufferInfo bufferInfo;
-			bufferInfo.buffer = uniformBuffers[i].Get();
+			bufferInfo.buffer = uniformBuffers[i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
 			VkWriteDescriptorSet descriptorWrite{};
 			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite.dstSet = uboDescriptorSets[i].Get();
+			descriptorWrite.dstSet = uboDescriptorSets[i];
 			descriptorWrite.dstBinding = 0;
 			descriptorWrite.dstArrayElement = 0;
 			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -261,13 +261,13 @@ private:
 		
 			//GUI 행렬 유니폼 버퍼
 			VkDescriptorBufferInfo guibufferInfo;
-			guibufferInfo.buffer = GUIBuffers[i].Get();
+			guibufferInfo.buffer = GUIBuffers[i];
 			guibufferInfo.offset = 0;
 			guibufferInfo.range = sizeof(GUIControl);
 
 			VkWriteDescriptorSet guidescriptorWrite{};
 			guidescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			guidescriptorWrite.dstSet = GUIDescriptorSets[i].Get();
+			guidescriptorWrite.dstSet = GUIDescriptorSets[i];
 			guidescriptorWrite.dstBinding = 0;
 			guidescriptorWrite.dstArrayElement = 0;
 			guidescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -366,7 +366,7 @@ private:
 
 			VkRenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassInfo.renderPass = swapChain.GetRenderPass().Get();
+			renderPassInfo.renderPass = swapChain.GetRenderPass();
 			renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
 			renderPassInfo.renderArea.offset = { 0,0 };
 			renderPassInfo.renderArea.extent = swapChain.GetExtent();
@@ -385,7 +385,7 @@ private:
 
 			VkRenderPassBeginInfo deferredRenderPassInfo{};
 			deferredRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			deferredRenderPassInfo.renderPass = swapChain.GetDeferredRenderPass().Get();
+			deferredRenderPassInfo.renderPass = swapChain.GetDeferredRenderPass();
 			deferredRenderPassInfo.framebuffer = swapChain.GetDeferredFrameBuffers()[imageIndex];
 			deferredRenderPassInfo.renderArea.offset = { 0,0 };
 			deferredRenderPassInfo.renderArea.extent = swapChain.GetExtent();
@@ -417,14 +417,14 @@ private:
 			vkCmdBeginRenderPass(commandBuffer, &deferredRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			//GBuffer Draw
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFERRED].Get());
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFERRED]);
 
 			for (auto& model : models) {
 				for (auto& mesh : model.meshes) {
-					VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
+					VkBuffer vertexBuffers[] = { mesh->vertexBuffer };
 					VkDeviceSize offsets[] = { 0 };
 					vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-					vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+					vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 					int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
 					VkBool32 data[5];
@@ -435,10 +435,10 @@ private:
 
 
 					std::vector<VkDescriptorSet> descriptorSetListForModel = {
-						uboDescriptorSets[currentFrame].Get(),
-						model.material.descriptorSets[currentFrame].Get(),
-						model.descriptorSets[currentFrame].Get(),
-						GUIDescriptorSets[currentFrame].Get()
+						uboDescriptorSets[currentFrame],
+						model.material.descriptorSets[currentFrame],
+						model.descriptorSets[currentFrame],
+						GUIDescriptorSets[currentFrame]
 					};
 					vkCmdBindDescriptorSets(commandBuffer,
 						VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -456,7 +456,7 @@ private:
 
 			VkRenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassInfo.renderPass = swapChain.GetRenderPass().Get();
+			renderPassInfo.renderPass = swapChain.GetRenderPass();
 			renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
 			renderPassInfo.renderArea.offset = { 0,0 };
 			renderPassInfo.renderArea.extent = swapChain.GetExtent();
@@ -472,14 +472,14 @@ private:
 			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX]);
 
 
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX]);
 
 			std::vector<VkDescriptorSet> descriptorSetListForSkybox = {
-				uboDescriptorSets[currentFrame].Get(),
-				skybox.material.descriptorSets[currentFrame].Get()
+				uboDescriptorSets[currentFrame],
+				skybox.material.descriptorSets[currentFrame]
 			};
 			vkCmdBindDescriptorSets(commandBuffer,
 				VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -488,19 +488,19 @@ private:
 				, descriptorSetListForSkybox.data(),
 				0, nullptr);
 
-			VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer.Get() };
+			VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
 
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT]);
 			std::vector<VkDescriptorSet> descriptorSetListForModel = {
-						uboDescriptorSets[currentFrame].Get(),
-						skybox.material.descriptorSets[currentFrame].Get(),
-						swapChain.descriptorSets[currentFrame].Get()
+						uboDescriptorSets[currentFrame],
+						skybox.material.descriptorSets[currentFrame],
+						swapChain.descriptorSets[currentFrame]
 			};
 			vkCmdBindDescriptorSets(commandBuffer,
 				VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -575,7 +575,7 @@ private:
 		vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(device, swapChain.Get(), UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			recreateSwapChain();
 			return;
@@ -614,7 +614,7 @@ private:
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 
-		VkSwapchainKHR swapChains[] = { swapChain.Get() };
+		VkSwapchainKHR swapChains[] = { swapChain };
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 		presentInfo.pImageIndices = &imageIndex;
@@ -637,17 +637,15 @@ private:
 		vkDestroyImageView(device, Material::dummy.imageView.Get(), nullptr);
 		vkDestroyImage(device, Material::dummy.image.Get(), nullptr);
 		vkFreeMemory(device, Material::dummy.image.GetMemory(), nullptr);
-		vkDestroySampler(device, Material::dummy.sampler.Get(), nullptr);
-		vkDestroyDescriptorPool(device, descriptorPool.Get(), nullptr);
+		vkDestroySampler(device, Material::dummy.sampler, nullptr);
+		descriptorPool.destroy(device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vkDestroyBuffer(device, uniformBuffers[i].Get(), nullptr);
-			vkFreeMemory(device, uniformBuffers[i].GetMemory(), nullptr);
-			vkDestroyBuffer(device, GUIBuffers[i].Get(), nullptr);
-			vkFreeMemory(device, GUIBuffers[i].GetMemory(), nullptr);
+			uniformBuffers[i].destroy(device);
+			GUIBuffers[i].destroy(device);
 		}
 
 		for (auto& descriptorSetLayout : descriptorSetLayouts) {
-			vkDestroyDescriptorSetLayout(device, descriptorSetLayout.Get(), nullptr);
+			descriptorSetLayout.destroy(device);
 		}
 
 		for (auto& model : models) {
@@ -663,18 +661,18 @@ private:
 		vkDestroyCommandPool(device, CommandPool::TransientPool, nullptr);
 		for (int i = 0; i < 3;i++) {
 			auto& pipeline = pipelines[i];
-			vkDestroyPipeline(device, pipeline.Get(), nullptr);
+			vkDestroyPipeline(device, pipeline, nullptr);
 			vkDestroyPipelineLayout(device, pipeline.GetLayout(), nullptr);
 		}
 		rt.destroy(device);
 		vkDestroyDevice(device, nullptr);
 		if (enableValidationLayers) {
 
-			DestroyDebugUtilsMessengerEXT(instance.Get(), instance.GetDebugMessenger(), nullptr);
+			DestroyDebugUtilsMessengerEXT(instance, instance.GetDebugMessenger(), nullptr);
 		}
 
-		vkDestroySurfaceKHR(instance.Get(), surface.Get(), nullptr);
-		vkDestroyInstance(instance.Get(), nullptr);
+		vkDestroySurfaceKHR(instance, surface, nullptr);
+		vkDestroyInstance(instance, nullptr);
 
 		glfwDestroyWindow(window);
 

@@ -4,7 +4,9 @@ class Buffer
 public:
 	Buffer();
 	Buffer(Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	VkBuffer& Get() { return _buffer; }
+	operator VkBuffer& () {
+		return _buffer;
+	}
 	VkDeviceMemory& GetMemory() { return _memory; }
 	void* mapped = nullptr;
 	void unmap(Device& device);

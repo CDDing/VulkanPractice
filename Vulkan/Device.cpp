@@ -17,14 +17,14 @@ Device::Device(Instance& instance, Surface& surface)
 void Device::pickPhysicalDevice(Instance& instance,Surface& surface)
 {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance.Get(), &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     if (deviceCount == 0) {
         throw std::runtime_error("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(instance.Get(), &deviceCount, devices.data());
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
     for (const auto& device : devices) {
         if (isDeviceSuitable(device,surface)) {
@@ -40,7 +40,7 @@ void Device::pickPhysicalDevice(Instance& instance,Surface& surface)
 
 void Device::createLogicalDevice(Surface& surface)
 {
-    QueueFamilyIndices indices = findQueueFamilies(_physicalDevice,surface.Get());
+    QueueFamilyIndices indices = findQueueFamilies(_physicalDevice,surface);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(),indices.presentFamily.value() };
@@ -111,13 +111,13 @@ void Device::createLogicalDevice(Surface& surface)
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device,Surface& surface)
 {
-    QueueFamilyIndices indices = findQueueFamilies(device,surface.Get());
+    QueueFamilyIndices indices = findQueueFamilies(device,surface);
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-       SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(device,surface.Get());
+       SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(device,surface);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 

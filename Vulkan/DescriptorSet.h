@@ -4,7 +4,12 @@ class DescriptorSet
 public:
 	DescriptorSet();
 	DescriptorSet(Device& device, DescriptorPool& descriptorPool, DescriptorSetLayout& descriptorSetLayout);
-	VkDescriptorSet& Get() { return _descriptorSet; }
+	operator VkDescriptorSet& () {
+		return _descriptorSet;
+	}
+	VkDescriptorSet* operator&() {
+		return &_descriptorSet;
+	}
 private:
 	VkDescriptorSet _descriptorSet;
 };

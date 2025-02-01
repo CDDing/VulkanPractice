@@ -26,8 +26,7 @@ void Model::destroy(Device& device)
     material.destroy(device);
 
     for (auto& uniformBuffer: uniformBuffers) {
-        vkDestroyBuffer(device, uniformBuffer.Get(), nullptr);
-        vkFreeMemory(device, uniformBuffer.GetMemory(), nullptr);
+        uniformBuffer.destroy(device);
     }
 
 }
@@ -174,16 +173,16 @@ void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = material.Get(i).imageView.Get();
-            imageInfo.sampler = material.Get(i).sampler.Get();
+            imageInfo.sampler = material.Get(i).sampler;
             if (!material.hasComponent(i)) {
                 imageInfo.imageView = Material::dummy.imageView.Get();
-                imageInfo.sampler = Material::dummy.sampler.Get();
+                imageInfo.sampler = Material::dummy.sampler;
             }
 
         }
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = material.descriptorSets[frame].Get();
+        descriptorWrite.dstSet = material.descriptorSets[frame];
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -202,11 +201,11 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = material.Get(i).imageView.Get();
-            imageInfo.sampler = material.Get(i).sampler.Get();
+            imageInfo.sampler = material.Get(i).sampler;
         }
         VkWriteDescriptorSet descriptorWriteForMap{};
         descriptorWriteForMap.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWriteForMap.dstSet = material.descriptorSets[frame].Get();
+        descriptorWriteForMap.dstSet = material.descriptorSets[frame];
         descriptorWriteForMap.dstBinding = 0;
         descriptorWriteForMap.dstArrayElement = 0;
         descriptorWriteForMap.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -217,11 +216,11 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
         VkDescriptorImageInfo lutImageInfo{};
         lutImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         lutImageInfo.imageView = material.Get(3).imageView.Get();
-        lutImageInfo.sampler = material.Get(3).sampler.Get();
+        lutImageInfo.sampler = material.Get(3).sampler;
         imageInfos[3] = lutImageInfo;
         VkWriteDescriptorSet descriptorWriteForLut{};
         descriptorWriteForLut.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWriteForLut.dstSet = material.descriptorSets[frame].Get();
+        descriptorWriteForLut.dstSet = material.descriptorSets[frame];
         descriptorWriteForLut.dstBinding = 1;
         descriptorWriteForLut.dstArrayElement = 0;
         descriptorWriteForLut.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -238,13 +237,13 @@ void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& descip
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         VkDescriptorBufferInfo bufferInfo;
-        bufferInfo.buffer = uniformBuffers[frame].Get();
+        bufferInfo.buffer = uniformBuffers[frame];
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Transform);
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSets[frame].Get();
+        descriptorWrite.dstSet = descriptorSets[frame];
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

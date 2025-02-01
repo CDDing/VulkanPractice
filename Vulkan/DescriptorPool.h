@@ -4,7 +4,15 @@ class DescriptorPool
 public:
 	DescriptorPool();
 	DescriptorPool(Device& device);
-	VkDescriptorPool& Get() { return _descriptorPool; }
+	operator VkDescriptorPool& () {
+		return _descriptorPool;
+	}
+	VkDescriptorPool* operator&() {
+		return &_descriptorPool;
+	}
+	void destroy(Device& device) {
+		vkDestroyDescriptorPool(device, _descriptorPool, nullptr);
+	}
 private:
 	VkDescriptorPool _descriptorPool;
 };

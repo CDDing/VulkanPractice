@@ -5,7 +5,13 @@ public:
 
 	RenderPass();
 	RenderPass(Device& device, VkFormat swapChainImageFormat, VkFormat DepthFormat);
-	VkRenderPass& Get() { return _renderPass; }
+	operator VkRenderPass& () {
+		return _renderPass;
+	}
+
+	VkRenderPass* operator&() {
+		return &_renderPass;
+	}
 
 private:
 	VkRenderPass _renderPass;

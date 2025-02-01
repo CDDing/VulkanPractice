@@ -81,7 +81,7 @@ void RayTracing::createTlas(Device& device)
 
 		VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
 		accelerationStructureCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-		accelerationStructureCreateInfo.buffer = TLASs[i].buffer.Get();
+		accelerationStructureCreateInfo.buffer = TLASs[i].buffer;
 		accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 		accelerationStructureCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
 		vkCreateAccelerationStructureKHR(device, &accelerationStructureCreateInfo, nullptr, &TLASs[i].handle);
@@ -198,7 +198,7 @@ void RayTracing::createBlas(Device&device, std::vector<Model>& models)
 
 		VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
 		accelerationStructureCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-		accelerationStructureCreateInfo.buffer = BLASs[i].buffer.Get();
+		accelerationStructureCreateInfo.buffer = BLASs[i].buffer;
 		accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 		accelerationStructureCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 		vkCreateAccelerationStructureKHR(device, &accelerationStructureCreateInfo, nullptr, &BLASs[i].handle);
@@ -295,12 +295,12 @@ void RayTracing::createRTPipeline(Device& device)
 	descriptorSetlayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptorSetlayoutCI.bindingCount = static_cast<uint32_t>(bindings.size());
 	descriptorSetlayoutCI.pBindings = bindings.data();
-	vkCreateDescriptorSetLayout(device, &descriptorSetlayoutCI, nullptr, &descriptorSetLayout.Get());
+	vkCreateDescriptorSetLayout(device, &descriptorSetlayoutCI, nullptr, &descriptorSetLayout);
 
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
-	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout.Get();
+	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 	vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
@@ -313,7 +313,7 @@ void RayTracing::createRTPipeline(Device& device)
 	VkPipelineShaderStageCreateInfo rayGenShaderStage{};
 	rayGenShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	rayGenShaderStage.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-	rayGenShaderStage.module = rayGenShader.Get();
+	rayGenShaderStage.module = rayGenShader;
 	rayGenShaderStage.pName = "main";
 	shaderStages.push_back(rayGenShaderStage);
 
@@ -330,7 +330,7 @@ void RayTracing::createRTPipeline(Device& device)
 	VkPipelineShaderStageCreateInfo missShaderStage{};
 	missShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	missShaderStage.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-	missShaderStage.module = missShader.Get();
+	missShaderStage.module = missShader;
 	missShaderStage.pName = "main";
 	shaderStages.push_back(missShaderStage);
 
@@ -348,7 +348,7 @@ void RayTracing::createRTPipeline(Device& device)
 	VkPipelineShaderStageCreateInfo hitShaderStage{};
 	hitShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	hitShaderStage.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-	hitShaderStage.module = hitShader.Get();
+	hitShaderStage.module = hitShader;
 	hitShaderStage.pName = "main";
 	shaderStages.push_back(hitShaderStage);
 
@@ -373,9 +373,9 @@ void RayTracing::createRTPipeline(Device& device)
 		1, &rayTracingPipelineCreateInfo,
 		nullptr, &pipeline);
 
-	vkDestroyShaderModule(device, rayGenShader.Get(), nullptr);
-	vkDestroyShaderModule(device, missShader.Get(), nullptr);
-	vkDestroyShaderModule(device, hitShader.Get(), nullptr);
+	rayGenShader.destroy(device);
+	missShader.destroy(device);
+	hitShader.destroy(device);
 
 }
 
@@ -393,7 +393,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 	descriptorPoolCreateInfo.pPoolSizes = poolSizes.data();
 	descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 
-	vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool.Get());
+	vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
 
 	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -410,7 +410,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		// The specialized acceleration structure descriptor has to be chained
 		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
-		accelerationStructureWrite.dstSet = descriptorSets[i].Get();
+		accelerationStructureWrite.dstSet = descriptorSets[i];
 		accelerationStructureWrite.dstBinding = 0;
 		accelerationStructureWrite.descriptorCount = 1;
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
@@ -420,13 +420,13 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uboBuffers[i].Get();
+		bufferInfo.buffer = uboBuffers[i];
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
 		VkWriteDescriptorSet resultImageWrite{};
 		resultImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		resultImageWrite.dstSet = descriptorSets[i].Get();
+		resultImageWrite.dstSet = descriptorSets[i];
 		resultImageWrite.dstBinding = 1;
 		resultImageWrite.dstArrayElement = 0;
 		resultImageWrite.descriptorCount = 1;
@@ -436,7 +436,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		
 		VkWriteDescriptorSet uniformBufferWrite{};
 		uniformBufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		uniformBufferWrite.dstSet = descriptorSets[i].Get();
+		uniformBufferWrite.dstSet = descriptorSets[i];
 		uniformBufferWrite.dstBinding = 2;
 		uniformBufferWrite.dstArrayElement = 0;
 		uniformBufferWrite.descriptorCount = 1;
@@ -457,16 +457,16 @@ void RayTracing::destroy(Device& device)
 
 	vkDestroyPipeline(device, pipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayout.Get(), nullptr);
-	vkDestroyDescriptorPool(device, descriptorPool.Get(), nullptr);
+	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	for (auto& blas : BLASs) {
-		vkDestroyBuffer(device, blas.buffer.Get(), nullptr);
+		vkDestroyBuffer(device, blas.buffer, nullptr);
 		vkFreeMemory(device, blas.buffer.GetMemory(), nullptr);
 		vkDestroyAccelerationStructureKHR(device, blas.handle, nullptr);
 	}
 
 	for (auto& tlas : TLASs) {
-		vkDestroyBuffer(device, tlas.buffer.Get(), nullptr);
+		vkDestroyBuffer(device, tlas.buffer, nullptr);
 		vkFreeMemory(device, tlas.buffer.GetMemory(), nullptr);
 		vkDestroyAccelerationStructureKHR(device, tlas.handle, nullptr);
 	}
@@ -524,7 +524,7 @@ void RayTracing::recordCommandBuffer(Device& device, VkCommandBuffer commandBuff
 
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[currentFrame].Get(), 0, 0);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, 0);
 
 
 
@@ -569,6 +569,6 @@ uint64_t RayTracing::getBufferDeviceAddress(Device& device, Buffer& buffer)
 {
 	VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
 	bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-	bufferDeviceAI.buffer = buffer.Get();
+	bufferDeviceAI.buffer = buffer;
 	return vkGetBufferDeviceAddressKHR(device, &bufferDeviceAI);
 }
