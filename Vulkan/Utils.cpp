@@ -16,3 +16,7 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& vec) {
     os << "(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
     return os;
 }
+uint32_t SBTalignedSize(uint32_t value, uint32_t alignment)
+{
+    return (value + alignment - 1) & ~(alignment - 1);
+}

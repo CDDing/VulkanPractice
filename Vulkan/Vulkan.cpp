@@ -102,7 +102,7 @@ private:
 		createUniformBuffers();
 		createDescriptorSets();
 		createPipelines();
-		//initRayTracing();
+		initRayTracing();
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			CommandBuffer cb = CommandBuffer(device, commandPool);
 			commandBuffers.push_back(cb);
@@ -122,7 +122,7 @@ private:
 	void initRayTracing() {
 
 		rt = RayTracing();
-		rt.init(device,uniformBuffers,swapChain);
+		rt.init(device,uniformBuffers,swapChain,models);
 	}
 	void initGUI() {
 
@@ -348,180 +348,171 @@ private:
 		beginInfo.flags = 0;
 		beginInfo.pInheritanceInfo = nullptr;
 
-		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-			throw std::runtime_error("failed to begin recording command buffer!");
-		}
-		VkRenderPassBeginInfo deferredRenderPassInfo{};
-		deferredRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		deferredRenderPassInfo.renderPass = swapChain.GetDeferredRenderPass().Get();
-		deferredRenderPassInfo.framebuffer = swapChain.GetDeferredFrameBuffers()[imageIndex];
-		deferredRenderPassInfo.renderArea.offset = { 0,0 };
-		deferredRenderPassInfo.renderArea.extent = swapChain.GetExtent();
-
-		std::array<VkClearValue, 7> deferredClearValues{};
-		deferredClearValues[0].color = { {0.0f,0.0f,0.0f,0.0f} };
-		deferredClearValues[1].color = { {0.0f,0.0f,0.0f,0.0f} };
-		deferredClearValues[2].color = { {0.0f,0.0f,0.0f,0.0f} };
-		deferredClearValues[3].color = { {0.0f,0.0f,0.0f,0.0f} };
-		deferredClearValues[4].color = { {0.0f,0.0f,0.0f,0.0f} };
-		deferredClearValues[5].color = { {0.0f,0.0f,0.0f,0.0f} };
-		deferredClearValues[6].depthStencil = { 1.0f,0 };
-		deferredRenderPassInfo.clearValueCount = static_cast<uint32_t>(deferredClearValues.size());
-		deferredRenderPassInfo.pClearValues = deferredClearValues.data();
-
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(swapChain.GetExtent().width);
-		viewport.height = static_cast<float>(swapChain.GetExtent().height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor{};
-		scissor.offset = { 0,0 };
-		scissor.extent = swapChain.GetExtent();
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-		vkCmdBeginRenderPass(commandBuffer, &deferredRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		
-		//GBuffer Draw
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFERRED].Get());
-		
-		for (auto& model : models) {
-			for (auto& mesh : model.meshes) {
-				VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
-
-				int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
-				VkBool32 data[5];
-				for (int i = 0; i < maxMaterialCnt; i++) {
-					data[i] = model.material.hasComponent(i);
-				}
-				vkCmdPushConstants(commandBuffer, pipelines[Pipeline::DEFERRED].GetLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, 20, data);
-
-
-				std::vector<VkDescriptorSet> descriptorSetListForModel = {
-					uboDescriptorSets[currentFrame].Get(),
-					model.material.descriptorSets[currentFrame].Get(),
-					model.descriptorSets[currentFrame].Get(),
-					GUIDescriptorSets[currentFrame].Get()
-				};
-				vkCmdBindDescriptorSets(commandBuffer,
-					VK_PIPELINE_BIND_POINT_GRAPHICS,
-					pipelines[Pipeline::DEFERRED].GetLayout(),
-					0, static_cast<uint32_t>(descriptorSetListForModel.size())
-					, descriptorSetListForModel.data(),
-					0, nullptr);
-
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
-
-			}
-		}
-		
-		vkCmdEndRenderPass(commandBuffer);
-
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = swapChain.GetRenderPass().Get();
-		renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
-		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = swapChain.GetExtent();
-
-		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-		renderPassInfo.pClearValues = clearValues.data();
-
 		imgui.newFrame();
 		imgui.AddBoolGUI("EnableVerticalRotate", camera.enableVerticalRotate);
 		imgui.AddBoolGUI("UseNormalMap", guiControl.useNormalMap);
+		imgui.AddBoolGUI("RayTracing", guiControl.RayTracing);
 		imgui.AddFloatGUI("Roughness", guiControl.roughness, 0.0f, 1.0f);
 		imgui.AddFloatGUI("metallic", guiControl.metallic, 0.0f, 1.0f);
 		imgui.End();
-		//imgui.updateBuffers();
-		//SkyboxDraw
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
-
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
-		
-		std::vector<VkDescriptorSet> descriptorSetListForSkybox = {
-			uboDescriptorSets[currentFrame].Get(),
-			skybox.material.descriptorSets[currentFrame].Get()
-		};
-		vkCmdBindDescriptorSets(commandBuffer,
-			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipelines[Pipeline::SKYBOX].GetLayout(),
-			0, static_cast<uint32_t>(descriptorSetListForSkybox.size())
-			, descriptorSetListForSkybox.data(),
-			0, nullptr);
-
-		VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer.Get() };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
-
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
-		std::vector<VkDescriptorSet> descriptorSetListForModel = {
-					uboDescriptorSets[currentFrame].Get(),
-					skybox.material.descriptorSets[currentFrame].Get(),
-					swapChain.descriptorSets[currentFrame].Get()
-		};
-		vkCmdBindDescriptorSets(commandBuffer,
-			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipelines[Pipeline::DEFAULT].GetLayout(),
-			0, static_cast<uint32_t>(descriptorSetListForModel.size())
-			, descriptorSetListForModel.data(),
-			0, nullptr);
-
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-		imgui.drawFrame(commandBuffer);
-		/*for (auto& model : models) {
-			for (auto& mesh : model.meshes) {
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
-
-				VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
-
-				int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
-				VkBool32 data[5];
-				for (int i = 0; i < maxMaterialCnt; i++) {
-					data[i] = model.material.hasComponent(i);
-				}
-				vkCmdPushConstants(commandBuffer, pipelines[Pipeline::DEFAULT].GetLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16, data);
-
-
-				std::vector<VkDescriptorSet> descriptorSetListForModel = {
-					uboDescriptorSets[currentFrame].Get(),
-					skybox.material.descriptorSets[currentFrame].Get(),
-					model.material.descriptorSets[currentFrame].Get(),
-					model.descriptorSets[currentFrame].Get(),
-				};
-				vkCmdBindDescriptorSets(commandBuffer,
-					VK_PIPELINE_BIND_POINT_GRAPHICS,
-					pipelines[Pipeline::DEFAULT].GetLayout(),
-					0, static_cast<uint32_t>(descriptorSetListForModel.size())
-					, descriptorSetListForModel.data(),
-					0, nullptr);
-
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
-
-			}
+		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+			throw std::runtime_error("failed to begin recording command buffer!");
 		}
-		*/
-		vkCmdEndRenderPass(commandBuffer);
 
+		if (guiControl.RayTracing) {
+			rt.recordCommandBuffer(device, commandBuffer, currentFrame,imageIndex);
+
+
+			VkRenderPassBeginInfo renderPassInfo{};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = swapChain.GetRenderPass().Get();
+			renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
+			renderPassInfo.renderArea.offset = { 0,0 };
+			renderPassInfo.renderArea.extent = swapChain.GetExtent();
+
+			std::array<VkClearValue, 2> clearValues{};
+			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+			clearValues[1].depthStencil = { 1.0f, 0 };
+			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+			renderPassInfo.pClearValues = clearValues.data();
+
+			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			imgui.drawFrame(commandBuffer);
+			vkCmdEndRenderPass(commandBuffer);
+		}
+		else {
+
+			VkRenderPassBeginInfo deferredRenderPassInfo{};
+			deferredRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			deferredRenderPassInfo.renderPass = swapChain.GetDeferredRenderPass().Get();
+			deferredRenderPassInfo.framebuffer = swapChain.GetDeferredFrameBuffers()[imageIndex];
+			deferredRenderPassInfo.renderArea.offset = { 0,0 };
+			deferredRenderPassInfo.renderArea.extent = swapChain.GetExtent();
+
+			std::array<VkClearValue, 7> deferredClearValues{};
+			deferredClearValues[0].color = { {0.0f,0.0f,0.0f,0.0f} };
+			deferredClearValues[1].color = { {0.0f,0.0f,0.0f,0.0f} };
+			deferredClearValues[2].color = { {0.0f,0.0f,0.0f,0.0f} };
+			deferredClearValues[3].color = { {0.0f,0.0f,0.0f,0.0f} };
+			deferredClearValues[4].color = { {0.0f,0.0f,0.0f,0.0f} };
+			deferredClearValues[5].color = { {0.0f,0.0f,0.0f,0.0f} };
+			deferredClearValues[6].depthStencil = { 1.0f,0 };
+			deferredRenderPassInfo.clearValueCount = static_cast<uint32_t>(deferredClearValues.size());
+			deferredRenderPassInfo.pClearValues = deferredClearValues.data();
+
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = static_cast<float>(swapChain.GetExtent().width);
+			viewport.height = static_cast<float>(swapChain.GetExtent().height);
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor{};
+			scissor.offset = { 0,0 };
+			scissor.extent = swapChain.GetExtent();
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+			vkCmdBeginRenderPass(commandBuffer, &deferredRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			//GBuffer Draw
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFERRED].Get());
+
+			for (auto& model : models) {
+				for (auto& mesh : model.meshes) {
+					VkBuffer vertexBuffers[] = { mesh->vertexBuffer.Get() };
+					VkDeviceSize offsets[] = { 0 };
+					vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+					vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+
+					int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
+					VkBool32 data[5];
+					for (int i = 0; i < maxMaterialCnt; i++) {
+						data[i] = model.material.hasComponent(i);
+					}
+					vkCmdPushConstants(commandBuffer, pipelines[Pipeline::DEFERRED].GetLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, 20, data);
+
+
+					std::vector<VkDescriptorSet> descriptorSetListForModel = {
+						uboDescriptorSets[currentFrame].Get(),
+						model.material.descriptorSets[currentFrame].Get(),
+						model.descriptorSets[currentFrame].Get(),
+						GUIDescriptorSets[currentFrame].Get()
+					};
+					vkCmdBindDescriptorSets(commandBuffer,
+						VK_PIPELINE_BIND_POINT_GRAPHICS,
+						pipelines[Pipeline::DEFERRED].GetLayout(),
+						0, static_cast<uint32_t>(descriptorSetListForModel.size())
+						, descriptorSetListForModel.data(),
+						0, nullptr);
+
+					vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
+
+				}
+			}
+
+			vkCmdEndRenderPass(commandBuffer);
+
+			VkRenderPassBeginInfo renderPassInfo{};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = swapChain.GetRenderPass().Get();
+			renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
+			renderPassInfo.renderArea.offset = { 0,0 };
+			renderPassInfo.renderArea.extent = swapChain.GetExtent();
+
+			std::array<VkClearValue, 2> clearValues{};
+			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+			clearValues[1].depthStencil = { 1.0f, 0 };
+			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+			renderPassInfo.pClearValues = clearValues.data();
+
+			//imgui.updateBuffers();
+			//SkyboxDraw
+			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
+
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::SKYBOX].Get());
+
+			std::vector<VkDescriptorSet> descriptorSetListForSkybox = {
+				uboDescriptorSets[currentFrame].Get(),
+				skybox.material.descriptorSets[currentFrame].Get()
+			};
+			vkCmdBindDescriptorSets(commandBuffer,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelines[Pipeline::SKYBOX].GetLayout(),
+				0, static_cast<uint32_t>(descriptorSetListForSkybox.size())
+				, descriptorSetListForSkybox.data(),
+				0, nullptr);
+
+			VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer.Get() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+
+
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT].Get());
+			std::vector<VkDescriptorSet> descriptorSetListForModel = {
+						uboDescriptorSets[currentFrame].Get(),
+						skybox.material.descriptorSets[currentFrame].Get(),
+						swapChain.descriptorSets[currentFrame].Get()
+			};
+			vkCmdBindDescriptorSets(commandBuffer,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelines[Pipeline::DEFAULT].GetLayout(),
+				0, static_cast<uint32_t>(descriptorSetListForModel.size())
+				, descriptorSetListForModel.data(),
+				0, nullptr);
+
+			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+			imgui.drawFrame(commandBuffer);
+			vkCmdEndRenderPass(commandBuffer);
+		}
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			throw std::runtime_error("failed to record command buffer!");
 		}

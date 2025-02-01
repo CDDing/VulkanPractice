@@ -37,9 +37,6 @@
     <Filter Include="소스 파일\VulkanWrapping\Core">
       <UniqueIdentifier>{e9a8a51f-ba44-4b8b-bcb6-58b3c4b2e4ac}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\VulkanWrapping\Render">
-      <UniqueIdentifier>{7bbf3b15-7928-493c-b9fc-6b68805a05b6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\VulkanWrapping\Resource">
       <UniqueIdentifier>{b1e15550-c33e-4d87-bfb2-80b0da801ed2}</UniqueIdentifier>
     </Filter>
@@ -69,6 +66,9 @@
     </Filter>
     <Filter Include="소스 파일\Shaders\Header">
       <UniqueIdentifier>{0498053b-9a16-4219-be22-989ffddef0e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\VulkanWrapping\Display">
+      <UniqueIdentifier>{7bbf3b15-7928-493c-b9fc-6b68805a05b6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -157,13 +157,13 @@
       <Filter>소스 파일\VulkanWrapping</Filter>
     </ClCompile>
     <ClCompile Include="RenderPass.cpp">
-      <Filter>소스 파일\VulkanWrapping\Render</Filter>
+      <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClCompile>
     <ClCompile Include="Surface.cpp">
-      <Filter>소스 파일\VulkanWrapping\Render</Filter>
+      <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClCompile>
     <ClCompile Include="SwapChain.cpp">
-      <Filter>소스 파일\VulkanWrapping\Render</Filter>
+      <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClCompile>
     <ClCompile Include="Shader.cpp">
       <Filter>소스 파일\VulkanWrapping\Shader</Filter>
@@ -267,13 +267,13 @@
       <Filter>소스 파일\VulkanWrapping</Filter>
     </ClInclude>
     <ClInclude Include="RenderPass.h">
-      <Filter>소스 파일\VulkanWrapping\Render</Filter>
+      <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClInclude>
     <ClInclude Include="Surface.h">
-      <Filter>소스 파일\VulkanWrapping\Render</Filter>
+      <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClInclude>
     <ClInclude Include="SwapChain.h">
-      <Filter>소스 파일\VulkanWrapping\Render</Filter>
+      <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClInclude>
     <ClInclude Include="Shader.h">
       <Filter>소스 파일\VulkanWrapping\Shader</Filter>

@@ -77,4 +77,5 @@ struct GUIControl {
     alignas(4) bool useNormalMap;
     alignas(4) float roughness;
     alignas(4) float metallic;
+    alignas(4) bool RayTracing;
 };

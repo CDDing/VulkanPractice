@@ -9,18 +9,8 @@ Model::Model(Device& device, const float& scale, const std::vector<MaterialCompo
     
 
 
+    InitUniformBuffer(device, transform);
 
-
-    VkDeviceSize bufferSize = sizeof(Transform);
-    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
-    }
-    _transform = { transform };
-    memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
-    memcpy(_uniformBuffersMapped[1], &_transform, sizeof(_transform));
 }
 
 void Model::Render()
@@ -48,7 +38,7 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         vkMapMemory(device.Get(), uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
     }
     _transform = { transform };

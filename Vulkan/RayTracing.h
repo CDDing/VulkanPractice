@@ -3,9 +3,9 @@ class RayTracing
 {
 
 public:
-	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain swapChain);
+	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, std::vector<Model>& models);
 	void destroy(Device& device);
-
+	void recordCommandBuffer(Device& device, VkCommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
 		VkAccelerationStructureKHR handle;
 		uint64_t deviceAddress;
@@ -14,21 +14,18 @@ public:
 
 	std::vector<AccelerationStructure> BLASs{};
 	std::vector<AccelerationStructure> TLASs{};
-	std::vector<Image> outputImages;
-	std::vector<ImageView> outputImageViews;
 	DescriptorSetLayout descriptorSetLayout;
 	std::vector<DescriptorSet> descriptorSets;
 	DescriptorPool descriptorPool;
 	VkPipelineLayout pipelineLayout;
 private:
 	void createTlas(Device& device);
-	void createBlas(Device& device);
+	void createBlas(Device& device, std::vector<Model>& models);
 	void createSBT(Device& device);
 	void createRTPipeline(Device& device);
-	void createOutputImage(Device& device,SwapChain swapChain);
-	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers);
+	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,std::vector<ImageView>& swapChainImageViews);
 	void loadFunctions(Device& device);
-
+	
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
@@ -36,6 +33,7 @@ private:
 	Buffer raygenShaderBindingTable;
 	Buffer missShaderBindingTable;
 	Buffer hitShaderBindingTable;
+	SwapChain* _swapChain;
 
 	uint64_t getBufferDeviceAddress(Device& device, Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;

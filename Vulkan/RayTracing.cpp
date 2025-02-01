@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "RayTracing.h"
 
-void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain swapChain)
-{
 
+void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, std::vector<Model>& models)
+{
+	_swapChain = &swapChain;
 	// Get ray tracing pipeline properties, which will be used later on in the sample
 	rayTracingPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
 	VkPhysicalDeviceProperties2 deviceProperties2{};
@@ -12,15 +13,14 @@ void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain
 	vkGetPhysicalDeviceProperties2(device.GetPhysical(), &deviceProperties2);
 
 	loadFunctions(device);
-	createOutputImage(device,swapChain);
 
 	BLASs.resize(MAX_FRAMES_IN_FLIGHT);
 	TLASs.resize(MAX_FRAMES_IN_FLIGHT);
-	createBlas(device);
+	createBlas(device,models);
 	createTlas(device);
 	createRTPipeline(device);
 	createSBT(device);
-	createDescriptorSets(device, uboBuffers);
+	createDescriptorSets(device, uboBuffers,swapChain.GetImageViews());
 }
 
 void RayTracing::createTlas(Device& device)
@@ -122,9 +122,8 @@ void RayTracing::createTlas(Device& device)
 	}
 }
 
-void RayTracing::createBlas(Device&device)
+void RayTracing::createBlas(Device&device, std::vector<Model>& models)
 {
-	std::vector<Model> models;
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		VkAccelerationStructureGeometryKHR accelerationGeometry{};
 		accelerationGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
@@ -133,8 +132,12 @@ void RayTracing::createBlas(Device&device)
 		accelerationGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
 
 		std::vector<VkAccelerationStructureGeometryKHR> geometries;
-		uint32_t numTriangles = 1;
-		for (auto& model : models) {
+		std::vector<Model> modelss;
+		std::vector<uint32_t> maxPrimitiveCounts;
+		std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfos;
+		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> pbuildRangeInfos;
+		for (int j = 0; j < 3;j++) {
+			auto& model = models[j];
 			for (const auto& mesh : model.meshes) {
 				VkDeviceOrHostAddressConstKHR vertexDeviceAddress{};
 				VkDeviceOrHostAddressConstKHR indexDeviceAddress{};
@@ -143,7 +146,7 @@ void RayTracing::createBlas(Device&device)
 				indexDeviceAddress.deviceAddress = getBufferDeviceAddress(device, mesh->indexBuffer);
 				transformDeviceAddress.deviceAddress = getBufferDeviceAddress(device, model.uniformBuffers[i]);
 
-				VkAccelerationStructureGeometryTrianglesDataKHR triangles;
+				VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
 				triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
 				triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
 				triangles.vertexData = vertexDeviceAddress;
@@ -153,15 +156,25 @@ void RayTracing::createBlas(Device&device)
 				triangles.indexType = VK_INDEX_TYPE_UINT32;
 				triangles.indexData = indexDeviceAddress;
 
-				triangles.transformData.deviceAddress = 0;
-				triangles.transformData.hostAddress = nullptr;
 				triangles.transformData = transformDeviceAddress;
 
 				accelerationGeometry.geometry.triangles = triangles;
 
 				geometries.push_back(accelerationGeometry);
 
+				auto numTriangles = static_cast<uint32_t>(mesh->indices.size() / 3);
+				maxPrimitiveCounts.push_back(numTriangles);
+
+				VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
+				accelerationStructureBuildRangeInfo.primitiveCount = numTriangles;
+				accelerationStructureBuildRangeInfo.primitiveOffset = 0;
+				accelerationStructureBuildRangeInfo.firstVertex = 0;
+				accelerationStructureBuildRangeInfo.transformOffset = 0;
+				buildRangeInfos.push_back(accelerationStructureBuildRangeInfo);
 			}
+		}
+		for (auto& buildRangeInfo : buildRangeInfos) {
+			pbuildRangeInfos.push_back(&buildRangeInfo);
 		}
 
 		VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
@@ -172,10 +185,11 @@ void RayTracing::createBlas(Device&device)
 		accelerationStructureBuildGeometryInfo.pGeometries = geometries.data();
 
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
-		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-		vkGetAccelerationStructureBuildSizesKHR(device.Get(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR; 
+		vkGetAccelerationStructureBuildSizesKHR(device.Get(),
+			VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 			&accelerationStructureBuildGeometryInfo,
-			&numTriangles,
+			maxPrimitiveCounts.data(),
 			&accelerationStructureBuildSizesInfo);
 
 		BLASs[i].buffer = Buffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
@@ -205,16 +219,13 @@ void RayTracing::createBlas(Device&device)
 		accelerationBuildGeometryInfo.scratchData.deviceAddress = getBufferDeviceAddress(device, scratchBuffer);
 
 
-		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-		accelerationStructureBuildRangeInfo.primitiveCount = numTriangles;
-		accelerationStructureBuildRangeInfo.primitiveOffset = 0;
-		accelerationStructureBuildRangeInfo.firstVertex = 0;
-		accelerationStructureBuildRangeInfo.transformOffset = 0;
-		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos =
-		{ &accelerationStructureBuildRangeInfo };
+		
 
 		VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
-		vkCmdBuildAccelerationStructuresKHR(commandBuffer, 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data());
+		vkCmdBuildAccelerationStructuresKHR(commandBuffer,
+			1, 
+			&accelerationBuildGeometryInfo, 
+			pbuildRangeInfos.data());
 		endSingleTimeCommands(device, commandBuffer);
 
 		VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
@@ -229,10 +240,8 @@ void RayTracing::createBlas(Device&device)
 void RayTracing::createSBT(Device& device)
 {
 	const uint32_t handleSize = rayTracingPipelineProperties.shaderGroupHandleSize;
-
-	const uint32_t value = rayTracingPipelineProperties.shaderGroupHandleSize;
-	const uint32_t alignment = rayTracingPipelineProperties.shaderGroupHandleAlignment;
-	const uint32_t handleSizeAligned = (value + alignment - 1) & ~(alignment - 1);
+	
+	const uint32_t handleSizeAligned = SBTalignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
 
 	const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
 
@@ -370,26 +379,7 @@ void RayTracing::createRTPipeline(Device& device)
 
 }
 
-void RayTracing::createOutputImage(Device& device, SwapChain swapChain)
-{
-	outputImages.resize(MAX_FRAMES_IN_FLIGHT);
-	outputImageViews.resize(MAX_FRAMES_IN_FLIGHT);
-
-	auto width = swapChain.GetExtent().width;
-	auto height = swapChain.GetExtent().width;
-	auto format = swapChain.GetImageFormat();
-	for (auto& image : outputImages) {
-		image = Image(device, width, height, 1, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	}
-
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT;i++) {
-		auto& imageView = outputImageViews[i];
-		imageView = ImageView(device, outputImages[i].Get(), format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-	}
-}
-
-void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers)
+void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers, std::vector<ImageView>& swapChainImageViews)
 {
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,1},
@@ -426,7 +416,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
 		VkDescriptorImageInfo storageImageDescriptor{};
-		storageImageDescriptor.imageView = outputImageViews[i].Get();
+		storageImageDescriptor.imageView = swapChainImageViews[i].Get();
 		storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		VkDescriptorBufferInfo bufferInfo{};
@@ -468,7 +458,7 @@ void RayTracing::destroy(Device& device)
 	vkDestroyPipeline(device.Get(), pipeline, nullptr);
 	vkDestroyPipelineLayout(device.Get(), pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device.Get(), descriptorSetLayout.Get(), nullptr);
-
+	vkDestroyDescriptorPool(device.Get(), descriptorPool.Get(), nullptr);
 	for (auto& blas : BLASs) {
 		vkDestroyBuffer(device.Get(), blas.buffer.Get(), nullptr);
 		vkFreeMemory(device.Get(), blas.buffer.GetMemory(), nullptr);
@@ -484,6 +474,80 @@ void RayTracing::destroy(Device& device)
 	raygenShaderBindingTable.destroy(device);
 	missShaderBindingTable.destroy(device);
 	hitShaderBindingTable.destroy(device);
+}
+
+void RayTracing::recordCommandBuffer(Device& device, VkCommandBuffer commandBuffer,int currentFrame,uint32_t imageIndex)
+{
+
+
+	const uint32_t handleSizeAligned = SBTalignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
+
+	VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
+	raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device,raygenShaderBindingTable);
+	raygenShaderSbtEntry.stride = handleSizeAligned;
+	raygenShaderSbtEntry.size = handleSizeAligned;
+
+	VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
+	missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device,missShaderBindingTable);
+	missShaderSbtEntry.stride = handleSizeAligned;
+	missShaderSbtEntry.size = handleSizeAligned;
+
+	VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
+	hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device, hitShaderBindingTable);
+	hitShaderSbtEntry.stride = handleSizeAligned;
+	hitShaderSbtEntry.size = handleSizeAligned;
+
+	VkStridedDeviceAddressRegionKHR callableShaderSbtEntry{};
+	VkImageMemoryBarrier iMB{};
+	iMB.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	iMB.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	iMB.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+	iMB.image = _swapChain->GetImages()[imageIndex].Get();
+	iMB.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	iMB.subresourceRange.baseMipLevel = 0;
+	iMB.subresourceRange.baseArrayLayer = 0;
+	iMB.subresourceRange.layerCount = 1;
+	iMB.subresourceRange.levelCount = 1;
+	iMB.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	iMB.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+	auto sourceStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	auto destinationStage = VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+
+
+	vkCmdPipelineBarrier(commandBuffer,
+		sourceStage,destinationStage,
+		0,
+		0,nullptr,
+		0,nullptr,
+		1, &iMB);
+
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[currentFrame].Get(), 0, 0);
+
+
+
+	vkCmdTraceRaysKHR(
+		commandBuffer,
+		&raygenShaderSbtEntry,
+		&missShaderSbtEntry,
+		&hitShaderSbtEntry,
+		&callableShaderSbtEntry,
+		_swapChain->GetExtent().width,
+		_swapChain->GetExtent().height,
+		1);
+
+
+	iMB.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+	iMB.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	/*vkCmdPipelineBarrier(commandBuffer,
+		sourceStage, destinationStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &iMB);*/
+
 }
 
 void RayTracing::loadFunctions(Device& device)

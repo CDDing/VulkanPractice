@@ -11,3 +11,4 @@ static void check_vk_result(VkResult err)
     if (err < 0)
         abort();
 }
+uint32_t SBTalignedSize(uint32_t value, uint32_t alignment);
