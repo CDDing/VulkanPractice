@@ -19,8 +19,7 @@ private:
 	Buffer _indexBuffer;
 	int32_t _vertexCount = 0;
 	int32_t _indexCount = 0;
-	Image _fontImage;
-	ImageView _fontImageView;
+	ImageSet _fontImage;
 	VkPipeline _pipeline;
 	VkPipelineLayout _pipelineLayout;
 	VkPipelineCache _pipelineCache;

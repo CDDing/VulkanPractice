@@ -180,7 +180,9 @@ private:
 	}
 	void insertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-		Model plane = makeSqaure(device, glm::translate(glm::mat4(30.0f),glm::vec3(0,-2.f/30.f,0)), {}, {});
+		Model plane = makeSqaure(device, glm::translate(glm::mat4(30.0f),glm::vec3(0,-2.f/30.f,0)), 
+			{}, 
+			{});
 		Model model2 = Model(device, 1.f
 			, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
 			"Resources/models/vk2vcdl/vk2vcdl.fbx",
@@ -638,8 +640,7 @@ private:
 	void cleanup() {
 		swapChain.destroy(device);
 		imgui.destroy();
-		Material::dummy.imageView.destroy(device);
-		Material::dummy.image.destroy(device);
+		Material::dummy.destroy(device);
 		Sampler::destroySamplers(device);
 		descriptorPool.destroy(device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {

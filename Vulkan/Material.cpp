@@ -3,7 +3,7 @@
 #include "Material.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-MaterialData Material::dummy = {};
+ImageSet Material::dummy = {};
 Material::Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath)
 {
 	_components.resize(static_cast<int>(MaterialComponent::END));
@@ -24,8 +24,7 @@ Material::Material(Device& device, std::vector<MaterialComponent> components, co
 void Material::destroy(Device& device)
 {
 	for (auto& material : _materials) {
-        material.image.destroy(device);
-        material.imageView.destroy(device);
+        material.destroy(device);
 	}
 }
 
@@ -42,7 +41,7 @@ Material Material::createMaterialForSkybox(Device& device)
 
 void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component,VkFormat format)
 {
-    MaterialData materialData;
+    ImageSet materialData;
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -79,7 +78,7 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
 
 void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt)
 {
-    MaterialData materialData;
+    ImageSet materialData;
     int width, height, channels;
     uint32_t mipLevels;
     DirectX::ScratchImage imageData;

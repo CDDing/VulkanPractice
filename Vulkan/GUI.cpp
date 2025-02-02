@@ -26,7 +26,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	vkUnmapMemory(*_device, stagingBuffer.GetMemory());
 	_fontImage = Image(*_device, texWidth, texHeight, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	_fontImageView = ImageView(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	_fontImage = ImageView(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 	transitionImageLayout(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 	copyBufferToImage(*_device, stagingBuffer, _fontImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 	transitionImageLayout(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
@@ -233,7 +233,6 @@ void GUI::destroy()
 	_vertexBuffer.destroy(*_device);
 	_indexBuffer.destroy(*_device);
 	_fontImage.destroy(*_device);
-	_fontImageView.destroy(*_device);
 	vkDestroyPipelineCache(*_device, _pipelineCache, nullptr);
 	vkDestroyPipeline(*_device, _pipeline, nullptr);
 	vkDestroyPipelineLayout(*_device, _pipelineLayout, nullptr);
@@ -423,7 +422,7 @@ void GUI::initDescriptorSet()
 	VkDescriptorImageInfo imageInfo{};
 	imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = _fontImageView;
+	imageInfo.imageView = _fontImage;
 
 	VkWriteDescriptorSet descriptorWrite{};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

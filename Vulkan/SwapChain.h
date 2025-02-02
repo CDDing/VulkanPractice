@@ -1,6 +1,7 @@
 #pragma once
 #include "Image.h"
 #include "ImageView.h"
+#include "ImageSet.h"
 class DescriptorSet;
 class Sampler;
 class SwapChain
@@ -13,8 +14,7 @@ public:
     }
     VkFormat& GetImageFormat() { return _swapChainImageFormat; }
     VkExtent2D& GetExtent() { return _swapChainExtent; }
-    std::vector<Image>& GetImages() { return _swapChainImages; }
-    std::vector<ImageView>& GetImageViews() { return _swapChainImageViews; }
+    std::vector<ImageSet>& GetImages() { return _swapChainImages; }
     std::vector<VkFramebuffer>& GetFrameBuffers() { return _swapChainFramebuffers; }
     RenderPass& GetRenderPass() { return _renderPass; }
     RenderPass& GetDeferredRenderPass() { return _deferredRenderPass; }
@@ -62,8 +62,7 @@ private:
 
     //Members
 
-    std::vector<ImageView> _swapChainImageViews;
-    std::vector<Image> _swapChainImages;
+    std::vector<ImageSet> _swapChainImages;
     VkFormat _swapChainImageFormat;
     VkExtent2D _swapChainExtent;
     std::vector<VkFramebuffer> _swapChainFramebuffers;
@@ -71,12 +70,10 @@ private:
     
     //Depth
     VkFormat _depthFormat;
-    Image _depthImage;
-    ImageView _depthImageView;
-
+    ImageSet _depthImage;
+    
     //Deferred
-    std::vector<Image> _deferredImages;
-    std::vector<ImageView> _deferredImageViews;
+    std::vector<ImageSet> _deferredImages;
     std::vector<VkFramebuffer> _deferredFramebuffers;
     RenderPass _deferredRenderPass;
 

@@ -8,9 +8,9 @@ public:
         return _imageView;
     }
     void destroy(Device& device) {
-        vkDestroyImageView(device, _imageView, nullptr);
+        if(_imageView != VK_NULL_HANDLE) vkDestroyImageView(device, _imageView, nullptr);
     }
 private:
-    VkImageView _imageView;
+    VkImageView _imageView = VK_NULL_HANDLE;
 };
 

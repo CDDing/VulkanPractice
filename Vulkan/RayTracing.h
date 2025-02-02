@@ -23,7 +23,7 @@ private:
 	void createBlas(Device& device, std::vector<Model>& models);
 	void createSBT(Device& device);
 	void createRTPipeline(Device& device);
-	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,std::vector<ImageView>& swapChainImageViews);
+	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,std::vector<ImageSet>& swapChainImages);
 	void loadFunctions(Device& device);
 	
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};

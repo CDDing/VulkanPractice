@@ -20,7 +20,7 @@ void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain
 	createTlas(device);
 	createRTPipeline(device);
 	createSBT(device);
-	createDescriptorSets(device, uboBuffers,swapChain.GetImageViews());
+	createDescriptorSets(device, uboBuffers,swapChain.GetImages());
 }
 
 void RayTracing::createTlas(Device& device)
@@ -379,7 +379,7 @@ void RayTracing::createRTPipeline(Device& device)
 
 }
 
-void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers, std::vector<ImageView>& swapChainImageViews)
+void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers, std::vector<ImageSet>& swapChainImages)
 {
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,1},
@@ -416,7 +416,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
 		VkDescriptorImageInfo storageImageDescriptor{};
-		storageImageDescriptor.imageView = swapChainImageViews[i];
+		storageImageDescriptor.imageView = swapChainImages[i];
 		storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		VkDescriptorBufferInfo bufferInfo{};

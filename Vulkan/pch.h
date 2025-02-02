@@ -42,6 +42,7 @@
 #include "Buffer.h"
 #include "Image.h"
 #include "ImageView.h"
+#include "ImageSet.h"
 #include "Fence.h"
 #include "Semaphore.h"
 #include "FileLoader.h"

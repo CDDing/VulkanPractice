@@ -11,13 +11,13 @@ public:
         _image = image;
     }
     void destroy(Device& device) {
-        vkDestroyImage(device, _image, nullptr);
-        vkFreeMemory(device, _imageMemory, nullptr);
+        if(_image != VK_NULL_HANDLE) vkDestroyImage(device, _image, nullptr);
+        if(_imageMemory != VK_NULL_HANDLE) vkFreeMemory(device, _imageMemory, nullptr);
     }
     VkDeviceMemory& GetMemory() { return _imageMemory; }
 private:
-    VkImage _image;
-    VkDeviceMemory _imageMemory;
+    VkImage _image = VK_NULL_HANDLE;
+    VkDeviceMemory _imageMemory = VK_NULL_HANDLE;
 };
 
 void copyBufferToImage(Device& device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
