@@ -15,7 +15,7 @@ public:
         if(_imageMemory != VK_NULL_HANDLE) vkFreeMemory(device, _imageMemory, nullptr);
     }
     void fillImage(Device& device, void* data, VkDeviceSize size);
-    void transitionLayout(Device& device, VkImageLayout newLayout, VkImageAspectFlags aspectFlags);
+    void transitionLayout(Device& device, VkCommandBuffer commandBuffer, VkImageLayout newLayout, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
     void generateMipmaps(Device& device);
     VkDeviceMemory& GetMemory() { return _imageMemory; }
 
@@ -23,10 +23,10 @@ private:
     VkImage _image = VK_NULL_HANDLE;
     VkDeviceMemory _imageMemory = VK_NULL_HANDLE;
     VkFormat _format;
-    uint32_t _width;
-    uint32_t _height;
-    uint32_t _mipLevels;
-    VkImageLayout _layout;
+    uint32_t _width = WIDTH;
+    uint32_t _height = HEIGHT;
+    uint32_t _mipLevels = 1;
+    VkImageLayout _layout = VK_IMAGE_LAYOUT_UNDEFINED;
 };
 
 void copyBufferToImage(Device& device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);

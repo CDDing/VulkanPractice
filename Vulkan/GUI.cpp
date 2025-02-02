@@ -25,8 +25,10 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 
 	
 	_fontImage.image.fillImage(*_device, fontData, uploadSize);
-	_fontImage.image.transitionLayout(*_device,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-	_fontImage.image.transitionLayout(*_device, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	VkCommandBuffer cmdBuf = beginSingleTimeCommands(*_device);
+	_fontImage.image.transitionLayout(*_device, cmdBuf, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+	endSingleTimeCommands(*_device, cmdBuf);
 
 	VkDescriptorPoolSize pool_sizes[] =
 	{

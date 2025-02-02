@@ -110,7 +110,9 @@ void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath
         generateMipmapsForCubemap(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, width, height, mipLevels);
     }
     else {
-        materialData.image.transitionLayout(device, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+        VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
+        materialData.image.transitionLayout(device, cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+        endSingleTimeCommands(device, cmdBuf);
         copyBufferToImage(device, stagingBuffer, materialData.image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 

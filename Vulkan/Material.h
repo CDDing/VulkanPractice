@@ -40,10 +40,15 @@ public:
 		Image image= Image(device,width, height, mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 
-		image.transitionLayout(device, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-		copyBufferToImage(device, stagingBuffer, image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-		image.transitionLayout(device, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
+		image.transitionLayout(device, cmdBuf,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		endSingleTimeCommands(device, cmdBuf);
 
+		copyBufferToImage(device, stagingBuffer, image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+
+		cmdBuf = beginSingleTimeCommands(device);
+		image.transitionLayout(device, cmdBuf,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		endSingleTimeCommands(device, cmdBuf);
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBuffer.GetMemory(), nullptr);

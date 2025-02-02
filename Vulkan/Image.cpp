@@ -57,16 +57,18 @@ void Image::fillImage(Device& device, void* data ,VkDeviceSize size)
     vkMapMemory(device, stagingBuffer.GetMemory(), 0, size, 0, &staging);
     memcpy(staging, data, static_cast<size_t>(size));
     vkUnmapMemory(device, stagingBuffer.GetMemory());
+    
 
-    transitionLayout(device, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
+    transitionLayout(device, cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    endSingleTimeCommands(device, cmdBuf);
     copyBufferToImage(device, stagingBuffer, _image, static_cast<uint32_t>(_width), static_cast<uint32_t>(_height));
 
     stagingBuffer.destroy(device);
 }
 
-void Image::transitionLayout(Device& device, VkImageLayout newLayout, VkImageAspectFlags aspectFlags)
+void Image::transitionLayout(Device& device, VkCommandBuffer commandBuffer, VkImageLayout newLayout, VkImageAspectFlags aspectFlags)
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
     VkImageMemoryBarrier imageMemoryBarrier{};
     imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -185,8 +187,7 @@ void Image::transitionLayout(Device& device, VkImageLayout newLayout, VkImageAsp
 
 
     vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-    endSingleTimeCommands(device, commandBuffer);
+    _layout = newLayout;
 }
 
 void Image::generateMipmaps(Device& device)

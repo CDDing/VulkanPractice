@@ -14,8 +14,6 @@ private:
 	CommandPool commandPool;
 	Surface surface;
 	std::vector<CommandBuffer> commandBuffers;
-	Image depthImage;
-	ImageView depthImageView;
 	std::vector<Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
 

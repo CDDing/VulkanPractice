@@ -1,4 +1,5 @@
 #pragma once
+
 #include <DirectXTex.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -28,6 +29,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext/scalar_constants.hpp>
+
+
+const uint32_t WIDTH = 800;
+const uint32_t HEIGHT = 600;
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 #include "Utils.h"
 #include "Struct.h"
 #include "Instance.h"
@@ -75,7 +82,3 @@ const std::vector<const char*> deviceExtensions = {
 
     VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
 };
-
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
-const int MAX_FRAMES_IN_FLIGHT = 2;

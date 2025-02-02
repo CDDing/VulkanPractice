@@ -14,13 +14,14 @@ void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain
 
 	loadFunctions(device);
 
+	createOutputImages(device);
 	BLASs.resize(MAX_FRAMES_IN_FLIGHT);
 	TLASs.resize(MAX_FRAMES_IN_FLIGHT);
 	createBlas(device,models);
 	createTlas(device);
 	createRTPipeline(device);
 	createSBT(device);
-	createDescriptorSets(device, uboBuffers,swapChain.GetImages());
+	createDescriptorSets(device, uboBuffers);
 }
 
 void RayTracing::createTlas(Device& device)
@@ -379,7 +380,24 @@ void RayTracing::createRTPipeline(Device& device)
 
 }
 
-void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers, std::vector<ImageSet>& swapChainImages)
+void RayTracing::createOutputImages(Device& device)
+{
+	outputImages.resize(MAX_FRAMES_IN_FLIGHT);
+	for (auto& image : outputImages) {
+		image = ImageSet(device, _swapChain->GetExtent().width, _swapChain->GetExtent().height,
+			1, _swapChain->GetImageFormat(),
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+
+		VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
+		image.image.transitionLayout(device, cmdBuf, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		endSingleTimeCommands(device, cmdBuf);
+	}
+}
+
+void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers)
 {
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,1},
@@ -416,7 +434,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 
 		VkDescriptorImageInfo storageImageDescriptor{};
-		storageImageDescriptor.imageView = swapChainImages[i];
+		storageImageDescriptor.imageView = outputImages[i];
 		storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		VkDescriptorBufferInfo bufferInfo{};
@@ -454,7 +472,9 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 
 void RayTracing::destroy(Device& device)
 {
-
+	for (auto& image : outputImages) {
+		image.destroy(device);
+	}
 	vkDestroyPipeline(device, pipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -498,35 +518,8 @@ void RayTracing::recordCommandBuffer(Device& device, VkCommandBuffer commandBuff
 	hitShaderSbtEntry.size = handleSizeAligned;
 
 	VkStridedDeviceAddressRegionKHR callableShaderSbtEntry{};
-	VkImageMemoryBarrier iMB{};
-	iMB.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	iMB.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	iMB.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-	iMB.image = _swapChain->GetImages()[imageIndex];
-	iMB.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	iMB.subresourceRange.baseMipLevel = 0;
-	iMB.subresourceRange.baseArrayLayer = 0;
-	iMB.subresourceRange.layerCount = 1;
-	iMB.subresourceRange.levelCount = 1;
-	iMB.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	iMB.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-
-	auto sourceStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	auto destinationStage = VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
-
-
-	vkCmdPipelineBarrier(commandBuffer,
-		sourceStage,destinationStage,
-		0,
-		0,nullptr,
-		0,nullptr,
-		1, &iMB);
-
-
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, 0);
-
-
 
 	vkCmdTraceRaysKHR(
 		commandBuffer,
@@ -538,15 +531,32 @@ void RayTracing::recordCommandBuffer(Device& device, VkCommandBuffer commandBuff
 		_swapChain->GetExtent().height,
 		1);
 
+	auto& outputSwapChain = _swapChain->GetImages()[imageIndex].image;
+	auto& outputImage = outputImages[currentFrame].image;
+	outputSwapChain.transitionLayout(device, commandBuffer,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	outputImage.transitionLayout(device, commandBuffer, 
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-	iMB.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-	iMB.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	/*vkCmdPipelineBarrier(commandBuffer,
-		sourceStage, destinationStage,
-		0,
-		0, nullptr,
-		0, nullptr,
-		1, &iMB);*/
+
+	VkImageCopy copyRegion{};
+	copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+	copyRegion.srcOffset = { 0, 0, 0 };
+	copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+	copyRegion.dstOffset = { 0, 0, 0 };
+	copyRegion.extent = { _swapChain->GetExtent().width, _swapChain->GetExtent().height, 1};
+	vkCmdCopyImage(commandBuffer, 
+		outputImage, 
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+		outputSwapChain,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+		1, &copyRegion);
+
+
+	outputSwapChain.transitionLayout(device, commandBuffer,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	outputImage.transitionLayout(device, commandBuffer,
+		VK_IMAGE_LAYOUT_GENERAL);
 
 }
 
