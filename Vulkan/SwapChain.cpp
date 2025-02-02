@@ -20,7 +20,7 @@ void SwapChain::InitDescriptorSetForGBuffer(Device& device)
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = _deferredImageViews[i];
-            imageInfo.sampler = _GBufferSampler;
+            imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
 
         }
         VkWriteDescriptorSet descriptorWrite{};
@@ -196,8 +196,6 @@ void SwapChain::create(Device& device)
             VK_IMAGE_ASPECT_DEPTH_BIT, 1));
     }
 
-    _GBufferSampler = Sampler(device, 1);
-
     //렌더 패스 생성
     std::array<VkAttachmentDescription, 7> attachmentDescription = {};
     for (uint32_t i = 0; i < 7; ++i) {
@@ -300,7 +298,6 @@ void SwapChain::create(Device& device)
 
 void SwapChain::destroy(Device& device)
 {
-    vkDestroySampler(device, _GBufferSampler, nullptr);
     for (auto& image : _deferredImages) {
         image.destroy(device);
     }

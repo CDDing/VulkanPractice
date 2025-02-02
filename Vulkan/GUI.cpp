@@ -32,7 +32,6 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	transitionImageLayout(*_device, _fontImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
 	stagingBuffer.destroy(*_device);
-	_sampler = Sampler(*_device, 1);
 	VkDescriptorPoolSize pool_sizes[] =
 	{
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10*IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
@@ -235,7 +234,6 @@ void GUI::destroy()
 	_indexBuffer.destroy(*_device);
 	_fontImage.destroy(*_device);
 	_fontImageView.destroy(*_device);
-	vkDestroySampler(*_device, _sampler, nullptr);
 	vkDestroyPipelineCache(*_device, _pipelineCache, nullptr);
 	vkDestroyPipeline(*_device, _pipeline, nullptr);
 	vkDestroyPipelineLayout(*_device, _pipelineLayout, nullptr);
@@ -423,7 +421,7 @@ void GUI::init(float width, float height)
 void GUI::initDescriptorSet()
 {
 	VkDescriptorImageInfo imageInfo{};
-	imageInfo.sampler = _sampler;
+	imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfo.imageView = _fontImageView;
 

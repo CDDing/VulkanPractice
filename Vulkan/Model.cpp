@@ -173,10 +173,10 @@ void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = material.Get(i).imageView;
-            imageInfo.sampler = material.Get(i).sampler;
+            imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
             if (!material.hasComponent(i)) {
                 imageInfo.imageView = Material::dummy.imageView;
-                imageInfo.sampler = Material::dummy.sampler;
+                imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
             }
 
         }
@@ -201,7 +201,7 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             imageInfo.imageView = material.Get(i).imageView;
-            imageInfo.sampler = material.Get(i).sampler;
+            imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
         }
         VkWriteDescriptorSet descriptorWriteForMap{};
         descriptorWriteForMap.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -216,7 +216,7 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
         VkDescriptorImageInfo lutImageInfo{};
         lutImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         lutImageInfo.imageView = material.Get(3).imageView;
-        lutImageInfo.sampler = material.Get(3).sampler;
+        lutImageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
         imageInfos[3] = lutImageInfo;
         VkWriteDescriptorSet descriptorWriteForLut{};
         descriptorWriteForLut.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

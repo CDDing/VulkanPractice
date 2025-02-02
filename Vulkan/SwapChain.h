@@ -79,7 +79,6 @@ private:
     std::vector<ImageView> _deferredImageViews;
     std::vector<VkFramebuffer> _deferredFramebuffers;
     RenderPass _deferredRenderPass;
-    Sampler _GBufferSampler;
 
 };
 

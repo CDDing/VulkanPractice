@@ -26,7 +26,6 @@ void Material::destroy(Device& device)
 	for (auto& material : _materials) {
         material.image.destroy(device);
         material.imageView.destroy(device);
-		vkDestroySampler(device, material.sampler, nullptr);
 	}
 }
 
@@ -73,7 +72,7 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
     generateMipmaps(device, materialData.image, format, texWidth, texHeight, mipLevels);
 
     materialData.imageView = ImageView(device, materialData.image, format, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    materialData.sampler = Sampler(device, mipLevels);
+    //materialData.sampler = Sampler::Get(SamplerMipMapType::High);
 
     _materials[static_cast<int>(component)] = materialData;
 }
@@ -134,7 +133,7 @@ void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath
 
     stagingBuffer.destroy(device);
     materialData.imageView = ImageView(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels, cnt);
-    materialData.sampler = Sampler(device, mipLevels);
+    //materialData.sampler = Sampler::Get(SamplerMipMapType::High);
 
     _materials.push_back(materialData);
 }

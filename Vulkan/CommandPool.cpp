@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "CommandPool.h"
-VkCommandPool CommandPool::TransientPool = VkCommandPool();
+CommandPool CommandPool::TransientPool = CommandPool();
 CommandPool::CommandPool()
 {
 }

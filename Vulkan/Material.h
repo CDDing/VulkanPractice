@@ -10,7 +10,6 @@ enum class MaterialComponent {
 struct MaterialData {
 		Image image;
 		ImageView imageView;
-		Sampler sampler;
 	};
 class Material
 {
@@ -53,7 +52,7 @@ public:
 		vkFreeMemory(device, stagingBuffer.GetMemory(), nullptr);
 
 		materialData.imageView = ImageView(device, materialData.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-		materialData.sampler = Sampler(device, mipLevels);
+		//materialData.sampler = Sampler::Get(SamplerMipMapType::Low);
 
 		return materialData;
 	}

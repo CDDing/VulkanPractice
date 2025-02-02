@@ -15,7 +15,6 @@ class VulkanApp;
 class GUI
 {
 private:
-	Sampler _sampler;
 	Buffer _vertexBuffer;
 	Buffer _indexBuffer;
 	int32_t _vertexCount = 0;

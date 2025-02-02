@@ -94,11 +94,12 @@ private:
 		device = Device(instance, surface);
 		descriptorPool = DescriptorPool(device);
 		commandPool = CommandPool(device, surface);
+		initSamplers();
 		swapChain = SwapChain(device, surface);
 		
 		initGUI();
 		createDescriptorSetLayouts();
-		InsertModels();
+		insertModels();
 		createUniformBuffers();
 		createDescriptorSets();
 		createPipelines();
@@ -118,6 +119,9 @@ private:
 			DescriptorSetLayout(device,DescriptorType::Model),
 			DescriptorSetLayout(device,DescriptorType::GBuffer),
 		};
+	}
+	void initSamplers() {
+		Sampler::init(device);
 	}
 	void initRayTracing() {
 
@@ -174,7 +178,7 @@ private:
 		pipelines[Pipeline::SKYBOX] = (skyboxPipeline);
 		pipelines[Pipeline::DEFERRED] = (deferredPipeline);
 	}
-	void InsertModels() {
+	void insertModels() {
 		//Model model = makeBox(device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
 		Model plane = makeSqaure(device, glm::translate(glm::mat4(30.0f),glm::vec3(0,-2.f/30.f,0)), {}, {});
 		Model model2 = Model(device, 1.f
@@ -636,7 +640,7 @@ private:
 		imgui.destroy();
 		Material::dummy.imageView.destroy(device);
 		Material::dummy.image.destroy(device);
-		vkDestroySampler(device, Material::dummy.sampler, nullptr);
+		Sampler::destroySamplers(device);
 		descriptorPool.destroy(device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers[i].destroy(device);
@@ -656,12 +660,11 @@ private:
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
 			vkDestroyFence(device, inFlightFences[i], nullptr);
 		}
-		vkDestroyCommandPool(device, commandPool, nullptr);
-		vkDestroyCommandPool(device, CommandPool::TransientPool, nullptr);
+		commandPool.destroy(device);
+		CommandPool::TransientPool.destroy(device);
 		for (int i = 0; i < 3;i++) {
 			auto& pipeline = pipelines[i];
-			vkDestroyPipeline(device, pipeline, nullptr);
-			vkDestroyPipelineLayout(device, pipeline.GetLayout(), nullptr);
+			pipeline.destroy(device);
 		}
 		rt.destroy(device);
 		vkDestroyDevice(device, nullptr);

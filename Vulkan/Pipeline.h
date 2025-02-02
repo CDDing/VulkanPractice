@@ -17,6 +17,11 @@ public:
 		return _pipeline;
 	}
 	VkPipelineLayout& GetLayout() { return _pipelineLayout; }
+
+	void destroy(Device& device) {
+		vkDestroyPipeline(device, _pipeline, nullptr);
+		vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+	}
 private:
 	VkPipelineLayout _pipelineLayout;
 	VkPipeline _pipeline;
