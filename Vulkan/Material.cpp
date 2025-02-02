@@ -50,29 +50,18 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Buffer stagingBuffer;
+    materialData = ImageSet(device,
+        texWidth, texHeight, mipLevels, format,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        VK_IMAGE_ASPECT_COLOR_BIT);
 
-    stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    materialData.image.fillImage(device, pixels, imageSize);
+    materialData.image.generateMipmaps(device);
 
-    void* data;
-    vkMapMemory(device, stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBuffer.GetMemory());
 
     stbi_image_free(pixels);
-    materialData.image = Image(device, texWidth, texHeight, mipLevels, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    transitionImageLayout(device, materialData.image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    copyBufferToImage(device, stagingBuffer, materialData.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    //transitionImageLayout(textureImage, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-
-    stagingBuffer.destroy(device);
-
-    generateMipmaps(device, materialData.image, format, texWidth, texHeight, mipLevels);
-
-    materialData.imageView = ImageView(device, materialData.image, format, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    //materialData.sampler = Sampler::Get(SamplerMipMapType::High);
-
     _materials[static_cast<int>(component)] = materialData;
 }
 
@@ -121,13 +110,12 @@ void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath
         generateMipmapsForCubemap(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, width, height, mipLevels);
     }
     else {
-        transitionImageLayout(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        materialData.image.transitionLayout(device, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
         copyBufferToImage(device, stagingBuffer, materialData.image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 
 
-        generateMipmaps(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, width, height, mipLevels);
-
+        materialData.image.generateMipmaps(device);
     }
 
     stagingBuffer.destroy(device);
