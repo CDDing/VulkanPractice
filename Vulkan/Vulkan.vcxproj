@@ -180,6 +180,7 @@
     <ClCompile Include="RayTracing.cpp" />
     <ClCompile Include="RenderPass.cpp" />
     <ClCompile Include="Sampler.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Struct.cpp" />
     <ClCompile Include="Surface.cpp" />
@@ -223,6 +224,7 @@
     <ClInclude Include="RayTracing.h" />
     <ClInclude Include="RenderPass.h" />
     <ClInclude Include="Sampler.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Struct.h" />
     <ClInclude Include="Surface.h" />

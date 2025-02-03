@@ -189,6 +189,9 @@
     <ClCompile Include="ImageSet.cpp">
       <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
     </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -301,6 +304,9 @@
     </ClInclude>
     <ClInclude Include="ImageSet.h">
       <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>소스 파일\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

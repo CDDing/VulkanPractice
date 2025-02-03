@@ -20,8 +20,7 @@ private:
 	std::vector<Buffer> GUIBuffers;
 	std::vector<void*> GUIBuffersMapped;
 	GUIControl guiControl{};
-	std::vector<Model> models;
-	Model skybox;
+	Scene scene;
 	std::vector<DescriptorSet> uboDescriptorSets;
 	std::vector<DescriptorSet> GUIDescriptorSets;
 
@@ -124,7 +123,7 @@ private:
 	void initRayTracing() {
 
 		rt = RayTracing();
-		rt.init(device,uniformBuffers,swapChain,models);
+		rt.init(device,uniformBuffers,swapChain,scene);
 	}
 	void initGUI() {
 
@@ -192,10 +191,10 @@ private:
 		Model model = makeSphere(device, glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)) ,
 			{ },
 			{ });
-		models.push_back(model);
-		models.push_back(model2);
-		models.push_back(plane);
-		skybox = makeSkyBox(device);
+		scene.models.push_back(model);
+		scene.models.push_back(model2);
+		scene.models.push_back(plane);
+		scene.skybox = makeSkyBox(device);
 	}
 
 	void createDescriptorSets() {
@@ -208,20 +207,20 @@ private:
 		}
 		
 		//skybox용 디스크립터 셋
-		skybox.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-		for (auto& descriptorSet : skybox.material.descriptorSets) {
+		scene.skybox.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+		for (auto& descriptorSet : scene.skybox.material.descriptorSets) {
 			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Skybox)]);
 		}
 
 		//머테리얼 디스크립터 셋
-		for (auto& model : models) {
+		for (auto& model : scene.models) {
 			model.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 			for (auto& descriptorSet : model.material.descriptorSets) {
 				descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Material)]);
 			}
 		}
 		//모델 행렬 디스크립터 셋
-		for (auto& model : models) {
+		for (auto& model : scene.models) {
 			model.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 			for (auto& descriptorSet : model.descriptorSets) {
 				descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Model)]);
@@ -238,13 +237,13 @@ private:
 			descriptorSet = DescriptorSet(device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
 		}
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			for (auto& model : models) {
+			for (auto& model : scene.models) {
 				model.InitDescriptorSet(device, model.material.descriptorSets[i]);
 				model.InitDescriptorSetForModelMatrix(device, model.descriptorSets[i]);
 			}
 			
 			//스카이박스
-			skybox.InitDescriptorSetForSkybox(device, skybox.material.descriptorSets[i]);
+			scene.skybox.InitDescriptorSetForSkybox(device, scene.skybox.material.descriptorSets[i]);
 			swapChain.InitDescriptorSetForGBuffer(device);
 			//카메라 행렬 유니폼 버퍼
 			VkDescriptorBufferInfo bufferInfo;
@@ -483,7 +482,7 @@ private:
 
 			std::vector<VkDescriptorSet> descriptorSetListForSkybox = {
 				uboDescriptorSets[currentFrame],
-				skybox.material.descriptorSets[currentFrame]
+				scene.skybox.material.descriptorSets[currentFrame]
 			};
 			vkCmdBindDescriptorSets(commandBuffer,
 				VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -492,18 +491,18 @@ private:
 				, descriptorSetListForSkybox.data(),
 				0, nullptr);
 
-			VkBuffer vertexBuffers[] = { skybox.meshes[0]->vertexBuffer };
+			VkBuffer vertexBuffers[] = { scene.skybox.meshes[0]->vertexBuffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, skybox.meshes[0]->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffer, scene.skybox.meshes[0]->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(scene.skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
 
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[Pipeline::DEFAULT]);
 			std::vector<VkDescriptorSet> descriptorSetListForModel = {
 						uboDescriptorSets[currentFrame],
-						skybox.material.descriptorSets[currentFrame],
+						scene.skybox.material.descriptorSets[currentFrame],
 						swapChain.descriptorSets[currentFrame]
 			};
 			vkCmdBindDescriptorSets(commandBuffer,
@@ -590,7 +589,7 @@ private:
 		vkResetFences(device, 1, &inFlightFences[currentFrame]);
 		updateUniformBuffer(currentFrame);
 		vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, models);
+		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, scene.models);
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -650,10 +649,7 @@ private:
 			descriptorSetLayout.destroy(device);
 		}
 
-		for (auto& model : models) {
-			model.destroy(device);
-		}
-		skybox.destroy(device);
+		scene.destroy(device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);

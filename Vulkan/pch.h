@@ -64,6 +64,7 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 #include "Mesh.h"
 #include "GUI.h"
 #include "RayTracing.h"
+#include "Scene.h"
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",

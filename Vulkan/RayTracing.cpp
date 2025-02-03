@@ -2,7 +2,7 @@
 #include "RayTracing.h"
 
 
-void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, std::vector<Model>& models)
+void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain,Scene& scene)
 {
 	_swapChain = &swapChain;
 	// Get ray tracing pipeline properties, which will be used later on in the sample
@@ -17,11 +17,11 @@ void RayTracing::init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain
 	createOutputImages(device);
 	BLASs.resize(MAX_FRAMES_IN_FLIGHT);
 	TLASs.resize(MAX_FRAMES_IN_FLIGHT);
-	createBlas(device,models);
+	createBlas(device,scene.models);
 	createTlas(device);
 	createRTPipeline(device);
 	createSBT(device);
-	createDescriptorSets(device, uboBuffers);
+	createDescriptorSets(device, uboBuffers,scene);
 }
 
 void RayTracing::createTlas(Device& device)
@@ -268,35 +268,7 @@ void RayTracing::createSBT(Device& device)
 
 void RayTracing::createRTPipeline(Device& device)
 {
-	VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
-	accelerationStructureLayoutBinding.binding = 0;
-	accelerationStructureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-	accelerationStructureLayoutBinding.descriptorCount = 1;
-	accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-
-	VkDescriptorSetLayoutBinding resultImageLayoutBinding{};
-	resultImageLayoutBinding.binding = 1;
-	resultImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	resultImageLayoutBinding.descriptorCount = 1;
-	resultImageLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-
-	VkDescriptorSetLayoutBinding uniformBufferBinding{};
-	uniformBufferBinding.binding = 2;
-	uniformBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uniformBufferBinding.descriptorCount = 1;
-	uniformBufferBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-
-	std::vector<VkDescriptorSetLayoutBinding> bindings({
-			accelerationStructureLayoutBinding,
-			resultImageLayoutBinding,
-			uniformBufferBinding
-		});
-
-	VkDescriptorSetLayoutCreateInfo descriptorSetlayoutCI{};
-	descriptorSetlayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	descriptorSetlayoutCI.bindingCount = static_cast<uint32_t>(bindings.size());
-	descriptorSetlayoutCI.pBindings = bindings.data();
-	vkCreateDescriptorSetLayout(device, &descriptorSetlayoutCI, nullptr, &descriptorSetLayout);
+	descriptorSetLayout = DescriptorSetLayout(device, DescriptorType::RayTracing);
 
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -397,12 +369,13 @@ void RayTracing::createOutputImages(Device& device)
 	}
 }
 
-void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers)
+void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuffers, Scene& scene)
 {
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,1},
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,1},
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1}
+		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1},
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4 }
 	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{};
@@ -461,10 +434,44 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		uniformBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uniformBufferWrite.pBufferInfo = &bufferInfo;
 
+
+		std::vector<VkDescriptorImageInfo> imageInfos(4);
+		for (int i = 0; i < 3; i++) {
+			auto& imageInfo = imageInfos[i];
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = scene.skybox.material.Get(i);
+			imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
+		}
+		VkWriteDescriptorSet descriptorWriteForMap{};
+		descriptorWriteForMap.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWriteForMap.dstSet = descriptorSets[i];
+		descriptorWriteForMap.dstBinding = 3;
+		descriptorWriteForMap.dstArrayElement = 0;
+		descriptorWriteForMap.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWriteForMap.descriptorCount = 3;
+		descriptorWriteForMap.pImageInfo = imageInfos.data();
+
+
+		VkDescriptorImageInfo lutImageInfo{};
+		lutImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		lutImageInfo.imageView = scene.skybox.material.Get(3);
+		lutImageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
+		imageInfos[3] = lutImageInfo;
+		VkWriteDescriptorSet descriptorWriteForLut{};
+		descriptorWriteForLut.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWriteForLut.dstSet = descriptorSets[i];
+		descriptorWriteForLut.dstBinding = 4;
+		descriptorWriteForLut.dstArrayElement = 0;
+		descriptorWriteForLut.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWriteForLut.descriptorCount = 1;
+		descriptorWriteForLut.pImageInfo = &lutImageInfo;
+
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 				accelerationStructureWrite,
 				resultImageWrite,
-				uniformBufferWrite
+				uniformBufferWrite,
+				descriptorWriteForMap,
+				descriptorWriteForLut,
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 	}

@@ -44,13 +44,6 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
     memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
     memcpy(_uniformBuffersMapped[1], &_transform, sizeof(_transform));
 
-    std::cout << "Model Matrix:" << std::endl;
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            std::cout << transform[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
 }
 
 void Model::processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale)
@@ -217,7 +210,7 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
         descriptorWriteForMap.dstBinding = 0;
         descriptorWriteForMap.dstArrayElement = 0;
         descriptorWriteForMap.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWriteForMap.descriptorCount = imageInfos.size();
+        descriptorWriteForMap.descriptorCount = 3;
         descriptorWriteForMap.pImageInfo = imageInfos.data();
 
 

@@ -20,5 +20,6 @@ enum class DescriptorType {
 	Model,
 	GBuffer,
 	ImGUI,
+	RayTracing,
 	END
 };

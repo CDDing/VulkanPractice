@@ -1,9 +1,10 @@
 #pragma once
+class Scene;
 class RayTracing
 {
 
 public:
-	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, std::vector<Model>& models);
+	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene);
 	void destroy(Device& device);
 	void recordCommandBuffer(Device& device, VkCommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
@@ -24,7 +25,7 @@ private:
 	void createSBT(Device& device);
 	void createRTPipeline(Device& device);
 	void createOutputImages(Device& device);
-	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers);
+	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,Scene& scene);
 	void loadFunctions(Device& device);
 	
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
