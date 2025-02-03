@@ -73,6 +73,9 @@
     <Filter Include="소스 파일\VulkanWrapping\Resource\Image">
       <UniqueIdentifier>{c97a9a43-46cb-4c4f-bb6c-4c352a52f211}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Shaders\Rasterization">
+      <UniqueIdentifier>{3e5fa8f3-b1d0-4fcc-8964-fa2825d70e11}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Vulkan.cpp">
@@ -301,18 +304,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\shader.frag">
-      <Filter>소스 파일\Shaders</Filter>
-    </None>
-    <None Include="shaders\shader.vert">
-      <Filter>소스 파일\Shaders</Filter>
-    </None>
-    <None Include="shaders\deferred.frag">
-      <Filter>소스 파일\Shaders</Filter>
-    </None>
-    <None Include="shaders\deferred.vert">
-      <Filter>소스 파일\Shaders</Filter>
-    </None>
     <None Include="shaders\hit.rchit">
       <Filter>소스 파일\Shaders\RayTracing</Filter>
     </None>
@@ -336,6 +327,18 @@
     </None>
     <None Include="shaders\common.glsl">
       <Filter>소스 파일\Shaders\Header</Filter>
+    </None>
+    <None Include="shaders\deferred.frag">
+      <Filter>소스 파일\Shaders\Rasterization</Filter>
+    </None>
+    <None Include="shaders\deferred.vert">
+      <Filter>소스 파일\Shaders\Rasterization</Filter>
+    </None>
+    <None Include="shaders\shader.frag">
+      <Filter>소스 파일\Shaders\Rasterization</Filter>
+    </None>
+    <None Include="shaders\shader.vert">
+      <Filter>소스 파일\Shaders\Rasterization</Filter>
     </None>
   </ItemGroup>
 </Project>

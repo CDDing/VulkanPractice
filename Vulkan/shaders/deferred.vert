@@ -19,13 +19,13 @@ layout(location = 2) out vec3 outColor;
 layout(location = 3) out vec3 outWorldPos;
 layout(location = 4) out vec3 outTangent;
 void main(){
-	outWorldPos = vec3(transform.model * vec4(inPosition,1.0));
+	outWorldPos = vec3(vec4(inPosition,1.0) * transform.model);
 	gl_Position  = ubo.proj * ubo.view * vec4(outWorldPos,1.0);
 	outUV = inTexCoord;
 
 	//outColor = inColor;
 
-	mat3 mNormal= transpose(inverse(mat3(transform.model)));
+	mat3 mNormal= (inverse(mat3(transform.model)));
 	outNormal = mNormal * normalize(inNormal);
 	outTangent = mNormal * normalize(inTangent);
 }

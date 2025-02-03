@@ -40,9 +40,17 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
         uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         vkMapMemory(device, uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
     }
-    _transform = { transform };
+    _transform = { glm::transpose(transform) };
     memcpy(_uniformBuffersMapped[0], &_transform, sizeof(_transform));
     memcpy(_uniformBuffersMapped[1], &_transform, sizeof(_transform));
+
+    std::cout << "Model Matrix:" << std::endl;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            std::cout << transform[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
 }
 
 void Model::processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale)

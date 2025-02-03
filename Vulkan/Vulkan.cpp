@@ -381,9 +381,9 @@ private:
 			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 			renderPassInfo.pClearValues = clearValues.data();
 
-			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-			imgui.drawFrame(commandBuffer);
-			vkCmdEndRenderPass(commandBuffer);
+			//vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			//imgui.drawFrame(commandBuffer);
+			//vkCmdEndRenderPass(commandBuffer);
 		}
 		else {
 

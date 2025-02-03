@@ -306,11 +306,11 @@ void RayTracing::createRTPipeline(Device& device)
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
-	
-	//RayGen
 	Shader rayGenShader = Shader(device, "shaders/raygen.rgen.spv");
 	Shader missShader = Shader(device, "shaders/miss.rmiss.spv");
 	Shader hitShader = Shader(device, "shaders/hit.rchit.spv");
+	
+	//RayGen
 	VkPipelineShaderStageCreateInfo rayGenShaderStage{};
 	rayGenShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	rayGenShaderStage.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
