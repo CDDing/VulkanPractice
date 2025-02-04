@@ -15,7 +15,7 @@ public:
 	VkResult flush(Device& device, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 	void fillBuffer(Device& device, void* data, VkDeviceSize size);
 	VkDeviceSize size;
-	VkDescriptorBufferInfo getDescriptor();
+	VkDescriptorBufferInfo GetBufferInfo();
 private:
 	VkBuffer _buffer = VK_NULL_HANDLE;
 	VkDeviceMemory _memory = VK_NULL_HANDLE;

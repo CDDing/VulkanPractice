@@ -428,7 +428,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		storageImageDescriptor.imageView = outputImages[i];
 		storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-		VkDescriptorBufferInfo bufferInfo = uboBuffers[i].getDescriptor();
+		VkDescriptorBufferInfo bufferInfo = uboBuffers[i].GetBufferInfo();
 
 		VkWriteDescriptorSet resultImageWrite{};
 		resultImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -484,13 +484,44 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 
 
 
-
+		VkDescriptorBufferInfo gnInfo = geometryNodeBuffers[i].GetBufferInfo();
 
 		VkWriteDescriptorSet descriptorWriteForNode;
+		descriptorWriteForNode.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWriteForNode.dstSet = descriptorSets[i];
+		descriptorWriteForNode.dstBinding = 5;
+		descriptorWriteForNode.dstArrayElement = 0;
+		descriptorWriteForNode.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWriteForNode.descriptorCount = 1;
+		descriptorWriteForNode.pBufferInfo = &gnInfo;
+
+		auto materialCnt = static_cast<uint32_t>(MaterialComponent::END);
+		std::vector<VkDescriptorImageInfo> materialInfos(scene.models.size() * materialCnt);
+		for (int j = 0; j < scene.models.size();j++) {
+			auto& model = scene.models[j];
+			for (int i = 0; i < materialCnt;i++) {
+				VkDescriptorImageInfo imageInfo{};
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfo.imageView = model.material.Get(i);
+				imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
+				if (!model.material.hasComponent(i)) {
+					imageInfo.imageView = Material::dummy.imageView;
+					imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
+				}
+
+				materialInfos[j*materialCnt + i] = (imageInfo);
+			}
+		}
 
 
-
-
+		VkWriteDescriptorSet descriptorWriteForMaterials{};
+		descriptorWriteForMaterials.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWriteForMaterials.dstSet = descriptorSets[i];
+		descriptorWriteForMaterials.dstBinding = 6;
+		descriptorWriteForMaterials.dstArrayElement = 0;
+		descriptorWriteForMaterials.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWriteForMaterials.descriptorCount = static_cast<uint32_t>(materialInfos.size());
+		descriptorWriteForMaterials.pImageInfo = materialInfos.data();
 
 
 
@@ -505,6 +536,8 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 				uniformBufferWrite,
 				descriptorWriteForMap,
 				descriptorWriteForLut,
+				descriptorWriteForMap,
+				descriptorWriteForMaterials
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);
 	}

@@ -93,7 +93,7 @@ void Buffer::fillBuffer(Device& device, void* data, VkDeviceSize size)
     this->size = size;
 }
 
-VkDescriptorBufferInfo Buffer::getDescriptor()
+VkDescriptorBufferInfo Buffer::GetBufferInfo()
 {
     VkDescriptorBufferInfo descriptor{};
     descriptor.buffer = _buffer;
