@@ -50,6 +50,7 @@ void Buffer::unmap(Device& device)
 
 VkResult Buffer::map(Device& device,VkDeviceSize size, VkDeviceSize offset)
 {
+    this->size = size;
     return vkMapMemory(device, _memory, offset, size, 0, &mapped);
 }
 
@@ -75,13 +76,28 @@ VkResult Buffer::flush(Device& device, VkDeviceSize size, VkDeviceSize offset)
     return vkFlushMappedMemoryRanges(device, 1, &mappedRange);
 }
 
-void copyBuffer(Device& device, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
+void Buffer::fillBuffer(Device& device, void* data, VkDeviceSize size)
+{
+    Buffer stagingBuffer;
 
-    VkBufferCopy copyRegion{};
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    stagingBuffer = Buffer(device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    endSingleTimeCommands(device, commandBuffer);
+    void* staging;
+    vkMapMemory(device, stagingBuffer.GetMemory(), 0, size, 0, &staging);
+    memcpy(staging, data, static_cast<size_t>(size));
+    vkUnmapMemory(device, stagingBuffer.GetMemory());
 
+    copyBuffer(device, stagingBuffer, *this, size);
+
+    stagingBuffer.destroy(device);
+    this->size = size;
+}
+
+VkDescriptorBufferInfo Buffer::getDescriptor()
+{
+    VkDescriptorBufferInfo descriptor{};
+    descriptor.buffer = _buffer;
+    descriptor.offset = 0;
+    descriptor.range = size;
+    return descriptor;
 }

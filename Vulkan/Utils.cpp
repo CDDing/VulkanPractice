@@ -20,3 +20,15 @@ uint32_t SBTalignedSize(uint32_t value, uint32_t alignment)
 {
     return (value + alignment - 1) & ~(alignment - 1);
 }
+
+void copyBuffer(Device& device, Buffer srcBuffer, Buffer dstBuffer, VkDeviceSize size) {
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
+
+    VkBufferCopy copyRegion{};
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    endSingleTimeCommands(device, commandBuffer);
+    dstBuffer.size = size;
+
+}

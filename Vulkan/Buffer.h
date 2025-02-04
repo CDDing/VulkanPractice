@@ -13,10 +13,11 @@ public:
 	VkResult map(Device& device, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 	void destroy(Device& device);
 	VkResult flush(Device& device, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	void fillBuffer(Device& device, void* data, VkDeviceSize size);
+	VkDeviceSize size;
+	VkDescriptorBufferInfo getDescriptor();
 private:
 	VkBuffer _buffer = VK_NULL_HANDLE;
 	VkDeviceMemory _memory = VK_NULL_HANDLE;
 };
 
-
-void copyBuffer(Device& device, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);

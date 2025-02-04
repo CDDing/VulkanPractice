@@ -137,6 +137,7 @@ void RayTracing::createBlas(Device&device, std::vector<Model>& models)
 		std::vector<uint32_t> maxPrimitiveCounts;
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfos;
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> pbuildRangeInfos;
+		std::vector<GeometryNode> geometryNodes;
 		for (int j = 0; j < 3;j++) {
 			auto& model = models[j];
 			for (const auto& mesh : model.meshes) {
@@ -172,8 +173,25 @@ void RayTracing::createBlas(Device&device, std::vector<Model>& models)
 				accelerationStructureBuildRangeInfo.firstVertex = 0;
 				accelerationStructureBuildRangeInfo.transformOffset = 0;
 				buildRangeInfos.push_back(accelerationStructureBuildRangeInfo);
+
+				GeometryNode gn{};
+				gn.vertexBufferAddress = vertexDeviceAddress.deviceAddress;
+				gn.indexBufferAddress = indexDeviceAddress.deviceAddress;
+				geometryNodes.push_back(gn);
 			}
 		}
+
+		Buffer geometryNodeBuffer = Buffer(device,
+			sizeof(GeometryNode) * static_cast<uint32_t>(geometryNodes.size()),
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		geometryNodeBuffer.fillBuffer(device, 
+			geometryNodes.data(), 
+			sizeof(GeometryNode) * static_cast<uint32_t>(geometryNodes.size()));
+
+
+		geometryNodeBuffers.push_back(geometryNodeBuffer);
+
 		for (auto& buildRangeInfo : buildRangeInfos) {
 			pbuildRangeInfos.push_back(&buildRangeInfo);
 		}
@@ -410,10 +428,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		storageImageDescriptor.imageView = outputImages[i];
 		storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uboBuffers[i];
-		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(UniformBufferObject);
+		VkDescriptorBufferInfo bufferInfo = uboBuffers[i].getDescriptor();
 
 		VkWriteDescriptorSet resultImageWrite{};
 		resultImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -466,6 +481,24 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 		descriptorWriteForLut.descriptorCount = 1;
 		descriptorWriteForLut.pImageInfo = &lutImageInfo;
 
+
+
+
+
+
+		VkWriteDescriptorSet descriptorWriteForNode;
+
+
+
+
+
+
+
+
+
+
+
+
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 				accelerationStructureWrite,
 				resultImageWrite,
@@ -496,6 +529,10 @@ void RayTracing::destroy(Device& device)
 		vkDestroyBuffer(device, tlas.buffer, nullptr);
 		vkFreeMemory(device, tlas.buffer.GetMemory(), nullptr);
 		vkDestroyAccelerationStructureKHR(device, tlas.handle, nullptr);
+	}
+
+	for (auto& buffer : geometryNodeBuffers) {
+		buffer.destroy(device);
 	}
 
 	raygenShaderBindingTable.destroy(device);

@@ -76,3 +76,13 @@ struct GUIControl {
     alignas(4) float metallic;
     alignas(4) bool RayTracing;
 };
+
+
+enum class MaterialComponent {
+    ALBEDO,
+    NORMAL,
+    ROUGHNESS,
+    METALNESS,
+    ao,
+    END,
+};

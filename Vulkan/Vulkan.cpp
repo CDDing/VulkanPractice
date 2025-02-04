@@ -290,8 +290,7 @@ private:
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			vkMapMemory(device, uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &uniformBuffersMapped[i]);
-
+			uniformBuffers[i].map(device, bufferSize, 0);
 
 		}
 		VkDeviceSize guibufferSize = sizeof(GUIControl);
@@ -301,8 +300,7 @@ private:
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			GUIBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			vkMapMemory(device, GUIBuffers[i].GetMemory(), 0, guibufferSize, 0, &GUIBuffersMapped[i]);
-
+			GUIBuffers[i].map(device, guibufferSize, 0);
 
 		}
 	}
@@ -569,10 +567,10 @@ private:
 		ubo.lights[3] = glm::vec4(1, 1, 1, 0);
 
 
-		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+		memcpy(uniformBuffers[currentImage].mapped, &ubo, sizeof(ubo));
 
 		
-		memcpy(GUIBuffersMapped[currentImage], &guiControl, sizeof(GUIControl));
+		memcpy(GUIBuffers[currentImage].mapped, &guiControl, sizeof(GUIControl));
 	}
 	void drawFrame() {
 		vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);

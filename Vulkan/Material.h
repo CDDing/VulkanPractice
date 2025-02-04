@@ -1,12 +1,4 @@
 #pragma once
-enum class MaterialComponent {
-	ALBEDO,
-	NORMAL,
-	ROUGHNESS,
-	METALNESS,
-	ao,
-	END,
-};
 class Material
 {
 public:

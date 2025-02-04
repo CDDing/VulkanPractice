@@ -12,6 +12,10 @@ public:
 		uint64_t deviceAddress;
 		Buffer buffer;
 	};
+	struct GeometryNode {
+		uint64_t vertexBufferAddress;
+		uint64_t indexBufferAddress;
+	};
 
 	std::vector<AccelerationStructure> BLASs{};
 	std::vector<AccelerationStructure> TLASs{};
@@ -19,6 +23,8 @@ public:
 	std::vector<DescriptorSet> descriptorSets;
 	DescriptorPool descriptorPool;
 	VkPipelineLayout pipelineLayout;
+
+	std::vector<Buffer> geometryNodeBuffers;
 private:
 	void createTlas(Device& device);
 	void createBlas(Device& device, std::vector<Model>& models);
@@ -37,7 +43,7 @@ private:
 	std::vector<ImageSet> outputImages;
 	Buffer hitShaderBindingTable;
 	SwapChain* _swapChain;
-
+	
 	uint64_t getBufferDeviceAddress(Device& device, Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
