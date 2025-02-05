@@ -56,10 +56,14 @@ void Device::createLogicalDevice(Surface& surface)
     }
 
     //For RT
+    VkPhysicalDeviceDescriptorIndexingFeaturesEXT pddifEXT{};
+    pddifEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+    pddifEXT.runtimeDescriptorArray = VK_TRUE;
+    
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{};
     rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
     rayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;  // 기능 활성화
-
+    rayTracingPipelineFeatures.pNext = &pddifEXT;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
     accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
     accelerationStructureFeatures.accelerationStructure = VK_TRUE;  
@@ -73,6 +77,7 @@ void Device::createLogicalDevice(Surface& surface)
     VkPhysicalDeviceFeatures2 deviceFeatures{};
     deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     deviceFeatures.features.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.features.shaderInt64 = VK_TRUE;
     deviceFeatures.pNext = &accelerationStructureFeatures;
 
     VkDeviceCreateInfo createInfo{};

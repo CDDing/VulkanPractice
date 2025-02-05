@@ -79,8 +79,13 @@ public:
             break;
         case DescriptorType::RayTracing:
             results = { 
+                //AS
                 {ShaderComponent::AS,1, VK_SHADER_STAGE_RAYGEN_BIT_KHR},
+                
+                //Output Image
                 {ShaderComponent::STORAGE_IMAGE,1,VK_SHADER_STAGE_RAYGEN_BIT_KHR},
+                
+                //VP(Camera Matrices, Lights)
                 {ShaderComponent::UNIFORM_BUFFER,1,VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR},
                 
                 //Skybox

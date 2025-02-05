@@ -392,8 +392,10 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,1},
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,1},
+		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1},
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1},
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4 }
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,15 }
 	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{};
@@ -486,7 +488,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 
 		VkDescriptorBufferInfo gnInfo = geometryNodeBuffers[i].GetBufferInfo();
 
-		VkWriteDescriptorSet descriptorWriteForNode;
+		VkWriteDescriptorSet descriptorWriteForNode{};
 		descriptorWriteForNode.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWriteForNode.dstSet = descriptorSets[i];
 		descriptorWriteForNode.dstBinding = 5;
@@ -536,7 +538,7 @@ void RayTracing::createDescriptorSets(Device& device,std::vector<Buffer>& uboBuf
 				uniformBufferWrite,
 				descriptorWriteForMap,
 				descriptorWriteForLut,
-				descriptorWriteForMap,
+				descriptorWriteForNode,
 				descriptorWriteForMaterials
 		};
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, VK_NULL_HANDLE);

@@ -17,11 +17,23 @@ struct SwapChainSupportDetails {
 enum class VertexComponent { Position, Normal, UV, Color, Tangent };
 struct Vertex {
     glm::vec3 pos;
+    float padding;
+    
     glm::vec3 normal;
+    float padding2;
+    
     glm::vec2 texCoord;
+    glm::vec2 padding3;
+    
     glm::vec3 tangent;
+    float padding4;
     glm::vec4 color;
+    void operator=(std::tuple<glm::vec3, glm::vec3, glm::vec2> mem) {
+        pos = std::get<0>(mem);
+        normal = std::get<1>(mem);
+        texCoord = std::get<2>(mem);
 
+    }
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
