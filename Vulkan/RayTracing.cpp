@@ -272,7 +272,7 @@ void RayTracing::createSBT(Device& device)
 	const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	const VkMemoryPropertyFlags memoryUsageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	raygenShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
-	missShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
+	missShaderBindingTable = Buffer(device, handleSize * 2, bufferUsageFlags, memoryUsageFlags);
 	hitShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
 
 
@@ -280,8 +280,8 @@ void RayTracing::createSBT(Device& device)
 	missShaderBindingTable.map(device);
 	hitShaderBindingTable.map(device);
 	memcpy(raygenShaderBindingTable.mapped, shaderHandleStorage.data(), handleSize);
-	memcpy(missShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned, handleSize);
-	memcpy(hitShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned * 2, handleSize);
+	memcpy(missShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned, handleSize * 2);
+	memcpy(hitShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned * 3, handleSize);
 }
 
 void RayTracing::createRTPipeline(Device& device)
@@ -299,7 +299,8 @@ void RayTracing::createRTPipeline(Device& device)
 	Shader rayGenShader = Shader(device, "shaders/raygen.rgen.spv");
 	Shader missShader = Shader(device, "shaders/miss.rmiss.spv");
 	Shader hitShader = Shader(device, "shaders/hit.rchit.spv");
-	
+	Shader shadowShader = Shader(device, "shaders/shadow.rmiss.spv");
+
 	//RayGen
 	VkPipelineShaderStageCreateInfo rayGenShaderStage{};
 	rayGenShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -333,6 +334,15 @@ void RayTracing::createRTPipeline(Device& device)
 	missShaderGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
 	missShaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
 	shaderGroups.push_back(missShaderGroup);
+	
+	VkPipelineShaderStageCreateInfo shadowShaderStage{};
+	shadowShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shadowShaderStage.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+	shadowShaderStage.module = shadowShader;
+	shadowShaderStage.pName = "main";
+	shaderStages.push_back(shadowShaderStage);
+	missShaderGroup.generalShader = static_cast<uint32_t>(shaderStages.size() - 1);
+	shaderGroups.push_back(missShaderGroup);
 
 	//Hit
 
@@ -352,13 +362,14 @@ void RayTracing::createRTPipeline(Device& device)
 	hitShaderGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
 	shaderGroups.push_back(hitShaderGroup);
 
+
 	VkRayTracingPipelineCreateInfoKHR rayTracingPipelineCreateInfo{};
 	rayTracingPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
 	rayTracingPipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 	rayTracingPipelineCreateInfo.pStages = shaderStages.data();
 	rayTracingPipelineCreateInfo.groupCount = static_cast<uint32_t>(shaderGroups.size());
 	rayTracingPipelineCreateInfo.pGroups = shaderGroups.data();
-	rayTracingPipelineCreateInfo.maxPipelineRayRecursionDepth = 1;
+	rayTracingPipelineCreateInfo.maxPipelineRayRecursionDepth = 2;
 	rayTracingPipelineCreateInfo.layout = pipelineLayout;
 	vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE,
 		1, &rayTracingPipelineCreateInfo,
@@ -367,7 +378,7 @@ void RayTracing::createRTPipeline(Device& device)
 	rayGenShader.destroy(device);
 	missShader.destroy(device);
 	hitShader.destroy(device);
-
+	shadowShader.destroy(device);
 }
 
 void RayTracing::createOutputImages(Device& device)
@@ -589,7 +600,7 @@ void RayTracing::recordCommandBuffer(Device& device, VkCommandBuffer commandBuff
 	VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
 	missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device,missShaderBindingTable);
 	missShaderSbtEntry.stride = handleSizeAligned;
-	missShaderSbtEntry.size = handleSizeAligned;
+	missShaderSbtEntry.size = handleSizeAligned * 2;
 
 	VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
 	hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device, hitShaderBindingTable);

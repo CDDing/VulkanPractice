@@ -346,5 +346,8 @@
     <None Include="shaders\shader.vert">
       <Filter>소스 파일\Shaders\Rasterization</Filter>
     </None>
+    <None Include="shaders\shadow.rmiss">
+      <Filter>소스 파일\Shaders\RayTracing</Filter>
+    </None>
   </ItemGroup>
 </Project>
