@@ -17,8 +17,10 @@ public:
     std::vector<ImageSet>& GetImages() { return _swapChainImages; }
     std::vector<VkFramebuffer>& GetFrameBuffers() { return _swapChainFramebuffers; }
     RenderPass& GetRenderPass() { return _renderPass; }
+    RenderPass& GetPostRenderPass() { return _postRenderPass; }
     RenderPass& GetDeferredRenderPass() { return _deferredRenderPass; }
     std::vector<VkFramebuffer>& GetDeferredFrameBuffers() { return _deferredFramebuffers; }
+    std::vector<VkFramebuffer>& GetPostFrameBuffers() { return _postFramebuffers; }
 
     void InitDescriptorSetForGBuffer(Device& device);
     std::vector<DescriptorSet> descriptorSets;
@@ -56,6 +58,7 @@ private:
 
 
     RenderPass _renderPass;
+    RenderPass _postRenderPass;
     Device* _device;
     Surface* _surface;
     GLFWwindow* _window;
@@ -66,6 +69,7 @@ private:
     VkFormat _swapChainImageFormat;
     VkExtent2D _swapChainExtent;
     std::vector<VkFramebuffer> _swapChainFramebuffers;
+    std::vector<VkFramebuffer> _postFramebuffers;
     VkSwapchainKHR _swapChain;
     
     //Depth

@@ -129,6 +129,82 @@ void SwapChain::create(Device& device)
         }
     }
 
+    //Imgui
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = _swapChainImageFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentDescription depthAttachment{};
+    depthAttachment.format = findDepthFormat(device);
+    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthAttachmentRef{};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription postsubpass{};
+    postsubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    postsubpass.colorAttachmentCount = 1;
+    postsubpass.pColorAttachments = &colorAttachmentRef;
+    postsubpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+    VkSubpassDependency postdependency{};
+    postdependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    postdependency.dstSubpass = 0;
+    postdependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    postdependency.srcAccessMask = 0;
+    postdependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    postdependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    std::array<VkAttachmentDescription, 2> attachments = { colorAttachment,depthAttachment };
+    VkRenderPassCreateInfo postrenderPassInfo{};
+    postrenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    postrenderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    postrenderPassInfo.pAttachments = attachments.data();
+    postrenderPassInfo.subpassCount = 1;
+    postrenderPassInfo.pSubpasses = &postsubpass;
+    postrenderPassInfo.dependencyCount = 1;
+    postrenderPassInfo.pDependencies = &postdependency;
+
+    if (vkCreateRenderPass(device, &postrenderPassInfo, nullptr, &_postRenderPass) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create render pass!");
+    }
+
+    _postFramebuffers.resize(_swapChainImages.size());
+    for (size_t i = 0; i < _swapChainImages.size(); i++) {
+        std::array<VkImageView, 2> attachments = {
+            _swapChainImages[i].imageView,
+            _depthImage.imageView
+        };
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = _postRenderPass;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
+        framebufferInfo.width = _swapChainExtent.width;
+        framebufferInfo.height = _swapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &_postFramebuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
     //디퍼드 렌더링
     //1. 이미지 7개 만들기(위치, 노말, 알베도, 깊이, roughness,metalic,ao)
     VkFormat positionFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -309,6 +385,11 @@ void SwapChain::destroy(Device& device)
 
     vkDestroyRenderPass(device, _renderPass, nullptr);
     vkDestroyRenderPass(device, _deferredRenderPass, nullptr);
+
+    vkDestroyRenderPass(device, _postRenderPass, nullptr);
+    for (auto& framebuffer : _postFramebuffers) {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    }
 }
 
 
