@@ -101,6 +101,10 @@ public:
                 // 모델 수
                 // 만큼의 텍스쳐 전달
                 {ShaderComponent::COMBINED_IMAGE,3 * static_cast<int>(MaterialComponent::END),VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR},
+
+                //GUI
+                {ShaderComponent::UNIFORM_BUFFER,1,VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR},
+
             };
             break;
         }

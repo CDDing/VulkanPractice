@@ -40,7 +40,7 @@ vec3 GetNormal(){
 	return normalWorld;
 }
 void main(){
-	vec3 albedo = hasTexture ? texture(samplers[0],inUV).rgb : vec3(0.5,0.5,0.5);
+	vec3 albedo = hasTexture ? texture(samplers[0],inUV).rgb : vec3(1,1,1);
 	vec3 normal = GetNormal();
 	float roughness = hasRoughness ? texture(samplers[2],inUV).r : gc.roughness;
 	float metallic = hasMetalness ? texture(samplers[3],inUV).r : gc.metallic;

@@ -123,7 +123,7 @@ private:
 	void initRayTracing() {
 
 		rt = RayTracing();
-		rt.init(device,uniformBuffers,swapChain,scene);
+		rt.init(device,uniformBuffers,swapChain,scene,GUIBuffers);
 	}
 	void initGUI() {
 

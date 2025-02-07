@@ -98,7 +98,7 @@ void main(){
 
 	for(int i =0 ;i < 1;i++){
 		vec3 lightPos = ubo.lights[0].xyz;
-		vec3 lightVec = lightPos - fragPos;
+		vec3 lightVec = normalize(lightPos - fragPos);
 		vec3 halfWay = normalize(pixelToEye + lightVec);
 
 		float NdotI = max(0.0,dot(normal,lightVec));
@@ -132,7 +132,6 @@ void main(){
 	
 	
 	outColor = vec4(ToSRGB(ambientLight + directLight),1.0);
-	
 	
 	
 	outColor = clamp(outColor,0,1000);

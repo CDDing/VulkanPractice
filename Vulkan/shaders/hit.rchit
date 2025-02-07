@@ -29,6 +29,11 @@ layout(binding = 5, set = 0) buffer GeometryNodes { GeometryNode nodes[]; } geom
 
 layout(binding = 6, set = 0) uniform sampler2D textures[];
 
+layout (binding = 7,set = 0) uniform GUIControl{
+	bool useNormalMap;
+	float roughness;
+	float metallic;
+}gc;
 
 
 struct Vertex
@@ -56,12 +61,37 @@ struct Triangle {
 layout(buffer_reference, scalar) buffer Vertices {Vertex v[];};
 layout(buffer_reference, scalar) buffer Indices {uint i[];};
 
+const int MaterialCnt = 5;
 vec3 GetValueFromMaterial(int idx, vec2 uv) {
 	vec3 result = texture(textures[idx],uv).xyz;
-	ivec2 textureSize = textureSize(textures[idx],0);
-	if(textureSize.x == 1 && textureSize.y == 1){
-		return vec3(1);
+	ivec2 mapSize = textureSize(textures[idx],0);
+
+	//Albedo
+	if(idx%MaterialCnt==0){
 	}
+	else if(idx%MaterialCnt == 1){
+	
+	}
+	else if(idx%MaterialCnt == 2){
+		if(mapSize.x == 1 && mapSize.y == 1){
+			return vec3(gc.roughness);
+		}
+	}
+	else if(idx%MaterialCnt == 3){
+		//metallic
+
+		if(mapSize.x == 1 && mapSize.y == 1){
+			return vec3(gc.metallic);
+		}
+	}
+	else if(idx% MaterialCnt == 4){
+		//AO
+
+		if(mapSize.x == 1 && mapSize.y == 1){
+			return vec3(1);
+		}
+	}
+
 	return result;
 }
 
@@ -125,7 +155,7 @@ vec3 AmbientLightingByIBL(vec3 albedo, vec3 normalW, vec3 pixelToEye, float ao, 
 }
 void main()
 {
-	GeometryNode geometryNode = geometryNodes.nodes[gl_GeometryIndexEXT];
+	GeometryNode geometryNode = geometryNodes.nodes[gl_InstanceCustomIndexEXT];
 	Indices indices = Indices(geometryNode.indexBufferDeviceAddress);
 	Vertices vertices = Vertices(geometryNode.vertexBufferDeviceAddress);
 
@@ -140,31 +170,31 @@ void main()
 
 	// Calculate values at barycentric coordinates
 	
-	int materialdx = gl_GeometryIndexEXT * 5;
+	int materialdx =  gl_InstanceCustomIndexEXT * 5;
 	
 	vec3 barycentricCoords = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
-	vec2 uv = v0.uv * barycentricCoords.x + v1.uv * barycentricCoords.y + v2.uv * barycentricCoords.z;
+	const vec3 pos = v0.pos * barycentricCoords.x + v1.pos * barycentricCoords.y + v2.pos * barycentricCoords.z;
+	const vec3 worldPos = vec3(gl_ObjectToWorldEXT * vec4(pos,1.0));
+	const vec2 uv = v0.uv * barycentricCoords.x + v1.uv * barycentricCoords.y + v2.uv * barycentricCoords.z;
 	
 	vec3 albedo = GetValueFromMaterial(materialdx + 0,uv);
-	vec3 normal = GetValueFromMaterial(materialdx + 1,uv);
+	vec3 normal = normalize(v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z);
+	normal = normalize(vec3(normal * gl_WorldToObjectEXT));
 	float roughness  = GetValueFromMaterial(materialdx + 2,uv).r;
 	float metallic = GetValueFromMaterial(materialdx + 3,uv).r;
 	float ao = GetValueFromMaterial(materialdx + 4,uv).r;
 
-
-
 	vec3 hitPoint = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 
-	vec3 pixelToEye = -normalize(hitPoint - gl_WorldRayOriginEXT);
+	vec3 pixelToEye = normalize(gl_WorldRayOriginEXT - worldPos);
 
 	vec3 ambientLight = AmbientLightingByIBL(albedo,normal,pixelToEye,ao,metallic,roughness);
 	
 	vec3 directLight = vec3(0);
-
-
+	
 	for(int i =0 ;i < 1;i++){
 		vec3 lightPos = ubo.lights[0].xyz;
-		vec3 lightVec = lightPos - hitPoint;
+		vec3 lightVec = normalize(lightPos - worldPos);
 		vec3 halfWay = normalize(pixelToEye + lightVec);
 
 		float NdotI = max(0.0,dot(normal,lightVec));
@@ -190,19 +220,18 @@ void main()
 	
 	
 	hitValue = vec3(ToSRGB(ambientLight + directLight));
-	
 
-	vec3 lightVector = normalize(ubo.lights[0].xyz);
+	vec3 lightVector = normalize(ubo.lights[0].xyz) - worldPos;
 	
 	float tmin = 0.001;
 	float tmax = 10000.0;
-	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+	vec3 origin = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT + 0.001 * normal;
 	shadowed = true;  
 	// Trace shadow ray and offset indices to match shadow hit/miss shader group indices
 	traceRayEXT(topLevelAS, 
 	gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT
 	, 0xFF, 0, 0, 1, origin, tmin, lightVector, tmax, 2);
 	if (shadowed) {
-		hitValue *= 0.3;
+		//hitValue *= 0.3;
 	}
 }

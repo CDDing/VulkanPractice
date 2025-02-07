@@ -4,7 +4,7 @@ class RayTracing
 {
 
 public:
-	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene);
+	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene,std::vector<Buffer>& guiBuffers);
 	void destroy(Device& device);
 	void recordCommandBuffer(Device& device, VkCommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
@@ -17,7 +17,7 @@ public:
 		uint64_t indexBufferAddress;
 	};
 
-	std::vector<AccelerationStructure> BLASs{};
+	std::vector<std::vector<AccelerationStructure>> BLASs{};
 	std::vector<AccelerationStructure> TLASs{};
 	DescriptorSetLayout descriptorSetLayout;
 	std::vector<DescriptorSet> descriptorSets;
@@ -26,12 +26,12 @@ public:
 
 	std::vector<Buffer> geometryNodeBuffers;
 private:
-	void createTlas(Device& device);
+	void createTlas(Device& device, std::vector<Model>& models);
 	void createBlas(Device& device, std::vector<Model>& models);
 	void createSBT(Device& device);
 	void createRTPipeline(Device& device);
 	void createOutputImages(Device& device);
-	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,Scene& scene);
+	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,std::vector<Buffer>& guiBuffers, Scene& scene);
 	void loadFunctions(Device& device);
 	
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
