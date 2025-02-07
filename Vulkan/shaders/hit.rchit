@@ -232,6 +232,7 @@ void main()
 	gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT
 	, 0xFF, 0, 0, 1, origin, tmin, lightVector, tmax, 2);
 	if (shadowed) {
-		//hitValue *= 0.3;
+	
+    hitValue *= 1 - abs(dot(lightVector,normal));
 	}
 }
