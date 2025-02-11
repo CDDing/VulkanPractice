@@ -48,8 +48,10 @@ public:
 	void destroy();
 	void newFrame();
 	void AddFloatGUI(std::string text, float& value,float min,float max);
-	void End();
 	void AddBoolGUI(std::string text, bool& value);
+	void AddText(const std::string text);
+	void AddText(const char* format, ...);
+	void End();
 	void updateBuffers();
 	void drawFrame(VkCommandBuffer commandBuffer);
 	void init(float width, float height); 

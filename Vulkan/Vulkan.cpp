@@ -350,6 +350,7 @@ private:
 		beginInfo.pInheritanceInfo = nullptr;
 
 		imgui.newFrame();
+		imgui.AddText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		imgui.AddBoolGUI("EnableVerticalRotate", camera.enableVerticalRotate);
 		imgui.AddBoolGUI("UseNormalMap", guiControl.useNormalMap);
 		imgui.AddBoolGUI("RayTracing", guiControl.RayTracing);
@@ -529,14 +530,7 @@ private:
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			float time = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - previousTime).count();
 			previousTime = currentTime;
-			// FPS 계산
-			float fps = 1000.0f / time;
 
-			// 창 제목 업데이트
-			char title[256];
-			sprintf_s(title, "Vulkan %.2fms, %dFPS", time, static_cast<int>(fps));
-
-			glfwSetWindowTitle(window, title);
 			if (enableInput) {
 				mouse_dx = currentX - previousX;
 				mouse_dy = currentY - previousY;

@@ -253,6 +253,29 @@ void GUI::AddFloatGUI(std::string text, float& value,float min, float max) {
 void GUI::AddBoolGUI(std::string text, bool& value) {
 	ImGui::Checkbox(text.c_str(), &value);
 }
+void GUI::AddText(const std::string text)
+{
+	ImGui::Text(text.c_str());
+}
+void GUI::AddText(const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+
+	// 필요한 버퍼 크기 계산
+	int size = std::vsnprintf(nullptr, 0, format, args) + 1;
+	va_end(args);
+
+	if (size <= 0) return;
+
+	std::vector<char> buffer(size);
+	va_start(args, format);
+	std::vsnprintf(buffer.data(), size, format, args);
+	va_end(args);
+
+	// 최종 문자열 전달
+	AddText(std::string(buffer.data()));
+}
 void GUI::End(){
 
 	ImGui::Render();
