@@ -17,7 +17,7 @@ Material::Material(Device& device, std::vector<MaterialComponent> components, co
     for (int i = 0; i < components.size(); i++) {
         auto filePath = filesPath[i];
         auto component = components[i];
-        loadImage(device, filePath, component, VK_FORMAT_R8G8B8A8_UNORM);
+        loadImage(device, filePath, component, vk::Format::eR8G8B8A8Unorm);
     }
 }
 
@@ -39,12 +39,12 @@ Material Material::createMaterialForSkybox(Device& device)
     return material;
 }
 
-void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component,VkFormat format)
+void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format)
 {
     ImageSet materialData;
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    vk::DeviceSize imageSize = texWidth * texHeight * 4;
     uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
@@ -52,10 +52,10 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
 
     materialData = ImageSet(device,
         texWidth, texHeight, mipLevels, format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
+        vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferSrc| vk::ImageUsageFlagBits::eTransferDst| vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vk::ImageAspectFlagBits::eColor);
 
     materialData.image.fillImage(device, pixels, imageSize);
     materialData.image.generateMipmaps(device);
@@ -84,34 +84,32 @@ void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath
     //mipLevels = 01;
 
     Buffer stagingBuffer;
-    stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    stagingBuffer = Buffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
 
 
 
-    void* data;
-    vkMapMemory(device, stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
+    stagingBuffer.map(device, imageSize, 0);
     for (int i = 0; i < cnt; i++) {
         const DirectX::Image* img = imageData.GetImage(0, i, 0);
 
-        memcpy((stbi_uc*)data + i * layerSize, img->pixels, static_cast<size_t>(layerSize));
+        memcpy((stbi_uc*)stagingBuffer.mapped + i * layerSize, img->pixels, static_cast<size_t>(layerSize));
 
     };
-    vkUnmapMemory(device, stagingBuffer.GetMemory());
+    stagingBuffer.unmap(device);
 
-
-    materialData.image = Image(device, width, height, mipLevels, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, cnt);
+    materialData.image = Image(device, width, height, mipLevels, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc| vk::ImageUsageFlagBits::eTransferDst| vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, cnt);
 
     if (cnt == 6) {
-        transitionImageLayoutForCubemap(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        transitionImageLayoutForCubemap(device, materialData.image, vk::Format::eR32G32B32A32Sfloat, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::ImageAspectFlagBits::eColor, mipLevels);
         copyBufferToImageForCubemap(device, stagingBuffer, materialData.image, static_cast<uint32_t>(width), static_cast<uint32_t>(height), layerSize);
         //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 
 
-        generateMipmapsForCubemap(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, width, height, mipLevels);
+        generateMipmapsForCubemap(device, materialData.image, vk::Format::eR32G32B32A32Sfloat, width, height, mipLevels);
     }
     else {
         VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
-        materialData.image.transitionLayout(device, cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+        materialData.image.transitionLayout(device, cmdBuf, vk::ImageLayout::eTransferDstOptimal, vk::ImageAspectFlagBits::eColor);
         endSingleTimeCommands(device, cmdBuf);
         copyBufferToImage(device, stagingBuffer, materialData.image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
@@ -121,7 +119,7 @@ void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath
     }
 
     stagingBuffer.destroy(device);
-    materialData.imageView = ImageView(device, materialData.image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels, cnt);
+    materialData.imageView = ImageView(device, materialData.image, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor, mipLevels, cnt);
     //materialData.sampler = Sampler::Get(SamplerMipMapType::High);
 
     _materials.push_back(materialData);

@@ -5,87 +5,72 @@ Buffer::Buffer()
 {
 }
 
-Buffer::Buffer(Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+Buffer::Buffer(Device& device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
 {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vk::BufferCreateInfo bufferInfo{ {},size, usage,vk::SharingMode::eExclusive};
 
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &_buffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create buffer!");
-    }
+    _buffer = device.logical.createBuffer(bufferInfo);
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, _buffer, &memRequirements);
+    vk::MemoryRequirements memRequirements = device.logical.getBufferMemoryRequirements(_buffer);
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(device, memRequirements.memoryTypeBits, properties);
-    VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
-    if (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
-        memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
-        memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+    vk::MemoryAllocateInfo allocInfo{ memRequirements.size,findMemoryType(device,
+        memRequirements.memoryTypeBits,properties)};
+    vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
+    if (usage & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+        memoryAllocateFlagsInfo.flags = vk::MemoryAllocateFlagBits::eDeviceAddress;
 
         allocInfo.pNext = &memoryAllocateFlagsInfo;
     }
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &_memory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
 
-    vkBindBufferMemory(device, _buffer, _memory, 0);
+    _memory = device.logical.allocateMemory(allocInfo);
+
+    device.logical.bindBufferMemory(_buffer, _memory,0);
 }
 
-void Buffer::unmap(Device& device)
+void Buffer::unmap(vk::Device& device)
 {
 
     if (mapped)
     {
-        vkUnmapMemory(device, _memory);
+        device.unmapMemory(_memory);
         mapped = nullptr;
     }
 }
 
-VkResult Buffer::map(Device& device,VkDeviceSize size, VkDeviceSize offset)
+void Buffer::map(vk::Device& device,vk::DeviceSize size, vk::DeviceSize offset)
 {
     this->size = size;
-    return vkMapMemory(device, _memory, offset, size, 0, &mapped);
+    mapped = device.mapMemory(_memory, offset, size);
 }
 
-void Buffer::destroy(Device& device)
+void Buffer::destroy(vk::Device& device)
 {
     if (_buffer)
     {
-        vkDestroyBuffer(device, _buffer, nullptr);
+        device.destroyBuffer(_buffer);
     }
     if (_memory)
     {
-        vkFreeMemory(device, _memory, nullptr);
+        device.freeMemory(_memory);
     }
 }
 
-VkResult Buffer::flush(Device& device, VkDeviceSize size, VkDeviceSize offset)
+void Buffer::flush(vk::Device& device, vk::DeviceSize size, vk::DeviceSize offset)
 {
-    VkMappedMemoryRange mappedRange = {};
-    mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    mappedRange.memory = _memory;
-    mappedRange.offset = offset;
-    mappedRange.size = size;
-    return vkFlushMappedMemoryRanges(device, 1, &mappedRange);
+    
+    vk::MappedMemoryRange mappedRange = { _memory,offset,size };
+    (device.flushMappedMemoryRanges(mappedRange));
 }
 
-void Buffer::fillBuffer(Device& device, void* data, VkDeviceSize size)
+void Buffer::fillBuffer(Device& device, void* data, vk::DeviceSize size)
 {
     Buffer stagingBuffer;
 
-    stagingBuffer = Buffer(device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    stagingBuffer = Buffer(device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
 
-    void* staging;
-    vkMapMemory(device, stagingBuffer.GetMemory(), 0, size, 0, &staging);
+    void* staging = device.logical.mapMemory(stagingBuffer.GetMemory(),0,size);
     memcpy(staging, data, static_cast<size_t>(size));
-    vkUnmapMemory(device, stagingBuffer.GetMemory());
+    device.logical.unmapMemory(stagingBuffer.GetMemory());
 
     copyBuffer(device, stagingBuffer, *this, size);
 
@@ -93,11 +78,8 @@ void Buffer::fillBuffer(Device& device, void* data, VkDeviceSize size)
     this->size = size;
 }
 
-VkDescriptorBufferInfo Buffer::GetBufferInfo()
+vk::DescriptorBufferInfo Buffer::GetBufferInfo()
 {
-    VkDescriptorBufferInfo descriptor{};
-    descriptor.buffer = _buffer;
-    descriptor.offset = 0;
-    descriptor.range = size;
+    vk::DescriptorBufferInfo descriptor{_buffer, 0, size};
     return descriptor;
 }

@@ -4,19 +4,23 @@ class CommandPool
 {
 public:
 	CommandPool();
-	CommandPool(Device& device, Surface& surface);
+	CommandPool(Device& device,QueueFamilyIndices queueFamilyIndices);
 	static CommandPool TransientPool;
-	operator VkCommandPool& () {
+	operator vk::CommandPool& () {
 		return _commandPool;
 	}
-	VkCommandPool* operator&() {
+	CommandPool& operator=(vk::CommandPool commandPool) {
+		_commandPool = commandPool;
+		return *this;
+	}
+	vk::CommandPool* operator&() {
 		return &_commandPool;
 	}
-	void destroy(Device& device) {
-		vkDestroyCommandPool(device, _commandPool, nullptr);
+	void destroy(vk::Device& device) {
+		device.destroyCommandPool(_commandPool);
 	}
 private:
 
-	VkCommandPool _commandPool;
+	vk::CommandPool _commandPool;
 };
 

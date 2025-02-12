@@ -156,7 +156,6 @@
     </ClCompile>
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="CommandBuffer.cpp" />
     <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="DescriptorPool.cpp" />
     <ClCompile Include="DescriptorSet.cpp" />
@@ -203,7 +202,6 @@
     <ClInclude Include="..\include\imstb_truetype.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="CommandBuffer.h" />
     <ClInclude Include="CommandPool.h" />
     <ClInclude Include="DescriptorPool.h" />
     <ClInclude Include="DescriptorSet.h" />

@@ -9,9 +9,9 @@ struct QueueFamilyIndices {
 };
 
 struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+    vk::SurfaceCapabilitiesKHR capabilities;
+    std::vector<vk::SurfaceFormatKHR> formats;
+    std::vector<vk::PresentModeKHR> presentModes;
 };
 
 enum class VertexComponent { Position, Normal, UV, Color, Tangent };
@@ -34,35 +34,31 @@ struct Vertex {
         texCoord = std::get<2>(mem);
 
     }
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
+    static vk::VertexInputBindingDescription getBindingDescription() {
+        
+        return { 0,sizeof(Vertex),vk::VertexInputRate::eVertex };
     }
     bool operator==(const Vertex& other) const {
         return pos == other.pos && normal == other.normal && texCoord == other.texCoord && tangent == other.tangent;
     }
-    static VkVertexInputAttributeDescription inputAttributeDescription(uint32_t binding, uint32_t location, VertexComponent component) {
+    static vk::VertexInputAttributeDescription inputAttributeDescription(uint32_t binding, uint32_t location, VertexComponent component) {
         switch (component) {
         case VertexComponent::Position:
-            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) });
+            return vk::VertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) });
         case VertexComponent::Normal:
-            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) });
+            return vk::VertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) });
         case VertexComponent::UV:
-            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord) });
+            return vk::VertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord) });
         case VertexComponent::Color:
-            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, color) });
+            return vk::VertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, color) });
         case VertexComponent::Tangent:
-            return VkVertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, tangent) });
+            return vk::VertexInputAttributeDescription({ location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, tangent) });
         default:
-            return VkVertexInputAttributeDescription({});
+            return vk::VertexInputAttributeDescription({});
         }
     }
-    static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(uint32_t binding, const std::vector<VertexComponent> components) {
-        std::vector<VkVertexInputAttributeDescription> result;
+    static std::vector<vk::VertexInputAttributeDescription> inputAttributeDescriptions(uint32_t binding, const std::vector<VertexComponent> components) {
+        std::vector<vk::VertexInputAttributeDescription> result;
         uint32_t location = 0;
         for (VertexComponent component : components) {
             result.push_back(Vertex::inputAttributeDescription(binding, location, component));

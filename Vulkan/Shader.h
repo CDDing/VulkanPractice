@@ -3,14 +3,14 @@ class Shader
 {
 public:
 	Shader();
-	Shader(Device& device, const std::string& filename);
-	operator VkShaderModule& () {
+	Shader(vk::Device& device, const std::string& filename);
+	operator vk::ShaderModule () {
 		return _shader;
 	}
-	void destroy(Device& device) {
-		vkDestroyShaderModule(device, _shader, nullptr);
+	void destroy(vk::Device& device) {
+		device.destroyShaderModule(_shader);
 	}
 private:
-	VkShaderModule _shader;
+	vk::ShaderModule _shader;
 };
 

@@ -99,9 +99,6 @@
     <ClCompile Include="CommandPool.cpp">
       <Filter>소스 파일\VulkanWrapping\Command</Filter>
     </ClCompile>
-    <ClCompile Include="CommandBuffer.cpp">
-      <Filter>소스 파일\VulkanWrapping\Command</Filter>
-    </ClCompile>
     <ClCompile Include="Buffer.cpp">
       <Filter>소스 파일\VulkanWrapping\Resource</Filter>
     </ClCompile>
@@ -208,9 +205,6 @@
     </ClInclude>
     <ClInclude Include="Pipeline.h">
       <Filter>소스 파일\VulkanWrapping\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandBuffer.h">
-      <Filter>소스 파일\VulkanWrapping\Command</Filter>
     </ClInclude>
     <ClInclude Include="CommandPool.h">
       <Filter>소스 파일\VulkanWrapping\Command</Filter>

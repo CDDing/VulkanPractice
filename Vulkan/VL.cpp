@@ -1,28 +1,59 @@
 #include "pch.h"
 #include "VL.h"
 
-VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) {
+VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT       messageSeverity,
+    vk::DebugUtilsMessageTypeFlagsEXT              messageTypes,
+    vk::DebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+    void* /*pUserData*/)
+{
+    std::ostringstream message;
 
-    std::cerr << "validation layer : " << pCallbackData->pMessage << std::endl;
-
-    return VK_FALSE;
+    message << vk::to_string(messageSeverity) << ": " << vk::to_string(messageTypes) << ":\n";
+    message << std::string("\t") << "messageIDName   = <" << pCallbackData->pMessageIdName << ">\n";
+    message << std::string("\t") << "messageIdNumber = " << pCallbackData->messageIdNumber << "\n";
+    message << std::string("\t") << "message         = <" << pCallbackData->pMessage << ">\n";
+    if (0 < pCallbackData->queueLabelCount)
+    {
+        message << std::string("\t") << "Queue Labels:\n";
+        for (uint32_t i = 0; i < pCallbackData->queueLabelCount; i++)
+        {
+            message << std::string("\t\t") << "labelName = <" << pCallbackData->pQueueLabels[i].pLabelName << ">\n";
+        }
+    }
+    if (0 < pCallbackData->cmdBufLabelCount)
+    {
+        message << std::string("\t") << "CommandBuffer Labels:\n";
+        for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; i++)
+        {
+            message << std::string("\t\t") << "labelName = <" << pCallbackData->pCmdBufLabels[i].pLabelName << ">\n";
+        }
+    }
+    if (0 < pCallbackData->objectCount)
+    {
+        message << std::string("\t") << "Objects:\n";
+        for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
+        {
+            message << std::string("\t\t") << "Object " << i << "\n";
+            message << std::string("\t\t\t") << "objectType   = " << vk::to_string(pCallbackData->pObjects[i].objectType) << "\n";
+            message << std::string("\t\t\t") << "objectHandle = " << pCallbackData->pObjects[i].objectHandle << "\n";
+            if (pCallbackData->pObjects[i].pObjectName)
+            {
+                message << std::string("\t\t\t") << "objectName   = <" << pCallbackData->pObjects[i].pObjectName << ">\n";
+            }
+        }
+    }
+    std::cout << message.str() << std::endl;
+    return vk::False;
 }
-
-void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-    createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT& createInfo) {
     createInfo.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose|
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning|
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
     createInfo.messageType =
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral|
+        vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation|
+        vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
     createInfo.pfnUserCallback = debugCallback;
 }
 bool checkValidationLayerSupport() {
@@ -48,24 +79,12 @@ bool checkValidationLayerSupport() {
     return true;
 }
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 
+void DestroyDebugUtilsMessengerEXT(vk::Instance instance,
+    vk::DebugUtilsMessengerEXT debugMessenger,
+    const vk::AllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)instance.getProcAddr("vkDestroyDebugUtilsMessengerEXT");;
     if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    }
-    else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
-
-void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-    VkDebugUtilsMessengerEXT debugMessenger,
-    const VkAllocationCallbacks* pAllocator) {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
+        func(instance, debugMessenger, reinterpret_cast<const VkAllocationCallbacks*>(pAllocator));
     }
 }

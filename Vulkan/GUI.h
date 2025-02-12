@@ -20,9 +20,9 @@ private:
 	int32_t _vertexCount = 0;
 	int32_t _indexCount = 0;
 	ImageSet _fontImage;
-	VkPipeline _pipeline;
-	VkPipelineLayout _pipelineLayout;
-	VkPipelineCache _pipelineCache;
+	vk::Pipeline _pipeline;
+	vk::PipelineLayout _pipelineLayout;
+	vk::PipelineCache _pipelineCache;
 	DescriptorPool _descriptorPool;
 	DescriptorSetLayout _descriptorSetLayout;
 	DescriptorSet _descriptorSet;

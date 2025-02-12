@@ -4,13 +4,14 @@ class Surface
 public:
 	Surface();
 	Surface(Instance& instance, GLFWwindow* window);
-	operator VkSurfaceKHR& () {
+	operator vk::SurfaceKHR& () {
 		return _surface;
 	}
 	GLFWwindow* GetWindow() { return _window; }
-
+	void destroy();
 private:
-	VkSurfaceKHR _surface;
+	vk::SurfaceKHR _surface;
+	vk::Instance* _instance;
 	GLFWwindow* _window;
 };
 

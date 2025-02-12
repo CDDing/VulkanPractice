@@ -5,27 +5,19 @@ CommandPool::CommandPool()
 {
 }
 
-CommandPool::CommandPool(Device& device,Surface& surface)
+CommandPool::CommandPool(Device& device, QueueFamilyIndices queueFamilyIndices)
 {
-    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(device, surface);
-    if (TransientPool == NULL) {
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    //QueueFamilyIndices queueFamilyIndices = findQueueFamilies(device, surface);
+    if (TransientPool._commandPool == VK_NULL_HANDLE) {
+        vk::CommandPoolCreateInfo poolInfo{ vk::CommandPoolCreateFlagBits::eTransient,
+    queueFamilyIndices.graphicsFamily.value() };
 
-        if (vkCreateCommandPool(device, &poolInfo, nullptr, &TransientPool) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create transient pool!");
-        }
+        TransientPool = device.logical.createCommandPool(poolInfo);
 
     }
 
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    vk::CommandPoolCreateInfo poolInfo{vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+    queueFamilyIndices.graphicsFamily.value() };
 
-    if (vkCreateCommandPool(device, &poolInfo, nullptr, &_commandPool) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create command pool!");
-    }
+    _commandPool = device.logical.createCommandPool(poolInfo);
 }

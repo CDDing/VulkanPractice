@@ -8,31 +8,31 @@ public:
         END
     };
     Device();
-    Device(Instance& instance, Surface& surface);
+    Device(vk::Instance& instance, vk::SurfaceKHR& surface);
     ~Device();
 
-    operator VkDevice& () {
-        return _device;
+    operator vk::Device& () {
+        return logical;
     }
-    operator VkPhysicalDevice& () {
-        return _physicalDevice;
+    operator vk::PhysicalDevice& () {
+        return physical;
     }
-    VkQueue& GetQueue(int type) { return _queues[type]; }
+    vk::Queue& GetQueue(int type) { return _queues[type]; }
+    vk::PhysicalDevice physical = VK_NULL_HANDLE;
+    vk::Device logical;
 private:
-    void pickPhysicalDevice(Instance& instance,Surface& surface);
-    void createLogicalDevice(Surface& surface);
-    bool isDeviceSuitable(VkPhysicalDevice device,Surface& surface);
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+    void pickPhysicalDevice(vk::Instance& instance, vk::SurfaceKHR& surface);
+    void createLogicalDevice(vk::SurfaceKHR& surface);
+    bool isDeviceSuitable(vk::PhysicalDevice device,vk::SurfaceKHR& surface);
+    bool checkDeviceExtensionSupport(vk::PhysicalDevice device) {
         return true;
     }
 
-    VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
-    VkDevice _device;
-    std::vector<VkQueue> _queues;
+    std::vector<vk::Queue> _queues;
 
 };
 
-static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
+static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR& surface) {
     QueueFamilyIndices indices;
 
     uint32_t queueFamilyCount = 0;

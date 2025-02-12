@@ -23,11 +23,11 @@ class Sampler
 public:
 	Sampler();
 	Sampler(Device& device, SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType);
-	operator VkSampler& () {
+	operator vk::Sampler& () {
 		return _sampler;
 	}
-	void destroy(Device& device) {
-		vkDestroySampler(device, _sampler, nullptr);
+	void destroy(vk::Device & device) {
+		device.destroySampler(_sampler);
 	}
 	static void init(Device& device) {
 		auto maxValue0 = static_cast<int>(SamplerMipMapType::END);
@@ -42,7 +42,7 @@ public:
 				GetFilterType(i)));
 		}
 	}
-	static void destroySamplers(Device& device) {
+	static void destroySamplers(vk::Device& device) {
 		for (auto& sampler : samplers) {
 			sampler.destroy(device);
 		}
@@ -76,27 +76,27 @@ private:
 		return static_cast<SamplerFilterType>(index / (static_cast<int>(SamplerMipMapType::END) * static_cast<int>(SamplerModeType::END)));
 	}
 
-	static void SetMode(VkSamplerCreateInfo& createInfo,SamplerModeType modeType) {
+	static void SetMode(vk::SamplerCreateInfo& createInfo,SamplerModeType modeType) {
 		switch (modeType ){
 		case SamplerModeType::Clamp:
-			createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			createInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+			createInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+			createInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
 				break;
 			default:
 				break;
 		}
 	}
-	static void SetMipMap(VkSamplerCreateInfo& createInfo, SamplerMipMapType mipmapType) {
+	static void SetMipMap(vk::SamplerCreateInfo& createInfo, SamplerMipMapType mipmapType) {
 		switch (mipmapType) {
 		case SamplerMipMapType::Low:
-			createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			createInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
 			createInfo.mipLodBias = 0.0f;
 			createInfo.minLod = 0.0f;
 			createInfo.maxLod = 1.0f;
 			break;
 		case SamplerMipMapType::High:
-			createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			createInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
 			createInfo.mipLodBias = 0.0f;
 			createInfo.minLod = 0.0f;
 			createInfo.maxLod = 15.0f;
@@ -106,20 +106,20 @@ private:
 			break;
 		}
 	}
-	static void SetFilter(VkSamplerCreateInfo& createInfo, SamplerFilterType filterType) {
+	static void SetFilter(vk::SamplerCreateInfo& createInfo, SamplerFilterType filterType) {
 		switch (filterType) {
 		case SamplerFilterType::Linear:
-			createInfo.magFilter = VK_FILTER_LINEAR;
-			createInfo.minFilter = VK_FILTER_LINEAR;
+			createInfo.magFilter = vk::Filter::eLinear;
+			createInfo.minFilter = vk::Filter::eLinear;
 			break;
 		case SamplerFilterType::Nearest:
-			createInfo.magFilter = VK_FILTER_NEAREST;
-			createInfo.minFilter = VK_FILTER_NEAREST;
+			createInfo.magFilter = vk::Filter::eNearest;
+			createInfo.minFilter = vk::Filter::eNearest;
 		default:
 			break;
 		}
 	}
-	VkSampler _sampler;
+	vk::Sampler _sampler;
 
 	static std::vector<Sampler> samplers;
 };

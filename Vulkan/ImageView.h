@@ -3,14 +3,14 @@ class ImageView
 {
 public:
     ImageView();
-    ImageView(Device& device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels, uint32_t layerCount=1);
-    operator VkImageView& () {
+    ImageView(vk::Device& device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels, uint32_t layerCount=1);
+    operator vk::ImageView& () {
         return _imageView;
     }
-    void destroy(Device& device) {
-        if(_imageView != VK_NULL_HANDLE) vkDestroyImageView(device, _imageView, nullptr);
+    void destroy(vk::Device& device) {
+        if (_imageView != VK_NULL_HANDLE) device.destroyImageView(_imageView);
     }
 private:
-    VkImageView _imageView = VK_NULL_HANDLE;
+    vk::ImageView _imageView = VK_NULL_HANDLE;
 };
 

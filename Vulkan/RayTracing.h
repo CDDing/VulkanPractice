@@ -6,7 +6,7 @@ class RayTracing
 public:
 	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene,std::vector<Buffer>& guiBuffers);
 	void destroy(Device& device);
-	void recordCommandBuffer(Device& device, VkCommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
+	void recordCommandBuffer(Device& device, vk::CommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
 		VkAccelerationStructureKHR handle;
 		uint64_t deviceAddress;
@@ -22,7 +22,7 @@ public:
 	DescriptorSetLayout descriptorSetLayout;
 	std::vector<DescriptorSet> descriptorSets;
 	DescriptorPool descriptorPool;
-	VkPipelineLayout pipelineLayout;
+	vk::PipelineLayout pipelineLayout;
 
 	std::vector<Buffer> geometryNodeBuffers;
 private:
@@ -34,10 +34,10 @@ private:
 	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,std::vector<Buffer>& guiBuffers, Scene& scene);
 	void loadFunctions(Device& device);
 	
-	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
-	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
-	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
-	VkPipeline pipeline;
+	vk::PhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
+	vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
+	std::vector<vk::RayTracingShaderGroupCreateInfoKHR> shaderGroups{};
+	vk::Pipeline pipeline;
 	Buffer raygenShaderBindingTable;
 	Buffer missShaderBindingTable;
 	std::vector<ImageSet> outputImages;

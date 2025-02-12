@@ -21,31 +21,35 @@ public:
 		
 
 		Buffer stagingBuffer;
-		VkDeviceSize imageSize = 4;
-		stagingBuffer = Buffer(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		vk::DeviceSize imageSize = 4;
+		stagingBuffer = Buffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
 
-		void* data;
-		vkMapMemory(device, stagingBuffer.GetMemory(), 0, imageSize, 0, &data);
+		void* data = device.logical.mapMemory(stagingBuffer.GetMemory(), 0, imageSize);
 		memcpy(data, &pixelData, static_cast<size_t>(imageSize));
-		vkUnmapMemory(device, stagingBuffer.GetMemory());
+		device.logical.unmapMemory(stagingBuffer.GetMemory());
 
-		Image image= Image(device,width, height, mipLevels, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		Image image= Image(device,width, height, mipLevels, 
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ImageTiling::eOptimal,
+			vk::ImageUsageFlagBits::eTransferSrc| 
+			vk::ImageUsageFlagBits::eTransferDst|
+			vk::ImageUsageFlagBits::eSampled,
+			vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 
-		VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
-		image.transitionLayout(device, cmdBuf,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		vk::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
+		image.transitionLayout(device, cmdBuf,vk::ImageLayout::eTransferDstOptimal);
 		endSingleTimeCommands(device, cmdBuf);
 
 		copyBufferToImage(device, stagingBuffer, image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
 		cmdBuf = beginSingleTimeCommands(device);
-		image.transitionLayout(device, cmdBuf,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+		image.transitionLayout(device, cmdBuf,vk::ImageLayout::eShaderReadOnlyOptimal);
 		endSingleTimeCommands(device, cmdBuf);
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBuffer.GetMemory(), nullptr);
+		stagingBuffer.destroy(device);
 
-		ImageView imageView = ImageView(device, image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+		ImageView imageView = ImageView(device, image, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor, mipLevels);
 		//materialData.sampler = Sampler::Get(SamplerMipMapType::Low);
 
 		ImageSet materialData(image,imageView);
@@ -54,7 +58,7 @@ public:
 private:
 	std::vector<ImageSet> _materials;
 	std::vector<bool> _components;
-	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component,VkFormat format);
+	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format);
 	void loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt);
 };
 

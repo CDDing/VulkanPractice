@@ -4,14 +4,14 @@ class DescriptorSet
 public:
 	DescriptorSet();
 	DescriptorSet(Device& device, DescriptorPool& descriptorPool, DescriptorSetLayout& descriptorSetLayout);
-	operator VkDescriptorSet& () {
+	operator vk::DescriptorSet& () {
 		return _descriptorSet;
 	}
-	VkDescriptorSet* operator&() {
+	vk::DescriptorSet* operator&() {
 		return &_descriptorSet;
 	}
 private:
-	VkDescriptorSet _descriptorSet;
+	vk::DescriptorSet _descriptorSet;
 };
 enum class DescriptorType {
 	VP,

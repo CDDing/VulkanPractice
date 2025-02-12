@@ -35,15 +35,14 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
 {
     VkDeviceSize bufferSize = sizeof(Transform);
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    _uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers[i] = Buffer(device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        vkMapMemory(device, uniformBuffers[i].GetMemory(), 0, bufferSize, 0, &_uniformBuffersMapped[i]);
-    }
-    this->transform.model = { glm::transpose(transform) };
-    memcpy(_uniformBuffersMapped[0], &this->transform, sizeof(transform));
-    memcpy(_uniformBuffersMapped[1], &this->transform, sizeof(transform));
+        uniformBuffers[i] = Buffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
+        uniformBuffers[i].map(device, bufferSize, 0);
+        this->transform.model = { glm::transpose(transform) };
+        memcpy(uniformBuffers[i].mapped, &this->transform, sizeof(transform));
 
+    }
+    
 }
 
 void Model::processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale)
@@ -169,10 +168,10 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene, cons
 void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
-        std::vector<VkDescriptorImageInfo> imageInfos(static_cast<uint32_t>(MaterialComponent::END));
+        std::vector<vk::DescriptorImageInfo> imageInfos(static_cast<uint32_t>(MaterialComponent::END));
         for (int i = 0; i<static_cast<int>(MaterialComponent::END);i++) {
             auto& imageInfo = imageInfos[i];
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
             imageInfo.imageView = material.Get(i).imageView;
             imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
             if (!material.hasComponent(i)) {
@@ -181,77 +180,73 @@ void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
             }
 
         }
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        vk::WriteDescriptorSet descriptorWrite{};
         descriptorWrite.dstSet = material.descriptorSets[frame];
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
         
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+        device.logical.updateDescriptorSets(descriptorWrite, nullptr);
     }
 }
 
 void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptorSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
-        std::vector<VkDescriptorImageInfo> imageInfos(4);
+        std::vector<vk::DescriptorImageInfo> imageInfos(4);
         for (int i = 0; i < 3; i++) {
             auto& imageInfo = imageInfos[i];
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
             imageInfo.imageView = material.Get(i).imageView;
             imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
         }
-        VkWriteDescriptorSet descriptorWriteForMap{};
-        descriptorWriteForMap.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        vk::WriteDescriptorSet descriptorWriteForMap{};
         descriptorWriteForMap.dstSet = material.descriptorSets[frame];
         descriptorWriteForMap.dstBinding = 0;
         descriptorWriteForMap.dstArrayElement = 0;
-        descriptorWriteForMap.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWriteForMap.descriptorType = vk::DescriptorType::eCombinedImageSampler;
         descriptorWriteForMap.descriptorCount = 3;
         descriptorWriteForMap.pImageInfo = imageInfos.data();
 
 
-        VkDescriptorImageInfo lutImageInfo{};
-        lutImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        vk::DescriptorImageInfo lutImageInfo{};
+        lutImageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
         lutImageInfo.imageView = material.Get(3).imageView;
         lutImageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
         imageInfos[3] = lutImageInfo;
-        VkWriteDescriptorSet descriptorWriteForLut{};
-        descriptorWriteForLut.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        vk::WriteDescriptorSet descriptorWriteForLut{};
         descriptorWriteForLut.dstSet = material.descriptorSets[frame];
         descriptorWriteForLut.dstBinding = 1;
         descriptorWriteForLut.dstArrayElement = 0;
-        descriptorWriteForLut.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWriteForLut.descriptorType = vk::DescriptorType::eCombinedImageSampler;
         descriptorWriteForLut.descriptorCount = 1;
         descriptorWriteForLut.pImageInfo = &lutImageInfo;
 
-        std::vector<VkWriteDescriptorSet> descriptorWrites;
+        std::vector<vk::WriteDescriptorSet> descriptorWrites;
         descriptorWrites = { descriptorWriteForMap,descriptorWriteForLut };
-        vkUpdateDescriptorSets(device,static_cast<uint32_t>( descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        device.logical.updateDescriptorSets(descriptorWrites, nullptr);
     }
 }
 
 void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& desciprotrSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
-        VkDescriptorBufferInfo bufferInfo;
+        vk::DescriptorBufferInfo bufferInfo;
         bufferInfo.buffer = uniformBuffers[frame];
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Transform);
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        vk::WriteDescriptorSet descriptorWrite{};
         descriptorWrite.dstSet = descriptorSets[frame];
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &bufferInfo;
 
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+        device.logical.updateDescriptorSets(descriptorWrite, nullptr); 
     }
 }
 

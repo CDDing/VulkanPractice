@@ -3,21 +3,24 @@ class Buffer
 {
 public:
 	Buffer();
-	Buffer(Device& device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	operator VkBuffer& () {
+	Buffer(Device& device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties);
+	operator vk::Buffer& () {
 		return _buffer;
 	}
-	VkDeviceMemory& GetMemory() { return _memory; }
+	bool operator==(void* data) {
+		return _buffer == data;
+	}
+	vk::DeviceMemory& GetMemory() { return _memory; }
 	void* mapped = nullptr;
-	void unmap(Device& device);
-	VkResult map(Device& device, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-	void destroy(Device& device);
-	VkResult flush(Device& device, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-	void fillBuffer(Device& device, void* data, VkDeviceSize size);
-	VkDeviceSize size;
-	VkDescriptorBufferInfo GetBufferInfo();
+	void unmap(vk::Device& device);
+	void map(vk::Device & device, vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
+	void destroy(vk::Device& device);
+	void flush(vk::Device& device, vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
+	void fillBuffer(Device& device, void* data, vk::DeviceSize size);
+	vk::DeviceSize size;
+	vk::DescriptorBufferInfo GetBufferInfo();
 private:
-	VkBuffer _buffer = VK_NULL_HANDLE;
-	VkDeviceMemory _memory = VK_NULL_HANDLE;
+	vk::Buffer _buffer = VK_NULL_HANDLE;
+	vk::DeviceMemory _memory = VK_NULL_HANDLE;
 };
 

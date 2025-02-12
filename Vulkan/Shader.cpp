@@ -5,17 +5,14 @@ Shader::Shader()
 {
 }
 
-Shader::Shader(Device& device, const std::string& filename)
+Shader::Shader(vk::Device& device, const std::string& filename)
 {
     auto code = FileLoader::readFile(filename);
 
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    vk::ShaderModuleCreateInfo createInfo{};
     createInfo.codeSize = code.size();
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
     
     
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &_shader) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create shader module!");
-    }
+    _shader = device.createShaderModule(createInfo);
 }

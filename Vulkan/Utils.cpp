@@ -1,8 +1,7 @@
 #include "pch.h"
 #include "Utils.h"
-uint32_t findMemoryType(Device& device, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
+uint32_t findMemoryType(vk::PhysicalDevice& device, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+    vk::PhysicalDeviceMemoryProperties memProperties = device.getMemoryProperties();
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
@@ -20,15 +19,34 @@ uint32_t SBTalignedSize(uint32_t value, uint32_t alignment)
 {
     return (value + alignment - 1) & ~(alignment - 1);
 }
+vk::CommandBuffer beginSingleTimeCommands(Device& device) {
+    vk::CommandBufferAllocateInfo allocInfo{ CommandPool::TransientPool ,vk::CommandBufferLevel::ePrimary,1 };
 
-void copyBuffer(Device& device, Buffer srcBuffer, Buffer dstBuffer, VkDeviceSize size) {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
+    vk::CommandBuffer commandBuffer = device.logical.allocateCommandBuffers(allocInfo).front();
 
-    VkBufferCopy copyRegion{};
+    vk::CommandBufferBeginInfo beginInfo{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
+    commandBuffer.begin(beginInfo);
+
+    return commandBuffer;
+}
+void endSingleTimeCommands(Device& device, vk::CommandBuffer commandBuffer) {
+    commandBuffer.end();
+    
+    vk::SubmitInfo submitInfo{ {},{}, { commandBuffer } };
+    device.GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, VK_NULL_HANDLE);
+    device.GetQueue(Device::QueueType::GRAPHICS).waitIdle();
+
+    device.logical.freeCommandBuffers(CommandPool::TransientPool, commandBuffer);
+}
+void copyBuffer(Device& device, Buffer srcBuffer, Buffer dstBuffer, vk::DeviceSize size) {
+    vk::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+
+    vk::BufferCopy copyRegion{};
     copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    commandBuffer.copyBuffer(srcBuffer, dstBuffer, copyRegion);
 
     endSingleTimeCommands(device, commandBuffer);
     dstBuffer.size = size;
 
 }
+

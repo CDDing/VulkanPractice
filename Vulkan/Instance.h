@@ -4,15 +4,18 @@ class Instance
 public:
 	Instance();
 	Instance(const char* ApplicationName);
-	VkDebugUtilsMessengerEXT& GetDebugMessenger() { return _debugMessenger; }
-
-	operator VkInstance& () {
+	vk::DebugUtilsMessengerEXT& GetDebugMessenger() { return _debugMessenger; }
+	vk::Instance& Get() { return _instance; }
+	operator vk::Instance& () {
 		return _instance;
 	}
+	operator VkInstance () {
+		return (VkInstance)_instance;
+	}
+	void destroy();
 private:
-	VkInstance _instance;
-	VkDebugUtilsMessengerEXT _debugMessenger;
+	vk::Instance _instance;
+	vk::DebugUtilsMessengerEXT _debugMessenger;
 };
-
 
 std::vector<const char*> getRequiredExtensions();

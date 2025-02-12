@@ -1,7 +1,8 @@
 #pragma once
 
 #include <DirectXTex.h>
-#define GLFW_INCLUDE_VULKAN
+#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
+#include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -41,7 +42,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 #include "Surface.h"
 #include "Device.h"
 #include "CommandPool.h"
-#include "CommandBuffer.h"
 #include "VL.h"
 #include "RenderPass.h"
 #include "Sampler.h"

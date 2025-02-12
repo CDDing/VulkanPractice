@@ -30,7 +30,6 @@ public:
 	std::vector<Buffer> uniformBuffers;
 	Transform transform;
 private:
-	std::vector<void*> _uniformBuffersMapped;
 	void processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale);
 	Mesh processMesh(Device& device, aiMesh* mesh, const aiScene* scene, const float& scale);
 	uint32_t _mipLevels;

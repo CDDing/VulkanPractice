@@ -25,14 +25,17 @@ void Mesh::createIndexBuffer(Device& device)
 {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 	indexBuffer = Buffer(device, bufferSize,
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-		VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-		VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		vk::BufferUsageFlagBits::eIndexBuffer |
+		vk::BufferUsageFlagBits::eTransferDst |
+		vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR |
+		vk::BufferUsageFlagBits::eShaderDeviceAddress,
+		vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 	Buffer stagingBuffer;
-	stagingBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	stagingBuffer = Buffer(device, bufferSize, 
+		vk::BufferUsageFlagBits::eTransferSrc, 
+		vk::MemoryPropertyFlagBits::eHostVisible| 
+		vk::MemoryPropertyFlagBits::eHostCoherent);
 
 	stagingBuffer.map(device, bufferSize, 0); 
 	memcpy(stagingBuffer.mapped, indices.data(), (size_t)bufferSize);
@@ -47,15 +50,16 @@ void Mesh::createVertexBuffer(Device& device)
 {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 	vertexBuffer = Buffer(device, bufferSize, 
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT  | 
-		VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | 
-		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		vk::BufferUsageFlagBits::eVertexBuffer | 
+		vk::BufferUsageFlagBits::eTransferDst  | 
+		vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR| 
+		vk::BufferUsageFlagBits::eShaderDeviceAddress,
+		vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-	Buffer stagingBuffer;
-	stagingBuffer = Buffer(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
+	Buffer stagingBuffer = Buffer(device, bufferSize,
+		vk::BufferUsageFlagBits::eTransferSrc,
+		vk::MemoryPropertyFlagBits::eHostVisible |
+		vk::MemoryPropertyFlagBits::eHostCoherent);
 
 
 	stagingBuffer.map(device, bufferSize, 0);
