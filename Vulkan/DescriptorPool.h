@@ -1,9 +1,11 @@
 #pragma once
 class DescriptorPool
 {
+	friend class GUI;
+	friend class RayTracing;
 public:
 	DescriptorPool();
-	DescriptorPool(Device& device);
+	DescriptorPool(std::shared_ptr<Device> device);
 	operator vk::DescriptorPool& () {
 		return _descriptorPool;
 	}
@@ -13,13 +15,15 @@ public:
 	operator VkDescriptorPool() {
 		return (VkDescriptorPool)_descriptorPool;
 	}
-	void destroy(vk::Device& device) {
-		device.destroyDescriptorPool(_descriptorPool);
+	~DescriptorPool() {
+
+		if(_descriptorPool) _device->logical.destroyDescriptorPool(_descriptorPool);
 	}
 	void operator=(vk::DescriptorPool pool) {
 		_descriptorPool = pool;
 	}
 private:
 	vk::DescriptorPool _descriptorPool;
+	std::shared_ptr<Device> _device;
 };
 

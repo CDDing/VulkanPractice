@@ -4,9 +4,9 @@ class RayTracing
 {
 
 public:
-	void init(Device& device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene,std::vector<Buffer>& guiBuffers);
-	void destroy(Device& device);
-	void recordCommandBuffer(Device& device, vk::CommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
+	void init(std::shared_ptr<Device> device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene,std::vector<Buffer>& guiBuffers);
+	void destroy();
+	void recordCommandBuffer(vk::CommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
 		VkAccelerationStructureKHR handle;
 		uint64_t deviceAddress;
@@ -21,18 +21,19 @@ public:
 	std::vector<AccelerationStructure> TLASs{};
 	DescriptorSetLayout descriptorSetLayout;
 	std::vector<DescriptorSet> descriptorSets;
-	DescriptorPool descriptorPool;
+	std::shared_ptr<DescriptorPool> descriptorPool;
 	vk::PipelineLayout pipelineLayout;
 
 	std::vector<Buffer> geometryNodeBuffers;
 private:
-	void createTlas(Device& device, std::vector<Model>& models);
-	void createBlas(Device& device, std::vector<Model>& models);
-	void createSBT(Device& device);
-	void createRTPipeline(Device& device);
-	void createOutputImages(Device& device);
-	void createDescriptorSets(Device& device, std::vector<Buffer>& uboBuffers,std::vector<Buffer>& guiBuffers, Scene& scene);
-	void loadFunctions(Device& device);
+	std::shared_ptr<Device> _device;
+	void createTlas(std::vector<Model>& models);
+	void createBlas(std::vector<Model>& models);
+	void createSBT();
+	void createRTPipeline();
+	void createOutputImages();
+	void createDescriptorSets(std::vector<Buffer>& uboBuffers,std::vector<Buffer>& guiBuffers, Scene& scene);
+	void loadFunctions();
 	
 	vk::PhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
@@ -44,7 +45,7 @@ private:
 	Buffer hitShaderBindingTable;
 	SwapChain* _swapChain;
 	
-	uint64_t getBufferDeviceAddress(Device& device, Buffer& buffer);
+	uint64_t getBufferDeviceAddress(Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
 	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;

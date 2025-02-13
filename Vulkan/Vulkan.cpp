@@ -11,6 +11,7 @@ private:
 	std::shared_ptr<Instance> instance;
 	std::shared_ptr<Surface> surface;
 	std::shared_ptr<Device> device;
+	std::shared_ptr<DescriptorPool> descriptorPool;
 
 	GUI imgui;
 	SwapChain swapChain;
@@ -26,7 +27,6 @@ private:
 	std::vector<DescriptorSet> uboDescriptorSets;
 	std::vector<DescriptorSet> GUIDescriptorSets;
 
-	DescriptorPool descriptorPool;
 	std::vector<DescriptorSetLayout> descriptorSetLayouts;
 	std::vector<std::vector<vk::DescriptorSetLayout>> descriptorSetLayoutList;
 
@@ -90,7 +90,7 @@ private:
 		instance = std::make_shared<Instance>("DDing");
 		surface = std::make_shared<Surface>(instance, window);
 		device = std::make_shared<Device>(instance, surface);
-		descriptorPool = DescriptorPool(*device);
+		descriptorPool = std::make_shared<DescriptorPool>(device);
 		commandPool = CommandPool(*device, findQueueFamilies(*device,*surface));
 		initSamplers();
 		swapChain = SwapChain(*device, *surface);
@@ -125,11 +125,11 @@ private:
 	void initRayTracing() {
 
 		rt = RayTracing();
-		rt.init(*device,uniformBuffers,swapChain,scene,GUIBuffers);
+		rt.init(device,uniformBuffers,swapChain,scene,GUIBuffers);
 	}
 	void initGUI() {
 
-		imgui = GUI(*device);
+		imgui = GUI(device);
 		imgui.init(static_cast<float>(WIDTH), static_cast<float>(HEIGHT));
 		imgui.initResources(window,*instance, swapChain.GetRenderPass());
 	}
@@ -205,38 +205,38 @@ private:
 		//GBuffer 디스크립터 셋
 		swapChain.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 		for (auto& descriptorSet : swapChain.descriptorSets) {
-			descriptorSet = DescriptorSet(*device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::GBuffer)]);
+			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::GBuffer)]);
 		}
 		
 		//skybox용 디스크립터 셋
 		scene.skybox.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 		for (auto& descriptorSet : scene.skybox.material.descriptorSets) {
-			descriptorSet = DescriptorSet(*device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Skybox)]);
+			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Skybox)]);
 		}
 
 		//머테리얼 디스크립터 셋
 		for (auto& model : scene.models) {
 			model.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 			for (auto& descriptorSet : model.material.descriptorSets) {
-				descriptorSet = DescriptorSet(*device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Material)]);
+				descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Material)]);
 			}
 		}
 		//모델 행렬 디스크립터 셋
 		for (auto& model : scene.models) {
 			model.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 			for (auto& descriptorSet : model.descriptorSets) {
-				descriptorSet = DescriptorSet(*device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Model)]);
+				descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Model)]);
 			}
 		}
 		//카메라 행렬 디스크립터 셋
 		uboDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 		for (auto& descriptorSet : uboDescriptorSets) {
-			descriptorSet = DescriptorSet(*device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
+			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
 		}
 		//GUI 버퍼 디스크립터 셋
 		GUIDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 		for (auto& descriptorSet : GUIDescriptorSets) {
-			descriptorSet = DescriptorSet(*device, descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
+			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
 		}
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			for (auto& model : scene.models) {
@@ -351,7 +351,7 @@ private:
 
 		if (guiControl.RayTracing) {
 
-			rt.recordCommandBuffer(*device, commandBuffer, currentFrame, imageIndex);
+			rt.recordCommandBuffer(commandBuffer, currentFrame, imageIndex);
 			vk::RenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.renderPass = swapChain.GetPostRenderPass().operator vk::RenderPass &();
 			renderPassInfo.framebuffer = swapChain.GetPostFrameBuffers()[imageIndex];
@@ -605,7 +605,6 @@ private:
 
 
 
-		descriptorPool.destroy(*device);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers[i].destroy(*device);
 			GUIBuffers[i].destroy(*device);
@@ -621,7 +620,7 @@ private:
 			auto& pipeline = pipelines[i];
 			pipeline.destroy(*device);
 		}
-		rt.destroy(*device);
+		rt.destroy();
 
 		glfwDestroyWindow(window);
 

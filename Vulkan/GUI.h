@@ -23,10 +23,10 @@ private:
 	vk::Pipeline _pipeline;
 	vk::PipelineLayout _pipelineLayout;
 	vk::PipelineCache _pipelineCache;
-	DescriptorPool _descriptorPool;
+	std::shared_ptr<DescriptorPool> _descriptorPool;
 	DescriptorSetLayout _descriptorSetLayout;
 	DescriptorSet _descriptorSet;
-	Device* _device;
+	std::shared_ptr<Device> _device;
 	ImGuiStyle vulkanStyle;	
 	struct PushConstBlock {
 		glm::vec2 scale;
@@ -35,7 +35,7 @@ private:
 
 public:
 	GUI();
-	GUI(Device& device) : _device(&device) 
+	GUI(std::shared_ptr<Device> device) : _device(device)
 	{
 		ImGui::CreateContext();
 

@@ -5,7 +5,7 @@ DescriptorPool::DescriptorPool()
 {
 }
 
-DescriptorPool::DescriptorPool(Device& device)
+DescriptorPool::DescriptorPool(std::shared_ptr<Device> device) : _device(device)
 {
 	std::array<vk::DescriptorPoolSize, 2> poolSizes{};
 	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -14,5 +14,5 @@ DescriptorPool::DescriptorPool(Device& device)
 	vk::DescriptorPoolCreateInfo poolInfo{ {/*Flags*/},
 		static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100 ,poolSizes};
 	
-	_descriptorPool = device.logical.createDescriptorPool(poolInfo);
+	_descriptorPool = device->logical.createDescriptorPool(poolInfo);
 }

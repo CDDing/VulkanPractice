@@ -42,9 +42,12 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		pool_info.maxSets += pool_size.descriptorCount;
 	pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
 	pool_info.pPoolSizes = pool_sizes;
-	_descriptorPool = _device->logical.createDescriptorPool(pool_info);
+
+	_descriptorPool = std::make_shared<DescriptorPool>();
+	_descriptorPool->_device = _device;
+	_descriptorPool->_descriptorPool = _device->logical.createDescriptorPool(pool_info);
 	_descriptorSetLayout = DescriptorSetLayout(*_device, DescriptorType::ImGUI);
-	_descriptorSet = DescriptorSet(*_device, _descriptorPool, _descriptorSetLayout);
+	_descriptorSet = DescriptorSet(*_device, *_descriptorPool, _descriptorSetLayout);
 	initDescriptorSet();
 
 	//파이프라인
@@ -181,7 +184,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	VkQueue queue = _device->GetQueue(init_info.QueueFamily);
 	init_info.Queue = queue;
 	init_info.PipelineCache = _pipelineCache;
-	init_info.DescriptorPool = _descriptorPool;
+	init_info.DescriptorPool = *_descriptorPool;
 	init_info.RenderPass = renderPass;
 	init_info.Subpass = 0;
 	init_info.MinImageCount = 2;
@@ -208,7 +211,6 @@ void GUI::destroy()
 	_device->logical.destroyPipelineCache(_pipelineCache);
 	_device->logical.destroyPipeline(_pipeline);
 	_device->logical.destroyPipelineLayout(_pipelineLayout);
-	_descriptorPool.destroy(*_device);
 	_descriptorSetLayout.destroy(*_device);
 }
 void GUI::newFrame()
