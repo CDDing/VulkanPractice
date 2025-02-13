@@ -12,10 +12,10 @@ private:
 	std::shared_ptr<Surface> surface;
 	std::shared_ptr<Device> device;
 	std::shared_ptr<DescriptorPool> descriptorPool;
+	std::shared_ptr<CommandPool> commandPool;
 
 	GUI imgui;
 	SwapChain swapChain;
-	CommandPool commandPool;
 	std::vector<vk::CommandBuffer> commandBuffers;
 	std::vector<Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
@@ -91,7 +91,7 @@ private:
 		surface = std::make_shared<Surface>(instance, window);
 		device = std::make_shared<Device>(instance, surface);
 		descriptorPool = std::make_shared<DescriptorPool>(device);
-		commandPool = CommandPool(*device, findQueueFamilies(*device,*surface));
+		commandPool = std::make_shared<CommandPool>(device, findQueueFamilies(*device,*surface));
 		initSamplers();
 		swapChain = SwapChain(*device, *surface);
 		
@@ -103,7 +103,7 @@ private:
 		createPipelines();
 		initRayTracing();
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::ePrimary,1 };
+			vk::CommandBufferAllocateInfo allocInfo{ *commandPool,vk::CommandBufferLevel::ePrimary,1 };
 			vk::CommandBuffer cb = device->logical.allocateCommandBuffers(allocInfo).front();
 			commandBuffers.push_back(cb);
 		}
@@ -597,7 +597,7 @@ private:
 		imgui.destroy();
 		Material::dummy.destroy(*device);
 		Sampler::destroySamplers(*device);
-		CommandPool::TransientPool.destroy(*device);
+		CommandPool::TransientPool.~CommandPool();
 
 
 
@@ -615,7 +615,6 @@ private:
 		}
 
 		scene.destroy(*device);
-		commandPool.destroy(*device);
 		for (int i = 0; i < 3;i++) {
 			auto& pipeline = pipelines[i];
 			pipeline.destroy(*device);
