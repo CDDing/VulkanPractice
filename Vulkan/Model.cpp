@@ -2,14 +2,14 @@
 #include "Model.h"
 
 
-Model::Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform)
+Model::Model(std::shared_ptr<Device> device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform) : _device(device)
 {
-    loadModel(device, modelPath, scale);
+    loadModel(modelPath, scale);
     material = Material(device, components, materialPaths);
     
 
 
-    InitUniformBuffer(device, transform);
+    InitUniformBuffer(transform);
 
 }
 
@@ -17,27 +17,24 @@ void Model::Render()
 {
 }
 
-void Model::destroy(Device& device)
+Model::~Model()
 {
-    for (auto& mesh : meshes) {
-        mesh->destroy(device);
-    }
 
-    material.destroy(device);
+    material.~Material();
 
     for (auto& uniformBuffer: uniformBuffers) {
-        uniformBuffer.destroy(device);
+        uniformBuffer.~Buffer();
     }
 
 }
 
-void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
+void Model::InitUniformBuffer(glm::mat4 transform)
 {
     VkDeviceSize bufferSize = sizeof(Transform);
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers[i] = Buffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
-        uniformBuffers[i].map(device, bufferSize, 0);
+        uniformBuffers[i] = Buffer(_device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
+        uniformBuffers[i].map(bufferSize, 0);
         this->transform.model = { glm::transpose(transform) };
         memcpy(uniformBuffers[i].mapped, &this->transform, sizeof(transform));
 
@@ -45,23 +42,23 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
     
 }
 
-void Model::processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale)
+void Model::processNode(aiNode* node, const aiScene* scene, const float& scale)
 {
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         // the node object only contains indices to index the actual objects in the scene. 
         // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(std::make_shared<Mesh>(processMesh(device, mesh, scene,scale)));
+        meshes.push_back(std::make_shared<Mesh>(processMesh(mesh, scene,scale)));
     }
     // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        processNode(device, node->mChildren[i], scene,scale);
+        processNode(node->mChildren[i], scene,scale);
     }
 }
 
-Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene, const float& scale)
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const float& scale)
 {// data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -161,11 +158,11 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene, cons
     //textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
     // return a mesh object created from the extracted mesh data
-    return Mesh(device, vertices, indices);
+    return Mesh(_device, vertices, indices);
 }
 
 
-void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
+void Model::InitDescriptorSet(DescriptorSet& descriptorSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(static_cast<uint32_t>(MaterialComponent::END));
@@ -188,11 +185,11 @@ void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
         
-        device.logical.updateDescriptorSets(descriptorWrite, nullptr);
+        _device->logical.updateDescriptorSets(descriptorWrite, nullptr);
     }
 }
 
-void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptorSet)
+void Model::InitDescriptorSetForSkybox(DescriptorSet& descriptorSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(4);
@@ -226,11 +223,11 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
 
         std::vector<vk::WriteDescriptorSet> descriptorWrites;
         descriptorWrites = { descriptorWriteForMap,descriptorWriteForLut };
-        device.logical.updateDescriptorSets(descriptorWrites, nullptr);
+        _device->logical.updateDescriptorSets(descriptorWrites, nullptr);
     }
 }
 
-void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& desciprotrSet)
+void Model::InitDescriptorSetForModelMatrix(DescriptorSet& desciprotrSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         vk::DescriptorBufferInfo bufferInfo;
@@ -246,11 +243,11 @@ void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& descip
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &bufferInfo;
 
-        device.logical.updateDescriptorSets(descriptorWrite, nullptr); 
+        _device->logical.updateDescriptorSets(descriptorWrite, nullptr); 
     }
 }
 
-void Model::loadModel(Device& device, const std::string& modelPath, const float& scale)
+void Model::loadModel(const std::string& modelPath, const float& scale)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -264,37 +261,40 @@ void Model::loadModel(Device& device, const std::string& modelPath, const float&
     //directory = path.substr(0, path.find_last_of('/'));
 
     // process ASSIMP's root node recursively
-    processNode(device, scene->mRootNode, scene,scale);
+    processNode(scene->mRootNode, scene,scale);
 }
 
-Model makeSphere(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeSphere(std::shared_ptr<Device> device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
+    model._device = device;
     GenerateSphere(device, model);
     model.material = Material(device, components, materialPaths);
-    model.InitUniformBuffer(device, transform);
+    model.InitUniformBuffer(transform);
     return model;
 }
 
-Model makeSqaure(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeSqaure(std::shared_ptr<Device> device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
+    model._device = device;
     GenerateSquare(device, model);
     model.material = Material(device, components, materialPaths);
-    model.InitUniformBuffer(device, transform);
+    model.InitUniformBuffer(transform);
     return model;
 }
 
-Model makeBox(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeBox(std::shared_ptr<Device> device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
+    model._device = device;
     GenerateBox(device, model);
     model.material = Material(device, components, materialPaths);
-    model.InitUniformBuffer(device, transform);
+    model.InitUniformBuffer(transform);
     return model;
 }
 
-void GenerateSphere(Device& device, Model& model)
+void GenerateSphere(std::shared_ptr<Device> device, Model& model)
 {
 
 
@@ -341,11 +341,11 @@ void GenerateSphere(Device& device, Model& model)
         }
     }
 
-    Mesh mesh = Mesh(device, vertices, indices);
-    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(device, vertices, indices);
+    model.meshes.push_back(std::move(mesh));
 }
 
-void GenerateSquare(Device& device, Model& model)
+void GenerateSquare(std::shared_ptr<Device> device, Model& model)
 {
     std::vector<Vertex> vertices;
     Vertex v0, v1, v2, v3;
@@ -396,11 +396,11 @@ void GenerateSquare(Device& device, Model& model)
     vertices.push_back(v1);
     vertices.push_back(v2);
     vertices.push_back(v3);
-    Mesh mesh = Mesh(device, vertices, indices);
-    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(device, vertices, indices);
+    model.meshes.push_back(std::move(mesh));
 }
 
-void GenerateBox(Device& device, Model& model)
+void GenerateBox(std::shared_ptr<Device> device, Model& model)
 {
     std::vector<Vertex> vertices(24);
     std::vector<uint32_t> indices = {
@@ -465,16 +465,16 @@ void GenerateBox(Device& device, Model& model)
         vertices[i + 3].tangent = tangent;
     }
 
-    Mesh mesh = Mesh(device, vertices, indices);
-    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(device, vertices, indices);
+    model.meshes.push_back(std::move(mesh));
 }
 
-Model makeSkyBox(Device& device)
+Model makeSkyBox(std::shared_ptr<Device> device)
 {
     Model model;
+    model._device = device;
     GenerateBox(device, model);
     model.material = Material::createMaterialForSkybox(device);
-
     
 
     return model;

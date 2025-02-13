@@ -5,13 +5,13 @@ SwapChain::SwapChain()
 {
 }
 
-SwapChain::SwapChain(Device& device,Surface& surface) : _device(&device), _surface(&surface)
+SwapChain::SwapChain(std::shared_ptr<Device> device,std::shared_ptr<Surface> surface) : _device(device), _surface(surface)
 {
-    create(device);
+    create();
 }
 
 
-void SwapChain::InitDescriptorSetForGBuffer(Device& device)
+void SwapChain::InitDescriptorSetForGBuffer()
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(6);
@@ -30,11 +30,11 @@ void SwapChain::InitDescriptorSetForGBuffer(Device& device)
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
         
-        device.logical.updateDescriptorSets(descriptorWrite,nullptr);
+        _device->logical.updateDescriptorSets(descriptorWrite,nullptr);
     }
 }
 
-void SwapChain::create(Device& device)
+void SwapChain::create()
 {
     SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(*_device, *_surface);
 
@@ -93,14 +93,14 @@ void SwapChain::create(Device& device)
 
 
     //Depth
-    vk::Format depthFormat = findDepthFormat(device);
-    _depthImage.image = Image(device, _swapChainExtent.width, _swapChainExtent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    _depthImage.imageView = ImageView(device, _depthImage.image, depthFormat, vk::ImageAspectFlagBits::eDepth, 1);
+    vk::Format depthFormat = findDepthFormat(*_device);
+    _depthImage.image = Image(_device, _swapChainExtent.width, _swapChainExtent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    _depthImage.imageView = ImageView(_device, _depthImage.image, depthFormat, vk::ImageAspectFlagBits::eDepth, 1);
 
-    vk::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
-    _depthImage.image.transitionLayout(device,cmdBuf, vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
-    endSingleTimeCommands(device, cmdBuf);
-    _renderPass = RenderPass(device, _swapChainImageFormat, findDepthFormat(device));
+    vk::CommandBuffer cmdBuf = beginSingleTimeCommands(_device);
+    _depthImage.image.transitionLayout(cmdBuf, vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
+    endSingleTimeCommands(_device, cmdBuf);
+    _renderPass = RenderPass(*_device, _swapChainImageFormat, findDepthFormat(*_device));
     
     _swapChainFramebuffers.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
@@ -116,7 +116,7 @@ void SwapChain::create(Device& device)
         framebufferInfo.height = _swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        _swapChainFramebuffers[i] = device.logical.createFramebuffer(framebufferInfo);
+        _swapChainFramebuffers[i] = _device->logical.createFramebuffer(framebufferInfo);
     }
 
     //Imgui
@@ -131,7 +131,7 @@ void SwapChain::create(Device& device)
     colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
     vk::AttachmentDescription depthAttachment{};
-    depthAttachment.format = findDepthFormat(device);
+    depthAttachment.format = findDepthFormat(*_device);
     depthAttachment.samples = vk::SampleCountFlagBits::e1;
     depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
     depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
@@ -167,7 +167,7 @@ void SwapChain::create(Device& device)
         {},attachments,{postsubpass},{postdependency}
     };
 
-    _postRenderPass = device.logical.createRenderPass(postrenderPassInfo);
+    _postRenderPass = _device->logical.createRenderPass(postrenderPassInfo);
 
     _postFramebuffers.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
@@ -184,7 +184,7 @@ void SwapChain::create(Device& device)
         framebufferInfo.layers = 1;
 
 
-        _postFramebuffers[i] = device.logical.createFramebuffer(framebufferInfo);
+        _postFramebuffers[i] = _device->logical.createFramebuffer(framebufferInfo);
     }
     //디퍼드 렌더링
     //1. 이미지 7개 만들기(위치, 노말, 알베도, 깊이, roughness,metalic,ao)
@@ -195,32 +195,32 @@ void SwapChain::create(Device& device)
     vk::Format metalnessFormat = vk::Format::eR8G8B8A8Unorm;
     vk::Format aoFormat = vk::Format::eR8G8B8A8Unorm;
     _deferredImages.resize(7);
-    _deferredImages[0] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[0] = ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
         1, positionFormat,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment| vk::ImageUsageFlagBits::eSampled
         , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[1] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[1] = ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
         1, normalFormat,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
         , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[2]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[2]= ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
         1, albedoFormat,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
         , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[3]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[3]= ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
         1, roughnessFormat,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
         , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[4]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[4]= ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
         1, metalnessFormat,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
         , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[5]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+    _deferredImages[5]= ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
         1, aoFormat,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
@@ -228,7 +228,7 @@ void SwapChain::create(Device& device)
 
     //이미지 뷰 만들기
     if (depthFormat >= vk::Format::eD16UnormS8Uint) {
-        _deferredImages[6] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+        _deferredImages[6] = ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
             1, depthFormat,
             vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eDepthStencilAttachment| vk::ImageUsageFlagBits::eSampled
@@ -236,7 +236,7 @@ void SwapChain::create(Device& device)
         
     }
     else {
-        _deferredImages[6] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
+        _deferredImages[6] = ImageSet(_device, _swapChainExtent.width, _swapChainExtent.height,
             1, depthFormat,
             vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
@@ -314,18 +314,18 @@ void SwapChain::create(Device& device)
     renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
 
-    _deferredRenderPass = device.logical.createRenderPass(renderPassInfo);
+    _deferredRenderPass = _device->logical.createRenderPass(renderPassInfo);
     
     _deferredFramebuffers.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
         std::array<vk::ImageView, 7> attachments = {
-            _deferredImages[0],
-            _deferredImages[1],
-            _deferredImages[2],
-            _deferredImages[3],
-            _deferredImages[4],
-            _deferredImages[5],
-            _deferredImages[6],
+            _deferredImages[0].imageView,
+            _deferredImages[1].imageView,
+            _deferredImages[2].imageView,
+            _deferredImages[3].imageView,
+            _deferredImages[4].imageView,
+            _deferredImages[5].imageView,
+            _deferredImages[6].imageView,
         };
         vk::FramebufferCreateInfo framebufferInfo{};
         framebufferInfo.renderPass = _deferredRenderPass.operator vk::RenderPass &();
@@ -335,36 +335,36 @@ void SwapChain::create(Device& device)
         framebufferInfo.height = _swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        _deferredFramebuffers[i] = device.logical.createFramebuffer(framebufferInfo);
+        _deferredFramebuffers[i] = _device->logical.createFramebuffer(framebufferInfo);
     }
 
 }
 
-void SwapChain::destroy(Device& device)
+void SwapChain::destroy()
 {
     for (auto& image : _deferredImages) {
-        image.destroy(device);
+        image.~ImageSet();
     }
     for (auto& framebuffer : _deferredFramebuffers) {
-        device.logical.destroyFramebuffer(framebuffer);
+        _device->logical.destroyFramebuffer(framebuffer);
     }
 
     
-    _depthImage.destroy(device);
+    _depthImage.~ImageSet();
     for (size_t i = 0; i < _swapChainFramebuffers.size(); i++) {
-        device.logical.destroyFramebuffer(_swapChainFramebuffers[i]);
+        _device->logical.destroyFramebuffer(_swapChainFramebuffers[i]);
     }
 
     for (auto& image : _swapChainImages) {
-        image.imageView.destroy(device);
+        image.imageView.~ImageView();
     }
-    device.logical.destroySwapchainKHR(_swapChain);
+    _device->logical.destroySwapchainKHR(_swapChain);
 
-    device.logical.destroyRenderPass(_renderPass);
-    device.logical.destroyRenderPass(_deferredRenderPass);
-    device.logical.destroyRenderPass(_postRenderPass);
+    _device->logical.destroyRenderPass(_renderPass);
+    _device->logical.destroyRenderPass(_deferredRenderPass);
+    _device->logical.destroyRenderPass(_postRenderPass);
     for (auto& framebuffer : _postFramebuffers) {
-        device.logical.destroyFramebuffer(framebuffer);
+        _device->logical.destroyFramebuffer(framebuffer);
     }
 }
 
@@ -410,7 +410,7 @@ vk::Extent2D SwapChain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
 void SwapChain::createImageViews()
 {
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
-        _swapChainImages[i].imageView = ImageView(*_device, _swapChainImages[i].image, _swapChainImageFormat, vk::ImageAspectFlagBits::eColor, 1);
+        _swapChainImages[i].imageView = ImageView(_device, _swapChainImages[i].image, _swapChainImageFormat, vk::ImageAspectFlagBits::eColor, 1);
     }
 }
 

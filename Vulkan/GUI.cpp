@@ -16,7 +16,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
 		vkGetPhysicalDeviceProperties2(_device->GetPhysical(), &deviceProperties2);
 	}*/
-	_fontImage = ImageSet(*_device, texWidth, texHeight, 1,
+	_fontImage = ImageSet(_device, texWidth, texHeight, 1,
 		vk::Format::eR8G8B8A8Unorm,
 		vk::ImageTiling::eOptimal,
 		vk::ImageUsageFlagBits::eSampled| vk::ImageUsageFlagBits::eTransferDst,
@@ -24,11 +24,11 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		vk::ImageAspectFlagBits::eColor);
 
 	
-	_fontImage.image.fillImage(*_device, fontData, uploadSize);
+	_fontImage.image.fillImage(fontData, uploadSize);
 
-	vk::CommandBuffer cmdBuf = beginSingleTimeCommands(*_device);
-	_fontImage.image.transitionLayout(*_device, cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eColor);
-	endSingleTimeCommands(*_device, cmdBuf);
+	vk::CommandBuffer cmdBuf = beginSingleTimeCommands(_device);
+	_fontImage.image.transitionLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eColor);
+	endSingleTimeCommands(_device, cmdBuf);
 
 	VkDescriptorPoolSize pool_sizes[] =
 	{
@@ -205,9 +205,9 @@ void GUI::destroy()
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
-	_vertexBuffer.destroy(*_device);
-	_indexBuffer.destroy(*_device);
-	_fontImage.destroy(*_device);
+	_vertexBuffer.~Buffer();
+	_indexBuffer.~Buffer();
+	_fontImage.~ImageSet();
 	_device->logical.destroyPipelineCache(_pipelineCache);
 	_device->logical.destroyPipeline(_pipeline);
 	_device->logical.destroyPipelineLayout(_pipelineLayout);
@@ -269,20 +269,20 @@ void GUI::updateBuffers()
 	
 	// Vertex buffer
 	if ((_vertexBuffer == VK_NULL_HANDLE) || (_vertexCount != imDrawData->TotalVtxCount)) {
-		_vertexBuffer.unmap(*_device);
-		_vertexBuffer.destroy(*_device);
-		_vertexBuffer = Buffer(*_device, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
+		_vertexBuffer.unmap();
+		_vertexBuffer.~Buffer();
+		_vertexBuffer = Buffer(_device, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
 		_vertexCount = imDrawData->TotalVtxCount;
-		_vertexBuffer.map(*_device);
+		_vertexBuffer.map();
 	}
 
 	// Index buffer
 	if ((_indexBuffer == VK_NULL_HANDLE) || (_indexCount < imDrawData->TotalIdxCount)) {
-		_indexBuffer.unmap(*_device);
-		_indexBuffer.destroy(*_device);
-		_indexBuffer = Buffer(*_device, indexBufferSize, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
+		_indexBuffer.unmap();
+		_indexBuffer.~Buffer();
+		_indexBuffer = Buffer(_device, indexBufferSize, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
 		_indexCount = imDrawData->TotalIdxCount;
-		_indexBuffer.map(*_device);
+		_indexBuffer.map();
 	}
 
 	// Upload data
@@ -298,8 +298,8 @@ void GUI::updateBuffers()
 	}
 
 	// Flush to make writes visible to GPU
-	_vertexBuffer.flush(*_device);
-	_indexBuffer.flush(*_device);
+	_vertexBuffer.flush();
+	_indexBuffer.flush();
 }
 
 void GUI::drawFrame(VkCommandBuffer commandBuffer)
@@ -329,7 +329,7 @@ void GUI::initDescriptorSet()
 	vk::DescriptorImageInfo imageInfo{};
 	imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-	imageInfo.imageView = _fontImage;
+	imageInfo.imageView = _fontImage.imageView;
 
 	vk::WriteDescriptorSet descriptorWrite{};
 	descriptorWrite.dstSet = _descriptorSet;
