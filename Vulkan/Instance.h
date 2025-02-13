@@ -12,7 +12,7 @@ public:
 	operator VkInstance () {
 		return (VkInstance)_instance;
 	}
-	void destroy();
+	~Instance();
 private:
 	vk::Instance _instance;
 	vk::DebugUtilsMessengerEXT _debugMessenger;

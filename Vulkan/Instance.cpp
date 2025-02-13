@@ -89,7 +89,11 @@ Instance::Instance(const char* ApplicationName)
     setupDebugMessenger(_instance,_debugMessenger);
 }
 
-void Instance::destroy()
+Instance::~Instance()
 {
+    if (enableValidationLayers) {
+
+        DestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
+    }
     _instance.destroy();
 }

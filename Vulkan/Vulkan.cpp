@@ -8,11 +8,13 @@ public:
 		cleanup();
 	}
 private:
+	std::shared_ptr<Instance> instance;
+	std::shared_ptr<Surface> surface;
+
 	GUI imgui;
 	Device device;
 	SwapChain swapChain;
 	CommandPool commandPool;
-	Surface surface;
 	std::vector<vk::CommandBuffer> commandBuffers;
 	std::vector<Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
@@ -32,7 +34,6 @@ private:
 
 	Camera camera;
 	GLFWwindow* window;
-	Instance instance;
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
@@ -86,13 +87,13 @@ private:
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 	}
 	void initVulkan() {
-		instance = Instance("DDing");
-		surface = Surface(instance, window);
-		device = Device(instance, surface);
+		instance = std::make_shared<Instance>("DDing");
+		surface = std::make_shared<Surface>(instance, window);
+		device = Device(*instance, *surface);
 		descriptorPool = DescriptorPool(device);
-		commandPool = CommandPool(device, findQueueFamilies(device,surface));
+		commandPool = CommandPool(device, findQueueFamilies(device,*surface));
 		initSamplers();
-		swapChain = SwapChain(device, surface);
+		swapChain = SwapChain(device, *surface);
 		
 		initGUI();
 		createDescriptorSetLayouts();
@@ -130,7 +131,7 @@ private:
 
 		imgui = GUI(device);
 		imgui.init(static_cast<float>(WIDTH), static_cast<float>(HEIGHT));
-		imgui.initResources(window,instance, swapChain.GetRenderPass());
+		imgui.initResources(window,*instance, swapChain.GetRenderPass());
 	}
 	void createPipelines() {
 		pipelines.resize(3);
@@ -622,13 +623,6 @@ private:
 		}
 		rt.destroy(device);
 		device.logical.destroy();
-		if (enableValidationLayers) {
-			
-			DestroyDebugUtilsMessengerEXT(instance, instance.GetDebugMessenger(), nullptr);
-		}
-
-		surface.destroy();
-		instance.destroy();
 
 		glfwDestroyWindow(window);
 
