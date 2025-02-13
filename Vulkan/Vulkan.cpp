@@ -34,9 +34,9 @@ private:
 
 	Camera camera;
 	GLFWwindow* window;
-	std::vector<VkSemaphore> imageAvailableSemaphores;
-	std::vector<VkSemaphore> renderFinishedSemaphores;
-	std::vector<VkFence> inFlightFences;
+	std::vector<std::shared_ptr<Semaphore>> imageAvailableSemaphores;
+	std::vector<std::shared_ptr<Semaphore>> renderFinishedSemaphores;
+	std::vector<std::shared_ptr<Fence>> inFlightFences;
 	uint32_t currentFrame = 0;
 
 	RayTracing rt;
@@ -89,7 +89,7 @@ private:
 	void initVulkan() {
 		instance = std::make_shared<Instance>("DDing");
 		surface = std::make_shared<Surface>(instance, window);
-		device = std::make_shared<Device>(*instance, *surface);
+		device = std::make_shared<Device>(instance, surface);
 		descriptorPool = DescriptorPool(*device);
 		commandPool = CommandPool(*device, findQueueFamilies(*device,*surface));
 		initSamplers();
@@ -326,15 +326,13 @@ private:
 		renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 		inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
-		vk::SemaphoreCreateInfo semaphoreInfo{};
 
-		vk::FenceCreateInfo fenceInfo{vk::FenceCreateFlagBits::eSignaled};
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 
-			imageAvailableSemaphores[i] = device->logical.createSemaphore(semaphoreInfo);
-			renderFinishedSemaphores[i] = device->logical.createSemaphore(semaphoreInfo);
-			inFlightFences[i] = device->logical.createFence(fenceInfo);		
+			imageAvailableSemaphores[i] = std::make_shared<Semaphore>(device);
+			renderFinishedSemaphores[i] = std::make_shared<Semaphore>(device);
+			inFlightFences[i] = std::make_shared<Fence>(device);		
 		}
 	}
 	void recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Model>& models) {
@@ -539,10 +537,10 @@ private:
 		memcpy(GUIBuffers[currentImage].mapped, &guiControl, sizeof(GUIControl));
 	}
 	void drawFrame() {
-		device->logical.waitForFences({ inFlightFences[currentFrame] }, vk::True, UINT64_MAX);
+		device->logical.waitForFences({ *inFlightFences[currentFrame] }, vk::True, UINT64_MAX);
 
 		uint32_t imageIndex;
-		vk::Result result =device->logical.acquireNextImageKHR(swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+		vk::Result result =device->logical.acquireNextImageKHR(swapChain, UINT64_MAX, *imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 		if (result == vk::Result::eErrorOutOfDateKHR) {
 			recreateSwapChain();
 			return;
@@ -550,13 +548,13 @@ private:
 		else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
-		device->logical.resetFences({ inFlightFences[currentFrame] });
+		device->logical.resetFences({ *inFlightFences[currentFrame] });
 		updateUniformBuffer(currentFrame);
 		commandBuffers[currentFrame].reset({});
 		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, scene.models);
 		vk::SubmitInfo submitInfo{};
 		
-		vk::Semaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+		vk::Semaphore waitSemaphores[] = { *imageAvailableSemaphores[currentFrame] };
 		vk::PipelineStageFlags waitStages[1] = { vk::PipelineStageFlagBits::eColorAttachmentOutput};
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
@@ -567,11 +565,11 @@ private:
 		submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit.size());
 		submitInfo.pCommandBuffers = commandBuffersToSubmit.data();
 
-		vk::Semaphore signalSemaphores[1] = { renderFinishedSemaphores[currentFrame] };
+		vk::Semaphore signalSemaphores[1] = { *renderFinishedSemaphores[currentFrame] };
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		device->GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, inFlightFences[currentFrame]);
+		device->GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, *inFlightFences[currentFrame]);
 
 		vk::PresentInfoKHR presentInfo{};
 		presentInfo.waitSemaphoreCount = 1;
@@ -618,11 +616,6 @@ private:
 		}
 
 		scene.destroy(*device);
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			device->logical.destroySemaphore(imageAvailableSemaphores[i]);
-			device->logical.destroySemaphore(renderFinishedSemaphores[i]);
-			device->logical.destroyFence(inFlightFences[i]);
-		}
 		commandPool.destroy(*device);
 		for (int i = 0; i < 3;i++) {
 			auto& pipeline = pipelines[i];

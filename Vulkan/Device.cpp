@@ -5,12 +5,12 @@ Device::Device() {
 }
 
 //Setup with Vulkan Physical and Logical Device
-Device::Device(vk::Instance& instance, vk::SurfaceKHR& surface)
+Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface)
 {
 
 
-    pickPhysicalDevice(instance,surface);
-    createLogicalDevice(surface);
+    pickPhysicalDevice(*instance,*surface);
+    createLogicalDevice(*surface);
 
 }
 

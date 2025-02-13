@@ -8,7 +8,7 @@ public:
         END
     };
     Device();
-    Device(vk::Instance& instance, vk::SurfaceKHR& surface);
+    Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface);
     ~Device();
 
     operator vk::Device& () {
