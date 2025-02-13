@@ -103,5 +103,5 @@ bool Device::isDeviceSuitable(vk::PhysicalDevice device,vk::SurfaceKHR& surface)
     return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 Device::~Device() {
-
+    logical.destroy();
 }
