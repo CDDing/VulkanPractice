@@ -5,13 +5,13 @@ SwapChain::SwapChain()
 {
 }
 
-SwapChain::SwapChain(Device& device,Surface& surface) : _device(&device), _surface(&surface)
+SwapChain::SwapChain(std::shared_ptr<Device> device,Surface& surface) : _device(device), _surface(&surface)
 {
     create(device);
 }
 
 
-void SwapChain::InitDescriptorSetForGBuffer(Device& device)
+void SwapChain::InitDescriptorSetForGBuffer(std::shared_ptr<Device> device)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(6);
@@ -30,11 +30,11 @@ void SwapChain::InitDescriptorSetForGBuffer(Device& device)
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
         
-        device.logical.updateDescriptorSets(descriptorWrite,nullptr);
+        device->logical.updateDescriptorSets(descriptorWrite,nullptr);
     }
 }
 
-void SwapChain::create(Device& device)
+void SwapChain::create(std::shared_ptr<Device> device)
 {
     SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(*_device, *_surface);
 
@@ -93,14 +93,14 @@ void SwapChain::create(Device& device)
 
 
     //Depth
-    vk::Format depthFormat = findDepthFormat(device);
+    vk::Format depthFormat = findDepthFormat(*device);
     _depthImage.image = Image(device, _swapChainExtent.width, _swapChainExtent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
     _depthImage.imageView = ImageView(device, _depthImage.image, depthFormat, vk::ImageAspectFlagBits::eDepth, 1);
 
     vk::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
     _depthImage.image.transitionLayout(device,cmdBuf, vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
     endSingleTimeCommands(device, cmdBuf);
-    _renderPass = RenderPass(device, _swapChainImageFormat, findDepthFormat(device));
+    _renderPass = RenderPass(*device, _swapChainImageFormat, findDepthFormat(*device));
     
     _swapChainFramebuffers.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
@@ -116,7 +116,7 @@ void SwapChain::create(Device& device)
         framebufferInfo.height = _swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        _swapChainFramebuffers[i] = device.logical.createFramebuffer(framebufferInfo);
+        _swapChainFramebuffers[i] = device->logical.createFramebuffer(framebufferInfo);
     }
 
     //Imgui
@@ -131,7 +131,7 @@ void SwapChain::create(Device& device)
     colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
     vk::AttachmentDescription depthAttachment{};
-    depthAttachment.format = findDepthFormat(device);
+    depthAttachment.format = findDepthFormat(*device);
     depthAttachment.samples = vk::SampleCountFlagBits::e1;
     depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
     depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
@@ -167,7 +167,7 @@ void SwapChain::create(Device& device)
         {},attachments,{postsubpass},{postdependency}
     };
 
-    _postRenderPass = device.logical.createRenderPass(postrenderPassInfo);
+    _postRenderPass = device->logical.createRenderPass(postrenderPassInfo);
 
     _postFramebuffers.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
@@ -184,7 +184,7 @@ void SwapChain::create(Device& device)
         framebufferInfo.layers = 1;
 
 
-        _postFramebuffers[i] = device.logical.createFramebuffer(framebufferInfo);
+        _postFramebuffers[i] = device->logical.createFramebuffer(framebufferInfo);
     }
     //디퍼드 렌더링
     //1. 이미지 7개 만들기(위치, 노말, 알베도, 깊이, roughness,metalic,ao)
@@ -314,7 +314,7 @@ void SwapChain::create(Device& device)
     renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
 
-    _deferredRenderPass = device.logical.createRenderPass(renderPassInfo);
+    _deferredRenderPass = device->logical.createRenderPass(renderPassInfo);
     
     _deferredFramebuffers.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
@@ -335,36 +335,36 @@ void SwapChain::create(Device& device)
         framebufferInfo.height = _swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        _deferredFramebuffers[i] = device.logical.createFramebuffer(framebufferInfo);
+        _deferredFramebuffers[i] = device->logical.createFramebuffer(framebufferInfo);
     }
 
 }
 
-void SwapChain::destroy(Device& device)
+void SwapChain::destroy(std::shared_ptr<Device> device)
 {
     for (auto& image : _deferredImages) {
         image.destroy(device);
     }
     for (auto& framebuffer : _deferredFramebuffers) {
-        device.logical.destroyFramebuffer(framebuffer);
+        device->logical.destroyFramebuffer(framebuffer);
     }
 
     
     _depthImage.destroy(device);
     for (size_t i = 0; i < _swapChainFramebuffers.size(); i++) {
-        device.logical.destroyFramebuffer(_swapChainFramebuffers[i]);
+        device->logical.destroyFramebuffer(_swapChainFramebuffers[i]);
     }
 
     for (auto& image : _swapChainImages) {
         image.imageView.destroy(device);
     }
-    device.logical.destroySwapchainKHR(_swapChain);
+    device->logical.destroySwapchainKHR(_swapChain);
 
-    device.logical.destroyRenderPass(_renderPass);
-    device.logical.destroyRenderPass(_deferredRenderPass);
-    device.logical.destroyRenderPass(_postRenderPass);
+    device->logical.destroyRenderPass(_renderPass);
+    device->logical.destroyRenderPass(_deferredRenderPass);
+    device->logical.destroyRenderPass(_postRenderPass);
     for (auto& framebuffer : _postFramebuffers) {
-        device.logical.destroyFramebuffer(framebuffer);
+        device->logical.destroyFramebuffer(framebuffer);
     }
 }
 
@@ -410,7 +410,7 @@ vk::Extent2D SwapChain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
 void SwapChain::createImageViews()
 {
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
-        _swapChainImages[i].imageView = ImageView(*_device, _swapChainImages[i].image, _swapChainImageFormat, vk::ImageAspectFlagBits::eColor, 1);
+        _swapChainImages[i].imageView = ImageView(_device, _swapChainImages[i].image, _swapChainImageFormat, vk::ImageAspectFlagBits::eColor, 1);
     }
 }
 

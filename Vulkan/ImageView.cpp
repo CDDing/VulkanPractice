@@ -5,7 +5,7 @@ ImageView::ImageView()
 {
 }
 
-ImageView::ImageView(vk::Device& device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels,uint32_t layerCount)
+ImageView::ImageView(std::shared_ptr<Device> device, vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels,uint32_t layerCount)
 {
     vk::ImageViewCreateInfo viewInfo{};
     viewInfo.image = image;
@@ -21,5 +21,5 @@ ImageView::ImageView(vk::Device& device, vk::Image image, vk::Format format, vk:
         viewInfo.viewType = vk::ImageViewType::eCube;
     }
 
-    _imageView = device.createImageView(viewInfo);
+    _imageView = device->logical.createImageView(viewInfo);
 }

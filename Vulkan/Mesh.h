@@ -3,7 +3,7 @@ class Mesh
 {
 public:
 	Mesh() {};
-	Mesh(Device& device, std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+	Mesh(std::shared_ptr<Device> device, std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
@@ -12,9 +12,9 @@ public:
 
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
-	void destroy(Device& device);
+	void destroy(std::shared_ptr<Device> device);
 private:
-	void createIndexBuffer(Device& device);
-    void createVertexBuffer(Device& device);
+	void createIndexBuffer(std::shared_ptr<Device> device);
+    void createVertexBuffer(std::shared_ptr<Device> device);
 };
 

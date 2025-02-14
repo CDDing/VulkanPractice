@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Mesh.h"
 
-Mesh::Mesh(Device& device, std::vector<Vertex> vertices, std::vector<unsigned int> indices)
+Mesh::Mesh(std::shared_ptr<Device> device, std::vector<Vertex> vertices, std::vector<unsigned int> indices)
 {
 	this->vertices = vertices;
 	this->indices = indices;
@@ -15,13 +15,13 @@ void Mesh::draw(VkCommandBuffer, uint32_t renderFlags, VkPipelineLayout pipeline
 
 }
 
-void Mesh::destroy(Device& device)
+void Mesh::destroy(std::shared_ptr<Device> device)
 {
 	vertexBuffer.destroy(device);
 	indexBuffer.destroy(device);
 }
 
-void Mesh::createIndexBuffer(Device& device)
+void Mesh::createIndexBuffer(std::shared_ptr<Device> device)
 {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 	indexBuffer = Buffer(device, bufferSize,
@@ -46,7 +46,7 @@ void Mesh::createIndexBuffer(Device& device)
 	stagingBuffer.destroy(device);
 }
 
-void Mesh::createVertexBuffer(Device& device)
+void Mesh::createVertexBuffer(std::shared_ptr<Device> device)
 {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 	vertexBuffer = Buffer(device, bufferSize, 

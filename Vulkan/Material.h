@@ -4,16 +4,16 @@ class Material
 public:
 
 	Material() {};
-	Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath);
-	void destroy(Device& device);
+	Material(std::shared_ptr<Device> device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath);
+	void destroy(std::shared_ptr<Device> device);
 	ImageSet& Get(MaterialComponent component) { return _materials[static_cast<int>(component)]; }
 	ImageSet& Get(int idx) { return _materials[idx]; }
 	bool hasComponent(int idx) { return _components[idx]; }
 
-	static Material createMaterialForSkybox(Device& device);
+	static Material createMaterialForSkybox(std::shared_ptr<Device> device);
 	static ImageSet dummy;
 	std::vector<DescriptorSet> descriptorSets;
-	static ImageSet GetDefaultMaterial(Device& device){
+	static ImageSet GetDefaultMaterial(std::shared_ptr<Device> device){
 		const uint32_t pixelData = 0xFFFFFFFF;
 
 		int width = 1, height = 1;
@@ -24,9 +24,9 @@ public:
 		vk::DeviceSize imageSize = 4;
 		stagingBuffer = Buffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
 
-		void* data = device.logical.mapMemory(stagingBuffer.GetMemory(), 0, imageSize);
+		void* data = device->logical.mapMemory(stagingBuffer.GetMemory(), 0, imageSize);
 		memcpy(data, &pixelData, static_cast<size_t>(imageSize));
-		device.logical.unmapMemory(stagingBuffer.GetMemory());
+		device->logical.unmapMemory(stagingBuffer.GetMemory());
 
 		Image image= Image(device,width, height, mipLevels, 
 			vk::Format::eR8G8B8A8Unorm,
@@ -58,7 +58,7 @@ public:
 private:
 	std::vector<ImageSet> _materials;
 	std::vector<bool> _components;
-	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format);
-	void loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt);
+	void loadImage(std::shared_ptr<Device> device, const std::string& filePath, const MaterialComponent component,vk::Format format);
+	void loadImageFromDDSFile(std::shared_ptr<Device> device, const std::wstring& filePath, int cnt);
 };
 

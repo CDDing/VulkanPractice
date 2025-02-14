@@ -4,7 +4,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 ImageSet Material::dummy = {};
-Material::Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath)
+Material::Material(std::shared_ptr<Device> device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath)
 {
 	_components.resize(static_cast<int>(MaterialComponent::END));
     _materials.resize(static_cast<int>(MaterialComponent::END));
@@ -21,14 +21,14 @@ Material::Material(Device& device, std::vector<MaterialComponent> components, co
     }
 }
 
-void Material::destroy(Device& device)
+void Material::destroy(std::shared_ptr<Device> device)
 {
 	for (auto& material : _materials) {
         material.destroy(device);
 	}
 }
 
-Material Material::createMaterialForSkybox(Device& device)
+Material Material::createMaterialForSkybox(std::shared_ptr<Device> device)
 {
     Material material;
     material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleEnvHDR.dds", 6);
@@ -39,7 +39,7 @@ Material Material::createMaterialForSkybox(Device& device)
     return material;
 }
 
-void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format)
+void Material::loadImage(std::shared_ptr<Device> device, const std::string& filePath, const MaterialComponent component,vk::Format format)
 {
     ImageSet materialData;
     int texWidth, texHeight, texChannels;
@@ -65,7 +65,7 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
     _materials[static_cast<int>(component)] = materialData;
 }
 
-void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt)
+void Material::loadImageFromDDSFile(std::shared_ptr<Device> device, const std::wstring& filePath, int cnt)
 {
     ImageSet materialData;
     int width, height, channels;

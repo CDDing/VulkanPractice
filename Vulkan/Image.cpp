@@ -5,7 +5,7 @@ Image::Image()
 {
 }
 
-Image::Image(Device& device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, uint32_t arrayLayer)
+Image::Image(std::shared_ptr<Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, uint32_t arrayLayer)
     : _width(width), _height(height), _format(format), _mipLevels(mipLevels)
 {
     vk::ImageCreateInfo imageInfo{ {}, vk::ImageType::e2D,format,
@@ -17,21 +17,21 @@ Image::Image(Device& device, uint32_t width, uint32_t height, uint32_t mipLevels
         imageInfo.flags = vk::ImageCreateFlagBits::eCubeCompatible;
     }
 
-    _image = device.logical.createImage(imageInfo);
+    _image = device->logical.createImage(imageInfo);
 
-    vk::MemoryRequirements memRequirements = device.logical.getImageMemoryRequirements(_image);
+    vk::MemoryRequirements memRequirements = device->logical.getImageMemoryRequirements(_image);
     
 
 	vk::MemoryAllocateInfo allocInfo{memRequirements.size,
-        findMemoryType(device.physical, memRequirements.memoryTypeBits, properties)
+        findMemoryType(device->physical, memRequirements.memoryTypeBits, properties)
     };
 
-    _imageMemory = device.logical.allocateMemory(allocInfo);
-    device.logical.bindImageMemory(_image, _imageMemory,0);
+    _imageMemory = device->logical.allocateMemory(allocInfo);
+    device->logical.bindImageMemory(_image, _imageMemory,0);
 
 }
 
-void Image::fillImage(Device& device, void* data ,vk::DeviceSize size)
+void Image::fillImage(std::shared_ptr<Device> device, void* data ,vk::DeviceSize size)
 {
     Buffer stagingBuffer;
 
@@ -51,7 +51,7 @@ void Image::fillImage(Device& device, void* data ,vk::DeviceSize size)
     stagingBuffer.destroy(device);
 }
 
-void Image::transitionLayout(Device& device, vk::CommandBuffer commandBuffer, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags)
+void Image::transitionLayout(std::shared_ptr<Device> device, vk::CommandBuffer commandBuffer, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags)
 {
 
     vk::ImageMemoryBarrier imageMemoryBarrier{};
@@ -172,10 +172,10 @@ void Image::transitionLayout(Device& device, vk::CommandBuffer commandBuffer, vk
     layout = newLayout;
 }
 
-void Image::generateMipmaps(Device& device)
+void Image::generateMipmaps(std::shared_ptr<Device> device)
 {
 
-    vk::FormatProperties formatProperties = device.physical.getFormatProperties(_format);
+    vk::FormatProperties formatProperties = device->physical.getFormatProperties(_format);
 
     if (!(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear)) {
         throw std::runtime_error("texture image format does not linear blitting!");
@@ -242,7 +242,7 @@ void Image::generateMipmaps(Device& device)
     endSingleTimeCommands(device, commandBuffer);
 }
 
-void copyBufferToImage(Device& device, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) {
+void copyBufferToImage(std::shared_ptr<Device> device, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) {
 	vk::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
 	VkBufferImageCopy region{};
@@ -265,7 +265,7 @@ void copyBufferToImage(Device& device, vk::Buffer buffer, vk::Image image, uint3
 
 
 
-void copyBufferToImageForCubemap(Device& device, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height,vk::DeviceSize layerSize)
+void copyBufferToImageForCubemap(std::shared_ptr<Device> device, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height,vk::DeviceSize layerSize)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
@@ -289,9 +289,9 @@ void copyBufferToImageForCubemap(Device& device, vk::Buffer buffer, vk::Image im
     }
     endSingleTimeCommands(device, commandBuffer);
 }
-void generateMipmapsForCubemap(Device& device, vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)
+void generateMipmapsForCubemap(std::shared_ptr<Device> device, vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)
 {
-    vk::FormatProperties formatProperties = device.physical.getFormatProperties(imageFormat);
+    vk::FormatProperties formatProperties = device->physical.getFormatProperties(imageFormat);
     if (!(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear)) {
         throw std::runtime_error("texture image format does not support linear blitting!");
     }
@@ -362,7 +362,7 @@ void generateMipmapsForCubemap(Device& device, vk::Image image, vk::Format image
     endSingleTimeCommands(device, commandBuffer);
 }
 
-void transitionImageLayoutForCubemap(Device& device, Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels) {
+void transitionImageLayoutForCubemap(std::shared_ptr<Device> device, Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels) {
     vk::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
     vk::ImageMemoryBarrier barrier{};

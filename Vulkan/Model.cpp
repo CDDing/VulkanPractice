@@ -2,7 +2,7 @@
 #include "Model.h"
 
 
-Model::Model(Device& device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform)
+Model::Model(std::shared_ptr<Device> device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform)
 {
     loadModel(device, modelPath, scale);
     material = Material(device, components, materialPaths);
@@ -17,7 +17,7 @@ void Model::Render()
 {
 }
 
-void Model::destroy(Device& device)
+void Model::destroy(std::shared_ptr<Device> device)
 {
     for (auto& mesh : meshes) {
         mesh.destroy(device);
@@ -31,7 +31,7 @@ void Model::destroy(Device& device)
 
 }
 
-void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
+void Model::InitUniformBuffer(std::shared_ptr<Device> device,glm::mat4 transform)
 {
     VkDeviceSize bufferSize = sizeof(Transform);
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -45,7 +45,7 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
     
 }
 
-void Model::processNode(Device& device, aiNode* node, const aiScene* scene, const float& scale)
+void Model::processNode(std::shared_ptr<Device> device, aiNode* node, const aiScene* scene, const float& scale)
 {
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
@@ -61,7 +61,7 @@ void Model::processNode(Device& device, aiNode* node, const aiScene* scene, cons
     }
 }
 
-Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene, const float& scale)
+Mesh Model::processMesh(std::shared_ptr<Device> device, aiMesh* mesh, const aiScene* scene, const float& scale)
 {// data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -165,7 +165,7 @@ Mesh Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene, cons
 }
 
 
-void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
+void Model::InitDescriptorSet(std::shared_ptr<Device> device,DescriptorSet& descriptorSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(static_cast<uint32_t>(MaterialComponent::END));
@@ -188,11 +188,11 @@ void Model::InitDescriptorSet(Device& device,DescriptorSet& descriptorSet)
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
         
-        device.logical.updateDescriptorSets(descriptorWrite, nullptr);
+        device->logical.updateDescriptorSets(descriptorWrite, nullptr);
     }
 }
 
-void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptorSet)
+void Model::InitDescriptorSetForSkybox(std::shared_ptr<Device> device, DescriptorSet& descriptorSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(4);
@@ -226,11 +226,11 @@ void Model::InitDescriptorSetForSkybox(Device& device, DescriptorSet& descriptor
 
         std::vector<vk::WriteDescriptorSet> descriptorWrites;
         descriptorWrites = { descriptorWriteForMap,descriptorWriteForLut };
-        device.logical.updateDescriptorSets(descriptorWrites, nullptr);
+        device->logical.updateDescriptorSets(descriptorWrites, nullptr);
     }
 }
 
-void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& desciprotrSet)
+void Model::InitDescriptorSetForModelMatrix(std::shared_ptr<Device> device,DescriptorSet& desciprotrSet)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         vk::DescriptorBufferInfo bufferInfo;
@@ -246,11 +246,11 @@ void Model::InitDescriptorSetForModelMatrix(Device& device,DescriptorSet& descip
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &bufferInfo;
 
-        device.logical.updateDescriptorSets(descriptorWrite, nullptr); 
+        device->logical.updateDescriptorSets(descriptorWrite, nullptr); 
     }
 }
 
-void Model::loadModel(Device& device, const std::string& modelPath, const float& scale)
+void Model::loadModel(std::shared_ptr<Device> device, const std::string& modelPath, const float& scale)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -267,7 +267,7 @@ void Model::loadModel(Device& device, const std::string& modelPath, const float&
     processNode(device, scene->mRootNode, scene,scale);
 }
 
-Model makeSphere(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeSphere(std::shared_ptr<Device> device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
     GenerateSphere(device, model);
@@ -276,7 +276,7 @@ Model makeSphere(Device& device, glm::mat4 transform, const std::vector<Material
     return model;
 }
 
-Model makeSqaure(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeSqaure(std::shared_ptr<Device> device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
     GenerateSquare(device, model);
@@ -285,7 +285,7 @@ Model makeSqaure(Device& device, glm::mat4 transform, const std::vector<Material
     return model;
 }
 
-Model makeBox(Device& device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
+Model makeBox(std::shared_ptr<Device> device, glm::mat4 transform, const std::vector<MaterialComponent>& components, const std::vector<std::string>& materialPaths)
 {
     Model model;
     GenerateBox(device, model);
@@ -294,7 +294,7 @@ Model makeBox(Device& device, glm::mat4 transform, const std::vector<MaterialCom
     return model;
 }
 
-void GenerateSphere(Device& device, Model& model)
+void GenerateSphere(std::shared_ptr<Device> device, Model& model)
 {
 
 
@@ -344,7 +344,7 @@ void GenerateSphere(Device& device, Model& model)
     model.meshes.push_back(Mesh(device, vertices, indices));
 }
 
-void GenerateSquare(Device& device, Model& model)
+void GenerateSquare(std::shared_ptr<Device> device, Model& model)
 {
     std::vector<Vertex> vertices;
     Vertex v0, v1, v2, v3;
@@ -398,7 +398,7 @@ void GenerateSquare(Device& device, Model& model)
     model.meshes.push_back(Mesh(device, vertices, indices));
 }
 
-void GenerateBox(Device& device, Model& model)
+void GenerateBox(std::shared_ptr<Device> device, Model& model)
 {
     std::vector<Vertex> vertices(24);
     std::vector<uint32_t> indices = {
@@ -466,7 +466,7 @@ void GenerateBox(Device& device, Model& model)
     model.meshes.push_back(Mesh(device, vertices, indices));
 }
 
-Model makeSkyBox(Device& device)
+Model makeSkyBox(std::shared_ptr<Device> device)
 {
     Model model;
     GenerateBox(device, model);

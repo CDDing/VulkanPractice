@@ -5,6 +5,6 @@ public:
 	Model skybox;
 	std::vector<Model> models;
 
-	void destroy(Device& device);
+	void destroy(std::shared_ptr<Device> device);
 };
 

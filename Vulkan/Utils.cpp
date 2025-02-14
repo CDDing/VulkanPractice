@@ -19,26 +19,26 @@ uint32_t SBTalignedSize(uint32_t value, uint32_t alignment)
 {
     return (value + alignment - 1) & ~(alignment - 1);
 }
-vk::CommandBuffer beginSingleTimeCommands(Device& device) {
+vk::CommandBuffer beginSingleTimeCommands(std::shared_ptr<Device> device) {
     vk::CommandBufferAllocateInfo allocInfo{ CommandPool::TransientPool ,vk::CommandBufferLevel::ePrimary,1 };
 
-    vk::CommandBuffer commandBuffer = device.logical.allocateCommandBuffers(allocInfo).front();
+    vk::CommandBuffer commandBuffer = device->logical.allocateCommandBuffers(allocInfo).front();
 
     vk::CommandBufferBeginInfo beginInfo{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
     commandBuffer.begin(beginInfo);
 
     return commandBuffer;
 }
-void endSingleTimeCommands(Device& device, vk::CommandBuffer commandBuffer) {
+void endSingleTimeCommands(std::shared_ptr<Device> device, vk::CommandBuffer commandBuffer) {
     commandBuffer.end();
     
     vk::SubmitInfo submitInfo{ {},{}, { commandBuffer } };
-    device.GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, VK_NULL_HANDLE);
-    device.GetQueue(Device::QueueType::GRAPHICS).waitIdle();
+    device->GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, VK_NULL_HANDLE);
+    device->GetQueue(Device::QueueType::GRAPHICS).waitIdle();
 
-    device.logical.freeCommandBuffers(CommandPool::TransientPool, commandBuffer);
+    device->logical.freeCommandBuffers(CommandPool::TransientPool, commandBuffer);
 }
-void copyBuffer(Device& device, Buffer srcBuffer, Buffer dstBuffer, vk::DeviceSize size) {
+void copyBuffer(std::shared_ptr<Device> device, Buffer srcBuffer, Buffer dstBuffer, vk::DeviceSize size) {
     vk::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
     vk::BufferCopy copyRegion{};
