@@ -4,7 +4,7 @@ class RayTracing
 {
 
 public:
-	void init(std::shared_ptr<Device> device, std::vector<std::shared_ptr<Buffer>>& uboBuffers, SwapChain& swapChain, Scene& scene,std::vector<std::shared_ptr<Buffer>>& guiBuffers);
+	void init(std::shared_ptr<Device> device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene,std::vector<Buffer>& guiBuffers);
 	void destroy();
 	void recordCommandBuffer(vk::CommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
@@ -32,7 +32,7 @@ private:
 	void createSBT();
 	void createRTPipeline();
 	void createOutputImages();
-	void createDescriptorSets(std::vector<std::shared_ptr<Buffer>>& uboBuffers,std::vector<std::shared_ptr<Buffer>>& guiBuffers, Scene& scene);
+	void createDescriptorSets(std::vector<Buffer>& uboBuffers,std::vector<Buffer>& guiBuffers, Scene& scene);
 	void loadFunctions();
 	
 	vk::PhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};

@@ -12,6 +12,6 @@ static void check_vk_result(VkResult err)
         abort();
 }
 uint32_t SBTalignedSize(uint32_t value, uint32_t alignment);
-vk::CommandBuffer beginSingleTimeCommands(std::shared_ptr<Device> device);
-void endSingleTimeCommands(std::shared_ptr<Device> device, vk::CommandBuffer commandBuffer);
-void copyBuffer(std::shared_ptr<Device> device, Buffer& srcBuffer, Buffer& dstBuffer, vk::DeviceSize size);
+vk::CommandBuffer beginSingleTimeCommands(Device& device);
+void endSingleTimeCommands(Device& device, vk::CommandBuffer commandBuffer);
+void copyBuffer(Device& device, Buffer srcBuffer, Buffer dstBuffer, vk::DeviceSize size);

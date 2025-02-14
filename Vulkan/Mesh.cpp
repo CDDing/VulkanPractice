@@ -1,23 +1,30 @@
 #include "pch.h"
 #include "Mesh.h"
 
-Mesh::Mesh(std::shared_ptr<Device> device, std::vector<Vertex> vertices, std::vector<unsigned int> indices) :_device(device)
+Mesh::Mesh(Device& device, std::vector<Vertex> vertices, std::vector<unsigned int> indices)
 {
 	this->vertices = vertices;
 	this->indices = indices;
 
-	createVertexBuffer();
-	createIndexBuffer();
+	createVertexBuffer(device);
+	createIndexBuffer(device);
 }
 
 void Mesh::draw(VkCommandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
 {
 
 }
-void Mesh::createIndexBuffer()
+
+void Mesh::destroy(Device& device)
+{
+	vertexBuffer.destroy(device);
+	indexBuffer.destroy(device);
+}
+
+void Mesh::createIndexBuffer(Device& device)
 {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-	indexBuffer = Buffer(_device, bufferSize,
+	indexBuffer = Buffer(device, bufferSize,
 		vk::BufferUsageFlagBits::eIndexBuffer |
 		vk::BufferUsageFlagBits::eTransferDst |
 		vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR |
@@ -25,40 +32,42 @@ void Mesh::createIndexBuffer()
 		vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 	Buffer stagingBuffer;
-	stagingBuffer = Buffer(_device, bufferSize, 
+	stagingBuffer = Buffer(device, bufferSize, 
 		vk::BufferUsageFlagBits::eTransferSrc, 
 		vk::MemoryPropertyFlagBits::eHostVisible| 
 		vk::MemoryPropertyFlagBits::eHostCoherent);
 
-	stagingBuffer.map(bufferSize, 0); 
+	stagingBuffer.map(device, bufferSize, 0); 
 	memcpy(stagingBuffer.mapped, indices.data(), (size_t)bufferSize);
-	stagingBuffer.unmap();
+	stagingBuffer.unmap(device);
 
-	copyBuffer(_device, stagingBuffer, indexBuffer, bufferSize);
+	copyBuffer(device, stagingBuffer, indexBuffer, bufferSize);
 
+	stagingBuffer.destroy(device);
 }
 
-void Mesh::createVertexBuffer()
+void Mesh::createVertexBuffer(Device& device)
 {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-	vertexBuffer = Buffer(_device, bufferSize, 
+	vertexBuffer = Buffer(device, bufferSize, 
 		vk::BufferUsageFlagBits::eVertexBuffer | 
 		vk::BufferUsageFlagBits::eTransferDst  | 
 		vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR| 
 		vk::BufferUsageFlagBits::eShaderDeviceAddress,
 		vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-	Buffer stagingBuffer = Buffer(_device, bufferSize,
+	Buffer stagingBuffer = Buffer(device, bufferSize,
 		vk::BufferUsageFlagBits::eTransferSrc,
 		vk::MemoryPropertyFlagBits::eHostVisible |
 		vk::MemoryPropertyFlagBits::eHostCoherent);
 
 
-	stagingBuffer.map(bufferSize, 0);
+	stagingBuffer.map(device, bufferSize, 0);
 	memcpy(stagingBuffer.mapped, vertices.data(), (size_t)bufferSize);
-	stagingBuffer.unmap();
+	stagingBuffer.unmap(device);
 
-	copyBuffer(_device, stagingBuffer, vertexBuffer, bufferSize);
+	copyBuffer(device, stagingBuffer, vertexBuffer, bufferSize);
 	
+	stagingBuffer.destroy(device);
 
 }

@@ -8,7 +8,7 @@ class SwapChain
 {
 public:
     SwapChain();
-    SwapChain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface);
+    SwapChain(Device& device, Surface& surface);
     operator vk::SwapchainKHR& () {
         return _swapChain;
     }
@@ -22,10 +22,10 @@ public:
     std::vector<vk::Framebuffer>& GetDeferredFrameBuffers() { return _deferredFramebuffers; }
     std::vector<vk::Framebuffer>& GetPostFrameBuffers() { return _postFramebuffers; }
 
-    void InitDescriptorSetForGBuffer();
+    void InitDescriptorSetForGBuffer(Device& device);
     std::vector<DescriptorSet> descriptorSets;
-    void create();
-    void destroy();
+    void create(Device& device);
+    void destroy(Device& device);
 
     static SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device,vk::SurfaceKHR surface) {
         SwapChainSupportDetails details;
@@ -44,8 +44,8 @@ private:
 
     RenderPass _renderPass;
     RenderPass _postRenderPass;
-    std::shared_ptr<Device> _device;
-    std::shared_ptr<Surface> _surface;
+    Device* _device;
+    Surface* _surface;
     GLFWwindow* _window;
 
     //Members
