@@ -125,18 +125,18 @@ void RayTracing::createBlas(std::vector<Model>& models)
 			std::vector<vk::AccelerationStructureBuildRangeInfoKHR> buildRangeInfos;
 			std::vector<vk::AccelerationStructureBuildRangeInfoKHR*> pbuildRangeInfos;
 			auto& model = models[j];
-			for (const auto& mesh : model.meshes) {
+			for (auto& mesh : model.meshes) {
 				vk::DeviceOrHostAddressConstKHR vertexDeviceAddress{};
 				vk::DeviceOrHostAddressConstKHR indexDeviceAddress{};
 				vk::DeviceOrHostAddressConstKHR transformDeviceAddress{};
-				vertexDeviceAddress.deviceAddress = getBufferDeviceAddress(mesh->vertexBuffer);
-				indexDeviceAddress.deviceAddress = getBufferDeviceAddress(mesh->indexBuffer);
+				vertexDeviceAddress.deviceAddress = getBufferDeviceAddress(mesh.vertexBuffer);
+				indexDeviceAddress.deviceAddress = getBufferDeviceAddress(mesh.indexBuffer);
 				transformDeviceAddress.deviceAddress = getBufferDeviceAddress(model.uniformBuffers[i]);
 
 				vk::AccelerationStructureGeometryTrianglesDataKHR triangles{};
 				triangles.vertexFormat = vk::Format::eR32G32B32Sfloat;
 				triangles.vertexData = vertexDeviceAddress;
-				triangles.maxVertex = mesh->vertices.size();
+				triangles.maxVertex = mesh.vertices.size();
 				triangles.vertexStride = sizeof(Vertex);
 
 				triangles.indexType = vk::IndexType::eUint32;
@@ -148,7 +148,7 @@ void RayTracing::createBlas(std::vector<Model>& models)
 
 				geometries.push_back(accelerationGeometry);
 
-				auto numTriangles = static_cast<uint32_t>(mesh->indices.size() / 3);
+				auto numTriangles = static_cast<uint32_t>(mesh.indices.size() / 3);
 				maxPrimitiveCounts.push_back(numTriangles);
 
 				VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};

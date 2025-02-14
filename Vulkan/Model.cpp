@@ -20,7 +20,7 @@ void Model::Render()
 void Model::destroy(Device& device)
 {
     for (auto& mesh : meshes) {
-        mesh->destroy(device);
+        mesh.destroy(device);
     }
 
     material.destroy(device);
@@ -52,7 +52,7 @@ void Model::processNode(Device& device, aiNode* node, const aiScene* scene, cons
         // the node object only contains indices to index the actual objects in the scene. 
         // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(std::make_shared<Mesh>(processMesh(device, mesh, scene,scale)));
+        meshes.push_back(processMesh(device, mesh, scene,scale));
     }
     // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
     for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -341,8 +341,7 @@ void GenerateSphere(Device& device, Model& model)
         }
     }
 
-    Mesh mesh = Mesh(device, vertices, indices);
-    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+    model.meshes.push_back(Mesh(device, vertices, indices));
 }
 
 void GenerateSquare(Device& device, Model& model)
@@ -396,8 +395,7 @@ void GenerateSquare(Device& device, Model& model)
     vertices.push_back(v1);
     vertices.push_back(v2);
     vertices.push_back(v3);
-    Mesh mesh = Mesh(device, vertices, indices);
-    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+    model.meshes.push_back(Mesh(device, vertices, indices));
 }
 
 void GenerateBox(Device& device, Model& model)
@@ -465,8 +463,7 @@ void GenerateBox(Device& device, Model& model)
         vertices[i + 3].tangent = tangent;
     }
 
-    Mesh mesh = Mesh(device, vertices, indices);
-    model.meshes.push_back(std::make_shared<Mesh>(mesh));
+    model.meshes.push_back(Mesh(device, vertices, indices));
 }
 
 Model makeSkyBox(Device& device)

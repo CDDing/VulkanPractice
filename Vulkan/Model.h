@@ -19,7 +19,7 @@ public:
 	void Render();
 	void destroy(Device& device);
 
-	std::vector<std::shared_ptr<Mesh>> meshes;
+	std::vector<Mesh> meshes;
 	Material material;
 	void InitUniformBuffer(Device& device, glm::mat4 transform);
 	void InitDescriptorSet(Device& device, DescriptorSet& descriptorSet);

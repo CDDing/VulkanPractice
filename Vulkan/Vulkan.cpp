@@ -408,10 +408,10 @@ private:
 
 			for (auto& model : models) {
 				for (auto& mesh : model.meshes) {
-					vk::Buffer vertexBuffers[] = { mesh->vertexBuffer };
+					vk::Buffer vertexBuffers[] = { mesh.vertexBuffer };
 					vk::DeviceSize offsets[] = { 0 };
 					commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
-					commandBuffer.bindIndexBuffer(mesh->indexBuffer,0,vk::IndexType::eUint32);
+					commandBuffer.bindIndexBuffer(mesh.indexBuffer,0,vk::IndexType::eUint32);
 					
 					int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
 					std::vector<VkBool32> data(5);
@@ -431,7 +431,7 @@ private:
 						pipelines[Pipeline::DEFERRED].GetLayout(),
 						0, descriptorSetListForModel, {});
 
-					vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 1, 0, 0, 0);
+					vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
 
 				}
 			}
@@ -463,15 +463,15 @@ private:
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 				pipelines[Pipeline::SKYBOX].GetLayout(), 0, descriptorSetListForSkybox, {});
 
-			vk::Buffer vertexBuffers[] = { scene.skybox.meshes[0]->vertexBuffer };
+			vk::Buffer vertexBuffers[] = { scene.skybox.meshes[0].vertexBuffer };
 			vk::DeviceSize offsets[] = { 0 };
 			
 			
 			commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
-			commandBuffer.bindIndexBuffer(scene.skybox.meshes[0]->indexBuffer, 0, vk::IndexType::eUint32);
+			commandBuffer.bindIndexBuffer(scene.skybox.meshes[0].indexBuffer, 0, vk::IndexType::eUint32);
 
 
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(scene.skybox.meshes[0]->indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(scene.skybox.meshes[0].indices.size()), 1, 0, 0, 0);
 
 			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFAULT]);
 			std::vector<vk::DescriptorSet> descriptorSetListForModel = {
