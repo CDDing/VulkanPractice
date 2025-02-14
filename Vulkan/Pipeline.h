@@ -12,7 +12,7 @@ public:
 		END,
 	};
 	Pipeline();
-	Pipeline(vk::Device& device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
+	Pipeline(std::shared_ptr<Device> device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
 	operator vk::Pipeline& () {
 		return _pipeline;
 	}

@@ -270,10 +270,10 @@ void RayTracing::createRTPipeline()
 	
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 
-	Shader rayGenShader = Shader(*_device, "shaders/raygen.rgen.spv");
-	Shader missShader = Shader(*_device, "shaders/miss.rmiss.spv");
-	Shader hitShader = Shader(*_device, "shaders/hit.rchit.spv");
-	Shader shadowShader = Shader(*_device, "shaders/shadow.rmiss.spv");
+	Shader rayGenShader = Shader(_device, "shaders/raygen.rgen.spv");
+	Shader missShader = Shader(_device, "shaders/miss.rmiss.spv");
+	Shader hitShader = Shader(_device, "shaders/hit.rchit.spv");
+	Shader shadowShader = Shader(_device, "shaders/shadow.rmiss.spv");
 
 	//RayGen
 	vk::PipelineShaderStageCreateInfo rayGenShaderStage{};
@@ -342,10 +342,6 @@ void RayTracing::createRTPipeline()
 	std::tie(result,pipeline) = _device->logical.createRayTracingPipelineKHR(VK_NULL_HANDLE, VK_NULL_HANDLE,
 		rayTracingPipelineCreateInfo);
 	
-	rayGenShader.destroy(*_device);
-	missShader.destroy(*_device);
-	hitShader.destroy(*_device);
-	shadowShader.destroy(*_device);
 }
 
 void RayTracing::createOutputImages()

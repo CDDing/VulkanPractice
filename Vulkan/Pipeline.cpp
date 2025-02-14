@@ -5,7 +5,7 @@ Pipeline::Pipeline()
 {
 }
 
-Pipeline::Pipeline(vk::Device& device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
+Pipeline::Pipeline(std::shared_ptr<Device> device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
 {
     Shader vertShaderModule = Shader(device, vsShaderPath);
     Shader fragShaderModule = Shader(device, psShaderPath);
@@ -141,7 +141,7 @@ Pipeline::Pipeline(vk::Device& device, vk::Extent2D& swapChainExtent, std::vecto
 
     //
 
-    _pipelineLayout = device.createPipelineLayout(pipelineLayoutInfo);
+    _pipelineLayout = device->logical.createPipelineLayout(pipelineLayoutInfo);
     
 
     vk::GraphicsPipelineCreateInfo pipelineInfo{};
@@ -162,8 +162,6 @@ Pipeline::Pipeline(vk::Device& device, vk::Extent2D& swapChainExtent, std::vecto
     pipelineInfo.basePipelineIndex = -1;
     
     vk::Result   result;
-    std::tie(result,_pipeline) = device.createGraphicsPipeline(VK_NULL_HANDLE, pipelineInfo);
+    std::tie(result,_pipeline) = device->logical.createGraphicsPipeline(VK_NULL_HANDLE, pipelineInfo);
     
-    fragShaderModule.destroy(device);
-    vertShaderModule.destroy(device);
 }

@@ -159,8 +159,8 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	
 	pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-	auto vertexShaderModule = Shader(*_device, "shaders/imgui.vert.spv");
-	auto fragmentShaderModule = Shader(*_device, "shaders/imgui.frag.spv");
+	auto vertexShaderModule = Shader(_device, "shaders/imgui.vert.spv");
+	auto fragmentShaderModule = Shader(_device, "shaders/imgui.frag.spv");
 	shaderStages[0].stage = vk::ShaderStageFlagBits::eVertex;
 	shaderStages[0].pName = "main";
 	shaderStages[0].module = vertexShaderModule;
@@ -171,9 +171,6 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 
 	vk::Result result;
 	std::tie(result,_pipeline) = _device->logical.createGraphicsPipeline(_pipelineCache, pipelineCreateInfo);
-
-	vertexShaderModule.destroy(*_device);
-	fragmentShaderModule.destroy(*_device);
 
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 	ImGui_ImplVulkan_InitInfo init_info = {};

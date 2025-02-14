@@ -5,7 +5,7 @@ Shader::Shader()
 {
 }
 
-Shader::Shader(vk::Device& device, const std::string& filename)
+Shader::Shader(std::shared_ptr<Device> device, const std::string& filename) : _device(device)
 {
     auto code = FileLoader::readFile(filename);
 
@@ -14,5 +14,5 @@ Shader::Shader(vk::Device& device, const std::string& filename)
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
     
     
-    _shader = device.createShaderModule(createInfo);
+    _shader = device->logical.createShaderModule(createInfo);
 }

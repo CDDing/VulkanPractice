@@ -149,7 +149,7 @@ private:
 		descriptorSetLayouts[3],
 		descriptorSetLayouts[0]}
 		};
-		Pipeline defaultPipeline = Pipeline(*device,
+		Pipeline defaultPipeline = Pipeline(device,
 			swapChain.GetExtent(),
 			descriptorSetLayoutList,
 			swapChain.GetRenderPass(),
@@ -157,7 +157,7 @@ private:
 			"shaders/shader.frag.spv",
 			ShaderType::DEFAULT);
 
-		Pipeline skyboxPipeline = Pipeline(*device,
+		Pipeline skyboxPipeline = Pipeline(device,
 			swapChain.GetExtent(),
 			descriptorSetLayoutList,
 			swapChain.GetRenderPass(),
@@ -165,7 +165,7 @@ private:
 			"shaders/skybox.frag.spv",
 			ShaderType::SKYBOX);
 
-		Pipeline deferredPipeline = Pipeline(*device,
+		Pipeline deferredPipeline = Pipeline(device,
 			swapChain.GetExtent(),
 			descriptorSetLayoutList,
 			swapChain.GetDeferredRenderPass(),
