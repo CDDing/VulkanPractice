@@ -15,7 +15,6 @@ private:
 	std::shared_ptr<CommandPool> commandPool;
 
 	GUI imgui;
-	SwapChain swapChain;
 	std::vector<vk::CommandBuffer> commandBuffers;
 	std::vector<Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
@@ -40,6 +39,11 @@ private:
 	uint32_t currentFrame = 0;
 
 	RayTracing rt;
+
+	SwapChain swapChain;
+	Deferred deferred;
+	PostProcessing pp;
+
 	bool keyPressed[256] = { false, };
 
 	bool framebufferResized = false;
@@ -99,6 +103,9 @@ private:
 		createDescriptorSetLayouts();
 		insertModels();
 		createUniformBuffers();
+
+		deferred = Deferred(device, swapChain);
+		pp = PostProcessing(device, swapChain);
 		createDescriptorSets();
 		createPipelines();
 		initRayTracing();
@@ -131,7 +138,7 @@ private:
 
 		imgui = GUI(device);
 		imgui.init(static_cast<float>(WIDTH), static_cast<float>(HEIGHT));
-		imgui.initResources(window,*instance, swapChain.GetRenderPass());
+		imgui.initResources(window,*instance, swapChain.renderPass);
 	}
 	void createPipelines() {
 		pipelines.resize(3);
@@ -150,25 +157,25 @@ private:
 		descriptorSetLayouts[0]}
 		};
 		Pipeline defaultPipeline = Pipeline(device,
-			swapChain.GetExtent(),
+			swapChain.extent,
 			descriptorSetLayoutList,
-			swapChain.GetRenderPass(),
+			swapChain.renderPass,
 			"shaders/shader.vert.spv",
 			"shaders/shader.frag.spv",
 			ShaderType::DEFAULT);
 
 		Pipeline skyboxPipeline = Pipeline(device,
-			swapChain.GetExtent(),
+			swapChain.extent,
 			descriptorSetLayoutList,
-			swapChain.GetRenderPass(),
+			swapChain.renderPass,
 			"shaders/skybox.vert.spv",
 			"shaders/skybox.frag.spv",
 			ShaderType::SKYBOX);
 
 		Pipeline deferredPipeline = Pipeline(device,
-			swapChain.GetExtent(),
+			swapChain.extent,
 			descriptorSetLayoutList,
-			swapChain.GetDeferredRenderPass(),
+			deferred.renderPass,
 			"shaders/deferred.vert.spv",
 			"shaders/deferred.frag.spv",
 			ShaderType::DEFERRED);
@@ -203,8 +210,8 @@ private:
 		Material::dummy = Material::GetDefaultMaterial(device);
 
 		//GBuffer 디스크립터 셋
-		swapChain.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-		for (auto& descriptorSet : swapChain.descriptorSets) {
+		deferred.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+		for (auto& descriptorSet : deferred.descriptorSets) {
 			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::GBuffer)]);
 		}
 		
@@ -247,7 +254,7 @@ private:
 			//스카이박스
 			scene.skybox.InitDescriptorSet(device);
 			
-			swapChain.InitDescriptorSetForGBuffer(device);
+			deferred.updateDescriptorSets();
 			//카메라 행렬 유니폼 버퍼
 			vk::DescriptorBufferInfo bufferInfo;
 			bufferInfo.buffer = uniformBuffers[i];
@@ -317,7 +324,7 @@ private:
 		device->logical.waitIdle();
 		swapChain.destroy(device);
 		swapChain.create(device);
-		swapChain.InitDescriptorSetForGBuffer(device);
+		deferred.updateDescriptorSets();
 		//imgui.init(static_cast<float>(width), static_cast<float>(height));
 		//imgui.initResources(swapChain.GetRenderPass());
 	}
@@ -354,10 +361,10 @@ private:
 
 			rt.recordCommandBuffer(commandBuffer, currentFrame, imageIndex);
 			vk::RenderPassBeginInfo renderPassInfo{};
-			renderPassInfo.renderPass = swapChain.GetPostRenderPass().operator vk::RenderPass &();
-			renderPassInfo.framebuffer = swapChain.GetPostFrameBuffers()[imageIndex];
+			renderPassInfo.setRenderPass(pp.renderPass);
+			renderPassInfo.framebuffer = pp.framebuffers[imageIndex];
 			renderPassInfo.renderArea.offset = vk::Offset2D(0,0);
-			renderPassInfo.renderArea.extent = swapChain.GetExtent();
+			renderPassInfo.renderArea.extent = swapChain.extent;
 
 			std::array<vk::ClearValue, 2> clearValues{};
 			clearValues[1].depthStencil = vk::ClearDepthStencilValue( 1.0f, 0 );
@@ -372,10 +379,10 @@ private:
 		else {
 
 			vk::RenderPassBeginInfo deferredRenderPassInfo{};
-			deferredRenderPassInfo.renderPass = swapChain.GetDeferredRenderPass().operator vk::RenderPass &();
-			deferredRenderPassInfo.framebuffer = swapChain.GetDeferredFrameBuffers()[imageIndex];
+			deferredRenderPassInfo.setRenderPass(deferred.renderPass);
+			deferredRenderPassInfo.framebuffer = deferred.framebuffers[imageIndex];
 			deferredRenderPassInfo.renderArea.offset = vk::Offset2D( 0,0 );
-			deferredRenderPassInfo.renderArea.extent = swapChain.GetExtent();
+			deferredRenderPassInfo.renderArea.extent = swapChain.extent;
 
 			std::array<vk::ClearValue, 7> deferredClearValues{};
 			deferredClearValues[0].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
@@ -391,15 +398,15 @@ private:
 			vk::Viewport viewport{};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
-			viewport.width = static_cast<float>(swapChain.GetExtent().width);
-			viewport.height = static_cast<float>(swapChain.GetExtent().height);
+			viewport.width = static_cast<float>(swapChain.extent.width);
+			viewport.height = static_cast<float>(swapChain.extent.height);
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
 			commandBuffer.setViewport(0,viewport);
 
 			vk::Rect2D scissor{};
 			scissor.offset = vk::Offset2D( 0,0 );
-			scissor.extent = swapChain.GetExtent();
+			scissor.extent = swapChain.extent;
 			
 			commandBuffer.setScissor(0, scissor);
 			commandBuffer.beginRenderPass(deferredRenderPassInfo, vk::SubpassContents::eInline);
@@ -440,10 +447,10 @@ private:
 			vkCmdEndRenderPass(commandBuffer);
 
 			vk::RenderPassBeginInfo renderPassInfo{};
-			renderPassInfo.renderPass = swapChain.GetRenderPass().operator vk::RenderPass &();
-			renderPassInfo.framebuffer = swapChain.GetFrameBuffers()[imageIndex];
+			renderPassInfo.setRenderPass(swapChain.renderPass);
+			renderPassInfo.framebuffer = swapChain.framebuffers[imageIndex];
 			renderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
-			renderPassInfo.renderArea.extent = swapChain.GetExtent();
+			renderPassInfo.renderArea.extent = swapChain.extent;
 
 			std::array<vk::ClearValue, 2> clearValues{};
 			clearValues[0].color = vk::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f};
@@ -478,7 +485,7 @@ private:
 			std::vector<vk::DescriptorSet> descriptorSetListForModel = {
 						uboDescriptorSets[currentFrame],
 						scene.skybox.material.descriptorSets[currentFrame],
-						swapChain.descriptorSets[currentFrame]
+						deferred.descriptorSets[currentFrame]
 			};
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 				pipelines[Pipeline::DEFAULT].GetLayout(), 0, descriptorSetListForModel, {});
@@ -522,7 +529,7 @@ private:
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
 		ubo.view = camera.GetView();
-		ubo.proj = camera.GetProj(swapChain.GetExtent().width, swapChain.GetExtent().height);
+		ubo.proj = camera.GetProj(swapChain.extent.width, swapChain.extent.height);
 		ubo.proj[1][1] *= -1;
 		ubo.camPos = camera.GetPos();
 
@@ -596,6 +603,8 @@ private:
 	void cleanup() {
 		swapChain.destroy(device);
 		imgui.destroy();
+		pp.destroy();
+		deferred.destroy();
 		Material::dummy.image.destroy(device);
 		Material::dummy.imageView.destroy(device);
 		Sampler::destroySamplers(*device);

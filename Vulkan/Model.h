@@ -15,7 +15,7 @@ class Model
 public:
 	Model() {};
 	Model(std::shared_ptr<Device> device, const float& scale, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths,glm::mat4 transform);
-
+	virtual ~Model() = default;
 	void Render();
 	void destroy(std::shared_ptr<Device> device);
 

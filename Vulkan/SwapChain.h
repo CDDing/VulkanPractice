@@ -9,20 +9,9 @@ public:
     SwapChain();
     SwapChain(std::shared_ptr<Device> device, Surface& surface);
     operator vk::SwapchainKHR& () {
-        return _swapChain;
+        return swapChain;
     }
-    vk::Format& GetImageFormat() { return _swapChainImageFormat; }
-    vk::Extent2D& GetExtent() { return _swapChainExtent; }
-    std::vector<ImageSet>& GetImages() { return _swapChainImages; }
-    std::vector<vk::Framebuffer>& GetFrameBuffers() { return _swapChainFramebuffers; }
-    RenderPass& GetRenderPass() { return _renderPass; }
-    RenderPass& GetPostRenderPass() { return _postRenderPass; }
-    RenderPass& GetDeferredRenderPass() { return _deferredRenderPass; }
-    std::vector<vk::Framebuffer>& GetDeferredFrameBuffers() { return _deferredFramebuffers; }
-    std::vector<vk::Framebuffer>& GetPostFrameBuffers() { return _postFramebuffers; }
 
-    void InitDescriptorSetForGBuffer(std::shared_ptr<Device> device);
-    std::vector<DescriptorSet> descriptorSets;
     void create(std::shared_ptr<Device> device);
     void destroy(std::shared_ptr<Device> device);
 
@@ -34,6 +23,16 @@ public:
         return details;
     }
 
+
+
+    RenderPass renderPass;
+    std::vector<ImageSet> images;
+    vk::Format imageFormat;
+    vk::Extent2D extent;
+    std::vector<vk::Framebuffer> framebuffers;
+    vk::Format depthFormat;
+    ImageSet depthImage;
+
 private:
     vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
     vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
@@ -41,29 +40,14 @@ private:
     void createImageViews();
 
 
-    RenderPass _renderPass;
-    RenderPass _postRenderPass;
-    std::shared_ptr<Device> _device;
-    Surface* _surface;
-    GLFWwindow* _window;
+    std::shared_ptr<Device> device;
+    Surface* surface;
+    GLFWwindow* window;
 
-    //Members
-
-    std::vector<ImageSet> _swapChainImages;
-    vk::Format _swapChainImageFormat;
-    vk::Extent2D _swapChainExtent;
-    std::vector<vk::Framebuffer> _swapChainFramebuffers;
-    std::vector<vk::Framebuffer> _postFramebuffers;
-    vk::SwapchainKHR _swapChain;
     
-    //Depth
-    vk::Format _depthFormat;
-    ImageSet _depthImage;
+    vk::SwapchainKHR swapChain;
     
-    //Deferred
-    std::vector<ImageSet> _deferredImages;
-    std::vector<vk::Framebuffer> _deferredFramebuffers;
-    RenderPass _deferredRenderPass;
+    
 
 };
 

@@ -26,7 +26,7 @@ public:
 
 	std::vector<Buffer> geometryNodeBuffers;
 private:
-	std::shared_ptr<Device> _device;
+	std::shared_ptr<Device> device;
 	void createTlas(std::vector<Model>& models);
 	void createBlas(std::vector<Model>& models);
 	void createSBT();
@@ -43,7 +43,7 @@ private:
 	Buffer missShaderBindingTable;
 	std::vector<ImageSet> outputImages;
 	Buffer hitShaderBindingTable;
-	SwapChain* _swapChain;
+	SwapChain* swapChain;
 	
 	uint64_t getBufferDeviceAddress(Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;

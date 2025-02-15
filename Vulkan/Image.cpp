@@ -6,7 +6,7 @@ Image::Image()
 }
 
 Image::Image(std::shared_ptr<Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, uint32_t arrayLayer)
-    : _width(width), _height(height), _format(format), _mipLevels(mipLevels)
+    : _width(width), _height(height), format(format), _mipLevels(mipLevels)
 {
     vk::ImageCreateInfo imageInfo{ {}, vk::ImageType::e2D,format,
         {static_cast<uint32_t>(width),static_cast<uint32_t>(height),1},mipLevels,
@@ -175,7 +175,7 @@ void Image::transitionLayout(std::shared_ptr<Device> device, vk::CommandBuffer c
 void Image::generateMipmaps(std::shared_ptr<Device> device)
 {
 
-    vk::FormatProperties formatProperties = device->physical.getFormatProperties(_format);
+    vk::FormatProperties formatProperties = device->physical.getFormatProperties(format);
 
     if (!(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear)) {
         throw std::runtime_error("texture image format does not linear blitting!");

@@ -157,6 +157,7 @@
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CommandPool.cpp" />
+    <ClCompile Include="Deferred.cpp" />
     <ClCompile Include="DescriptorPool.cpp" />
     <ClCompile Include="DescriptorSet.cpp" />
     <ClCompile Include="DescriptorSetLayout.cpp" />
@@ -175,6 +176,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="Pipeline.cpp" />
+    <ClCompile Include="PostProcessing.cpp" />
     <ClCompile Include="Rasterization.cpp" />
     <ClCompile Include="RayTracing.cpp" />
     <ClCompile Include="RenderPass.cpp" />
@@ -205,6 +207,7 @@
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommandPool.h" />
+    <ClInclude Include="Deferred.h" />
     <ClInclude Include="DescriptorPool.h" />
     <ClInclude Include="DescriptorSet.h" />
     <ClInclude Include="DescriptorSetLayout.h" />
@@ -220,6 +223,7 @@
     <ClInclude Include="Model.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Pipeline.h" />
+    <ClInclude Include="PostProcessing.h" />
     <ClInclude Include="Rasterization.h" />
     <ClInclude Include="RayTracing.h" />
     <ClInclude Include="RenderPass.h" />

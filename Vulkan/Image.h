@@ -19,11 +19,11 @@ public:
     void generateMipmaps(std::shared_ptr<Device> device);
     vk::DeviceMemory& GetMemory() { return _imageMemory; }
     vk::ImageLayout layout = vk::ImageLayout::eUndefined;
+    vk::Format format;
 
 private:
     vk::Image _image = VK_NULL_HANDLE;
     vk::DeviceMemory _imageMemory = VK_NULL_HANDLE;
-    vk::Format _format;
     uint32_t _width = WIDTH;
     uint32_t _height = HEIGHT;
     uint32_t _mipLevels = 1;

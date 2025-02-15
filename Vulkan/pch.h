@@ -67,6 +67,8 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 #include "Scene.h"
 #include "Fence.h"
 #include "Semaphore.h"
+#include "Deferred.h"
+#include "PostProcessing.h"
 //TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
