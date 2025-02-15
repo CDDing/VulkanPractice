@@ -84,6 +84,7 @@ void Deferred::createRenderPass()
 	dependencies[1].dstAccessMask = vk::AccessFlagBits::eMemoryRead;
 	dependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion;
 
+
 	vk::RenderPassCreateInfo renderPassInfo = {};
 	renderPassInfo.pAttachments = attachmentDescription.data();
 	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescription.size());

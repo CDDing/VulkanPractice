@@ -164,6 +164,7 @@
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Fence.cpp" />
     <ClCompile Include="FileLoader.cpp" />
+    <ClCompile Include="Framebuffer.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="ImageView.cpp" />
     <ClCompile Include="GUI.cpp" />
@@ -214,6 +215,7 @@
     <ClInclude Include="Device.h" />
     <ClInclude Include="Fence.h" />
     <ClInclude Include="FileLoader.h" />
+    <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="ImageView.h" />
     <ClInclude Include="GUI.h" />

@@ -4,21 +4,24 @@ class RenderPass
 public:
 
 	RenderPass();
-	RenderPass(Device& device, vk::Format swapChainImageFormat, vk::Format DepthFormat);
+	RenderPass(std::shared_ptr<Device> device, vk::ArrayProxyNoTemporaries<vk::AttachmentDescription> attachments,vk::SubpassDescription subpass,vk::SubpassDependency dependency);
 	operator vk::RenderPass& () {
-		return _renderPass;
+		return renderPass;
 	}
 	operator VkRenderPass() {
-		return static_cast<VkRenderPass>(_renderPass);
+		return static_cast<VkRenderPass>(renderPass);
 	}
 	void operator=(vk::RenderPass renderPass) {
-		_renderPass = renderPass;
+		this->renderPass = renderPass;
 	}
 	vk::RenderPass* operator&() {
-		return &_renderPass;
+		return &renderPass;
+	}
+	void destroy() {
 	}
 
 private:
-	vk::RenderPass _renderPass;
+	vk::RenderPass renderPass;
+	std::shared_ptr<Device> device;
 };
 

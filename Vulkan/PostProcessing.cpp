@@ -78,7 +78,7 @@ void PostProcessing::createFramebuffers()
             swapChain->images[i].imageView,
             swapChain->depthImage.imageView
         };
-        vk::FramebufferCreateInfo framebufferInfo{};
+        vk::FramebufferCreateInfo framebufferInfo{ };
         framebufferInfo.setRenderPass(renderPass);
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
