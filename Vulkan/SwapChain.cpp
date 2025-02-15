@@ -195,53 +195,78 @@ void SwapChain::create(std::shared_ptr<Device> device)
     vk::Format metalnessFormat = vk::Format::eR8G8B8A8Unorm;
     vk::Format aoFormat = vk::Format::eR8G8B8A8Unorm;
     _deferredImages.resize(7);
-    _deferredImages[0] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-        1, positionFormat,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eColorAttachment| vk::ImageUsageFlagBits::eSampled
-        , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[1] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-        1, normalFormat,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
-        , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[2]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-        1, albedoFormat,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
-        , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[3]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-        1, roughnessFormat,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
-        , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[4]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-        1, metalnessFormat,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
-        , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-    _deferredImages[5]= ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-        1, aoFormat,
-        vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
-        , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
+	_deferredImages[0].image = Image(device, 
+        _swapChainExtent.width, _swapChainExtent.height, 1, positionFormat, 
+        vk::ImageTiling::eOptimal, 
+        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled, 
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
+	_deferredImages[0].imageView = ImageView(device, 
+        _deferredImages[0].image, 
+        positionFormat, 
+        vk::ImageAspectFlagBits::eColor, 1);
+    
+	_deferredImages[1].image = Image(device, 
+        _swapChainExtent.width, _swapChainExtent.height, 
+        1, normalFormat, vk::ImageTiling::eOptimal, 
+        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled, 
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
+	_deferredImages[1].imageView = ImageView(device,
+		_deferredImages[1].image,
+		normalFormat,
+		vk::ImageAspectFlagBits::eColor, 1);
+
+	_deferredImages[2].image = Image(device
+        , _swapChainExtent.width, _swapChainExtent.height,
+		1, albedoFormat,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
+		, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	_deferredImages[2].imageView = ImageView(device, 
+        _deferredImages[2].image, 
+        albedoFormat, 
+        vk::ImageAspectFlagBits::eColor, 1);
+
+	_deferredImages[3].image = Image(device,
+		_swapChainExtent.width, _swapChainExtent.height,
+		1, roughnessFormat,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
+		, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	_deferredImages[3].imageView = ImageView(device,
+		_deferredImages[3].image,
+		roughnessFormat,
+		vk::ImageAspectFlagBits::eColor, 1);
+
+	_deferredImages[4].image = Image(device,
+		_swapChainExtent.width, _swapChainExtent.height,
+		1, metalnessFormat,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
+		, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	_deferredImages[4].imageView = ImageView(device,
+		_deferredImages[4].image,
+		metalnessFormat,
+		vk::ImageAspectFlagBits::eColor, 1);
+
+	_deferredImages[5].image = Image(device,
+		_swapChainExtent.width, _swapChainExtent.height,
+		1, aoFormat,
+		vk::ImageTiling::eOptimal,
+		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled
+		, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	_deferredImages[5].imageView = ImageView(device,
+		_deferredImages[5].image,
+		aoFormat,
+		vk::ImageAspectFlagBits::eColor, 1);
 
     //이미지 뷰 만들기
     if (depthFormat >= vk::Format::eD16UnormS8Uint) {
-        _deferredImages[6] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-            1, depthFormat,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment| vk::ImageUsageFlagBits::eSampled
-            , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eDepth| vk::ImageAspectFlagBits::eStencil);
-        
+		_deferredImages[6].image = Image(device, _swapChainExtent.width, _swapChainExtent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+		_deferredImages[6].imageView = ImageView(device, _deferredImages[6].image, depthFormat, vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 1);
     }
     else {
-        _deferredImages[6] = ImageSet(device, _swapChainExtent.width, _swapChainExtent.height,
-            1, depthFormat,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
-            , vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eDepth);
-
+		_deferredImages[6].image = Image(device, _swapChainExtent.width, _swapChainExtent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+		_deferredImages[6].imageView = ImageView(device, _deferredImages[6].image, depthFormat, vk::ImageAspectFlagBits::eDepth, 1);
     }
 
     //렌더 패스 생성
@@ -319,13 +344,13 @@ void SwapChain::create(std::shared_ptr<Device> device)
     _deferredFramebuffers.resize(_swapChainImages.size());
     for (size_t i = 0; i < _swapChainImages.size(); i++) {
         std::array<vk::ImageView, 7> attachments = {
-            _deferredImages[0],
-            _deferredImages[1],
-            _deferredImages[2],
-            _deferredImages[3],
-            _deferredImages[4],
-            _deferredImages[5],
-            _deferredImages[6],
+            _deferredImages[0].imageView,
+            _deferredImages[1].imageView,
+            _deferredImages[2].imageView,
+            _deferredImages[3].imageView,
+            _deferredImages[4].imageView,
+            _deferredImages[5].imageView,
+            _deferredImages[6].imageView,
         };
         vk::FramebufferCreateInfo framebufferInfo{};
         framebufferInfo.renderPass = _deferredRenderPass.operator vk::RenderPass &();
@@ -343,14 +368,16 @@ void SwapChain::create(std::shared_ptr<Device> device)
 void SwapChain::destroy(std::shared_ptr<Device> device)
 {
     for (auto& image : _deferredImages) {
-        image.destroy(device);
+        image.image.destroy(device);
+		image.imageView.destroy(device);
     }
     for (auto& framebuffer : _deferredFramebuffers) {
         device->logical.destroyFramebuffer(framebuffer);
     }
 
     
-    _depthImage.destroy(device);
+    _depthImage.image.destroy(device);
+    _depthImage.imageView.destroy(device);
     for (size_t i = 0; i < _swapChainFramebuffers.size(); i++) {
         device->logical.destroyFramebuffer(_swapChainFramebuffers[i]);
     }

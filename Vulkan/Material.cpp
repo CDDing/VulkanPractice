@@ -24,7 +24,8 @@ Material::Material(std::shared_ptr<Device> device, std::vector<MaterialComponent
 void Material::destroy(std::shared_ptr<Device> device)
 {
 	for (auto& material : _materials) {
-        material.destroy(device);
+		material.image.destroy(device);
+		material.imageView.destroy(device);
 	}
 }
 
@@ -50,12 +51,13 @@ void Material::loadImage(std::shared_ptr<Device> device, const std::string& file
         throw std::runtime_error("failed to load texture image!");
     }
 
-    materialData = ImageSet(device,
+
+    materialData.image = Image(device,
         texWidth, texHeight, mipLevels, format,
         vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eTransferSrc| vk::ImageUsageFlagBits::eTransferDst| vk::ImageUsageFlagBits::eSampled,
-        vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vk::ImageAspectFlagBits::eColor);
+        vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
+	materialData.imageView = ImageView(device, materialData.image, format, vk::ImageAspectFlagBits::eColor, mipLevels);
 
     materialData.image.fillImage(device, pixels, imageSize);
     materialData.image.generateMipmaps(device);

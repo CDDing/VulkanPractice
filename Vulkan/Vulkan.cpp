@@ -595,7 +595,8 @@ private:
 	void cleanup() {
 		swapChain.destroy(device);
 		imgui.destroy();
-		Material::dummy.destroy(device);
+		Material::dummy.image.destroy(device);
+		Material::dummy.imageView.destroy(device);
 		Sampler::destroySamplers(*device);
 		CommandPool::TransientPool.~CommandPool();
 

@@ -16,12 +16,15 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
 		vkGetPhysicalDeviceProperties2(_device->GetPhysical(), &deviceProperties2);
 	}*/
-	_fontImage = ImageSet(_device, texWidth, texHeight, 1,
+	_fontImage.image = Image(_device, texWidth, texHeight, 1,
 		vk::Format::eR8G8B8A8Unorm,
 		vk::ImageTiling::eOptimal,
-		vk::ImageUsageFlagBits::eSampled| vk::ImageUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal,
-		vk::ImageAspectFlagBits::eColor);
+		vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal);
+	_fontImage.imageView = ImageView(_device,
+		_fontImage.image,
+		vk::Format::eR8G8B8A8Unorm,
+		vk::ImageAspectFlagBits::eColor, 1);
 
 	
 	_fontImage.image.fillImage(_device, fontData, uploadSize);
@@ -204,7 +207,8 @@ void GUI::destroy()
 	ImGui_ImplGlfw_Shutdown();
 	_vertexBuffer.destroy(_device);
 	_indexBuffer.destroy(_device);
-	_fontImage.destroy(_device);
+	_fontImage.image.destroy(_device);
+	_fontImage.imageView.destroy(_device);
 	_device->logical.destroyPipelineCache(_pipelineCache);
 	_device->logical.destroyPipeline(_pipeline);
 	_device->logical.destroyPipelineLayout(_pipelineLayout);
@@ -326,7 +330,7 @@ void GUI::initDescriptorSet()
 	vk::DescriptorImageInfo imageInfo{};
 	imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-	imageInfo.imageView = _fontImage;
+	imageInfo.imageView = _fontImage.imageView;
 
 	vk::WriteDescriptorSet descriptorWrite{};
 	descriptorWrite.dstSet = _descriptorSet;

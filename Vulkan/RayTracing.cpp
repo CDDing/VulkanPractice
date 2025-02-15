@@ -348,12 +348,16 @@ void RayTracing::createOutputImages()
 {
 	outputImages.resize(MAX_FRAMES_IN_FLIGHT);
 	for (auto& image : outputImages) {
-		image = ImageSet(_device, _swapChain->GetExtent().width, _swapChain->GetExtent().height,
+		image.image = Image(_device,
+			_swapChain->GetExtent().width, _swapChain->GetExtent().height,
 			1, _swapChain->GetImageFormat(),
 			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eTransferSrc| vk::ImageUsageFlagBits::eStorage,
-			vk::MemoryPropertyFlagBits::eDeviceLocal,
-			vk::ImageAspectFlagBits::eColor);
+			vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
+			vk::MemoryPropertyFlagBits::eDeviceLocal);
+		image.imageView = ImageView(_device,
+			image.image,
+			_swapChain->GetImageFormat(),
+			vk::ImageAspectFlagBits::eColor,1);
 
 		VkCommandBuffer cmdBuf = beginSingleTimeCommands(_device);
 		image.image.transitionLayout(_device, cmdBuf, vk::ImageLayout::eGeneral, vk::ImageAspectFlagBits::eColor);
@@ -400,7 +404,7 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 		accelerationStructureWrite.descriptorType = vk::DescriptorType::eAccelerationStructureKHR;
 
 		vk::DescriptorImageInfo storageImageDescriptor{};
-		storageImageDescriptor.imageView = outputImages[i];
+		storageImageDescriptor.imageView = outputImages[i].imageView;
 		storageImageDescriptor.imageLayout = vk::ImageLayout::eGeneral;
 
 		vk::DescriptorBufferInfo bufferInfo = uboBuffers[i].GetBufferInfo();
@@ -427,7 +431,7 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 		for (int i = 0; i < 3; i++) {
 			auto& imageInfo = imageInfos[i];
 			imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-			imageInfo.imageView = scene.skybox.material.Get(i);
+			imageInfo.imageView = scene.skybox.material.Get(i).imageView;
 			imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
 		}
 		vk::WriteDescriptorSet descriptorWriteForMap{};
@@ -441,7 +445,7 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 
 		vk::DescriptorImageInfo lutImageInfo{};
 		lutImageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-		lutImageInfo.imageView = scene.skybox.material.Get(3);
+		lutImageInfo.imageView = scene.skybox.material.Get(3).imageView;
 		lutImageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
 		imageInfos[3] = lutImageInfo;
 		vk::WriteDescriptorSet descriptorWriteForLut{};
@@ -472,7 +476,7 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 			for (int k = 0; k < materialCnt;k++) {
 				vk::DescriptorImageInfo imageInfo{};
 				imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-				imageInfo.imageView = model.material.Get(k);
+				imageInfo.imageView = model.material.Get(k).imageView;
 				imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
 				if (!model.material.hasComponent(k)) {
 					imageInfo.imageView = Material::dummy.imageView;
@@ -525,7 +529,8 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 void RayTracing::destroy()
 {
 	for (auto& image : outputImages) {
-		image.destroy(_device);
+		image.image.destroy(_device);
+		image.imageView.destroy(_device);
 	}
 
 	_device->logical.destroyPipeline(pipeline);

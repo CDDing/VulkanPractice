@@ -1,7 +1,6 @@
 #pragma once
 #include "Image.h"
 #include "ImageView.h"
-#include "ImageSet.h"
 class DescriptorSet;
 class Sampler;
 class SwapChain

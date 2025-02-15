@@ -14,3 +14,7 @@ private:
     vk::ImageView _imageView = VK_NULL_HANDLE;
 };
 
+struct ImageSet {
+    Image image;
+	ImageView imageView;
+};

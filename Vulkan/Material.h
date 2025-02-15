@@ -52,7 +52,9 @@ public:
 		ImageView imageView = ImageView(device, image, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor, mipLevels);
 		//materialData.sampler = Sampler::Get(SamplerMipMapType::Low);
 
-		ImageSet materialData(image,imageView);
+		ImageSet materialData;
+		materialData.image = image;
+		materialData.imageView = imageView;
 		return materialData;
 	}
 private:
