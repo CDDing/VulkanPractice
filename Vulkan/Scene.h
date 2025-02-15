@@ -2,7 +2,7 @@
 class Scene
 {
 public:
-	Model skybox;
+	Skybox skybox;
 	std::vector<Model> models;
 
 	void destroy(std::shared_ptr<Device> device);

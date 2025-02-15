@@ -182,6 +182,7 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Semaphore.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="Struct.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="SwapChain.cpp" />
@@ -226,6 +227,7 @@
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Semaphore.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="Skybox.h" />
     <ClInclude Include="Struct.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="SwapChain.h" />

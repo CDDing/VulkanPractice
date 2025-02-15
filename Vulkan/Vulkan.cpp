@@ -240,12 +240,13 @@ private:
 		}
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			for (auto& model : scene.models) {
-				model.InitDescriptorSet(device, model.material.descriptorSets[i]);
-				model.InitDescriptorSetForModelMatrix(device, model.descriptorSets[i]);
+				model.InitDescriptorSet(device);
+				model.InitDescriptorSetForModelMatrix(device);
 			}
 			
 			//스카이박스
-			scene.skybox.InitDescriptorSetForSkybox(device, scene.skybox.material.descriptorSets[i]);
+			scene.skybox.InitDescriptorSet(device);
+			
 			swapChain.InitDescriptorSetForGBuffer(device);
 			//카메라 행렬 유니폼 버퍼
 			vk::DescriptorBufferInfo bufferInfo;

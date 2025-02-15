@@ -22,9 +22,8 @@ public:
 	std::vector<Mesh> meshes;
 	Material material;
 	void InitUniformBuffer(std::shared_ptr<Device> device, glm::mat4 transform);
-	void InitDescriptorSet(std::shared_ptr<Device> device, DescriptorSet& descriptorSet);
-	void InitDescriptorSetForSkybox(std::shared_ptr<Device> device, DescriptorSet& descriptorSet);
-	void InitDescriptorSetForModelMatrix(std::shared_ptr<Device> device, DescriptorSet& desciprotrSet);
+	virtual void InitDescriptorSet(std::shared_ptr<Device> device);
+	void InitDescriptorSetForModelMatrix(std::shared_ptr<Device> device);
 	std::vector<DescriptorSet> descriptorSets;
 	void loadModel(std::shared_ptr<Device> device, const std::string& modelPath, const float& scale);
 	std::vector<Buffer> uniformBuffers;
@@ -42,4 +41,3 @@ Model makeBox(std::shared_ptr<Device> device, glm::mat4 transform, const std::ve
 void GenerateSphere(std::shared_ptr<Device> device, Model& model);
 void GenerateSquare(std::shared_ptr<Device> device, Model& model);
 void GenerateBox(std::shared_ptr<Device> device, Model& model);
-Model makeSkyBox(std::shared_ptr<Device> device);

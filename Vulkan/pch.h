@@ -60,6 +60,7 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 #include "Camera.h"
 #include "Material.h"
 #include "Model.h"
+#include "Skybox.h"
 #include "Mesh.h"
 #include "GUI.h"
 #include "RayTracing.h"
