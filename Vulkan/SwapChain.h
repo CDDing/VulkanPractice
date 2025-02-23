@@ -1,21 +1,22 @@
 #pragma once
 #include "Image.h"
-#include "ImageView.h"
 class DescriptorSet;
 class Sampler;
 class SwapChain
 {
 public:
-    SwapChain();
-    SwapChain(std::shared_ptr<Device> device, Surface& surface);
-    operator vk::SwapchainKHR& () {
+    SwapChain(Device& device, vk::raii::SurfaceKHR& surface);
+    operator vk::raii::SwapchainKHR& () {
         return swapChain;
     }
+	vk::raii::SwapchainKHR& Get() {
+		return swapChain;
+	}
 
-    void create(std::shared_ptr<Device> device);
+    void create(Device& device);
     void destroy(std::shared_ptr<Device> device);
 
-    static SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device,vk::SurfaceKHR surface) {
+    static SwapChainSupportDetails querySwapChainSupport(vk::raii::PhysicalDevice& device,vk::SurfaceKHR surface) {
         SwapChainSupportDetails details;
         details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
         details.formats = device.getSurfaceFormatsKHR(surface);
@@ -25,13 +26,14 @@ public:
 
 
 
-    RenderPass renderPass;
-    std::vector<ImageSet> images;
+    vk::raii::RenderPass renderPass;
+    std::vector<vk::raii::Image> images;
+	std::vector<vk::raii::ImageView> imageViews;
     vk::Format imageFormat;
     vk::Extent2D extent;
-    std::vector<vk::Framebuffer> framebuffers;
+    std::vector<vk::raii::Framebuffer> framebuffers;
     vk::Format depthFormat;
-    ImageSet depthImage;
+    DImage depthImage;
 
 private:
     vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
@@ -39,12 +41,11 @@ private:
     vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
 
-    std::shared_ptr<Device> device;
-    Surface* surface;
+    vk::raii::SurfaceKHR* surface;
     GLFWwindow* window;
 
     
-    vk::SwapchainKHR swapChain;
+    vk::raii::SwapchainKHR swapChain;
     
     
 

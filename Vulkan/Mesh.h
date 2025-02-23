@@ -2,19 +2,21 @@
 class Mesh
 {
 public:
-	Mesh() {};
-	Mesh(std::shared_ptr<Device> device, std::vector<Vertex> vertices, std::vector<unsigned int> indices);
-
-	void destroy(std::shared_ptr<Device> device);
+	Mesh(std::nullptr_t) : vertexBuffer(nullptr), indexBuffer(nullptr) {};
+	Mesh(Device& device, std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
+	Mesh(const Mesh&) = delete;
+	Mesh& operator=(const Mesh&) = delete;
+	Mesh(Mesh&&) noexcept = default;
+	Mesh& operator=(Mesh&&) noexcept = default;
 	void draw(VkCommandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet);
 
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 
-	Buffer vertexBuffer;
-	Buffer indexBuffer;
+	DBuffer vertexBuffer;
+	DBuffer indexBuffer;
 private:
-	void createIndexBuffer(std::shared_ptr<Device> device);
-    void createVertexBuffer(std::shared_ptr<Device> device);
+	void createIndexBuffer(Device& device);
+    void createVertexBuffer(Device& device);
 };
 

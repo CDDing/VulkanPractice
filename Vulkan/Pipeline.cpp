@@ -1,14 +1,12 @@
 #include "pch.h"
 #include "Pipeline.h"
 
-Pipeline::Pipeline()
-{
-}
 
-Pipeline::Pipeline(std::shared_ptr<Device> device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
+Pipeline::Pipeline(Device& device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, vk::raii::RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
+	: pipeline(nullptr), pipelineLayout(nullptr)
 {
-    Shader vertShaderModule = Shader(device, vsShaderPath);
-    Shader fragShaderModule = Shader(device, psShaderPath);
+    vk::raii::ShaderModule vertShaderModule = createShader(device, vsShaderPath);
+    vk::raii::ShaderModule fragShaderModule = createShader(device, psShaderPath);
 
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ {},
         vk::ShaderStageFlagBits::eVertex,vertShaderModule,"main"};
@@ -141,7 +139,7 @@ Pipeline::Pipeline(std::shared_ptr<Device> device, vk::Extent2D& swapChainExtent
 
     //
 
-    _pipelineLayout = device->logical.createPipelineLayout(pipelineLayoutInfo);
+    pipelineLayout = device.logical.createPipelineLayout(pipelineLayoutInfo);
     
 
     vk::GraphicsPipelineCreateInfo pipelineInfo{};
@@ -155,13 +153,12 @@ Pipeline::Pipeline(std::shared_ptr<Device> device, vk::Extent2D& swapChainExtent
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = _pipelineLayout;
-    pipelineInfo.renderPass = renderPass.operator vk::RenderPass &();
+    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
     
-    vk::Result   result;
-    std::tie(result,_pipeline) = device->logical.createGraphicsPipeline(VK_NULL_HANDLE, pipelineInfo);
+	pipeline = vk::raii::Pipeline(device, nullptr, pipelineInfo);
     
 }

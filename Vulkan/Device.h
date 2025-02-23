@@ -7,23 +7,21 @@ public:
         PRESENT,
         END
     };
-    Device();
-    Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface);
-    ~Device();
+    Device(Instance& instance, vk::raii::SurfaceKHR& surface);
 
-    operator vk::Device& () {
+    operator vk::raii::Device& () {
         return logical;
     }
-    operator vk::PhysicalDevice& () {
+    operator vk::raii::PhysicalDevice& () {
         return physical;
     }
     vk::Queue& GetQueue(int type) { return _queues[type]; }
-    vk::PhysicalDevice physical = VK_NULL_HANDLE;
-    vk::Device logical;
+    vk::raii::PhysicalDevice physical = VK_NULL_HANDLE;
+    vk::raii::Device logical;
 private:
-    void pickPhysicalDevice(vk::Instance& instance, vk::SurfaceKHR& surface);
-    void createLogicalDevice(vk::SurfaceKHR& surface);
-    bool isDeviceSuitable(vk::PhysicalDevice device,vk::SurfaceKHR& surface);
+    void pickPhysicalDevice(Instance& instance, vk::raii::SurfaceKHR& surface);
+    void createLogicalDevice(vk::raii::SurfaceKHR& surface);
+    bool isDeviceSuitable(vk::raii::PhysicalDevice device, vk::raii::SurfaceKHR& surface);
     bool checkDeviceExtensionSupport(vk::PhysicalDevice device) {
         return true;
     }
@@ -32,22 +30,18 @@ private:
 
 };
 
-static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR& surface) {
+static QueueFamilyIndices findQueueFamilies(vk::raii::PhysicalDevice& device, vk::SurfaceKHR surface) {
     QueueFamilyIndices indices;
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
+    
+    std::vector<vk::QueueFamilyProperties> queueFamilies =
+        device.getQueueFamilyProperties();;
+    
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
         if (queueFamily.queueFlags && VK_QUEUE_GRAPHICS_BIT) {
             indices.graphicsFamily = i;
         }
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        VkBool32 presentSupport = device.getSurfaceSupportKHR(i, surface);
         if (presentSupport) {
             indices.presentFamily = i;
         }

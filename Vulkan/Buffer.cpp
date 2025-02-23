@@ -1,72 +1,30 @@
 #include "pch.h"
 #include "Buffer.h"
 
-Buffer::Buffer()
+void DBuffer::unmap(Device& device)
 {
-}
-
-Buffer::Buffer(std::shared_ptr<Device> device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
-{
-    vk::BufferCreateInfo bufferInfo{ {},size, usage,vk::SharingMode::eExclusive};
-
-    _buffer = device->logical.createBuffer(bufferInfo);
-
-    vk::MemoryRequirements memRequirements = device->logical.getBufferMemoryRequirements(_buffer);
-
-    vk::MemoryAllocateInfo allocInfo{ memRequirements.size,findMemoryType(*device,
-        memRequirements.memoryTypeBits,properties)};
-    vk::MemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
-    if (usage & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
-        memoryAllocateFlagsInfo.flags = vk::MemoryAllocateFlagBits::eDeviceAddress;
-
-        allocInfo.pNext = &memoryAllocateFlagsInfo;
-    }
-
-    _memory = device->logical.allocateMemory(allocInfo);
-
-    device->logical.bindBufferMemory(_buffer, _memory,0);
-}
-
-void Buffer::unmap(std::shared_ptr<Device> device)
-{
-
     if (mapped)
     {
-        device->logical.unmapMemory(_memory);
+        memory.unmapMemory();
         mapped = nullptr;
     }
 }
 
-void Buffer::map(std::shared_ptr<Device> device,vk::DeviceSize size, vk::DeviceSize offset)
+void DBuffer::map(Device& device, vk::DeviceSize size, vk::DeviceSize offset)
 {
-    this->size = size;
-    mapped = device->logical.mapMemory(_memory, offset, size);
+    mapped = memory.mapMemory(offset, size);
 }
 
-void Buffer::destroy(std::shared_ptr<Device> device)
+void DBuffer::flush(Device& device, vk::DeviceSize size, vk::DeviceSize offset)
 {
-    if (_buffer)
-    {
-        device->logical.destroyBuffer(_buffer);
-    }
-    if (_memory)
-    {
-        device->logical.freeMemory(_memory);
-    }
+
+    vk::MappedMemoryRange mappedRange = { memory,offset,size };
+    device.logical.flushMappedMemoryRanges(mappedRange);
 }
 
-void Buffer::flush(std::shared_ptr<Device> device, vk::DeviceSize size, vk::DeviceSize offset)
+void DBuffer::fillBuffer(Device& device, void* data, vk::DeviceSize size)
 {
-    
-    vk::MappedMemoryRange mappedRange = { _memory,offset,size };
-    device->logical.flushMappedMemoryRanges(mappedRange);
-}
-
-void Buffer::fillBuffer(std::shared_ptr<Device> device, void* data, vk::DeviceSize size)
-{
-    Buffer stagingBuffer;
-
-    stagingBuffer = Buffer(device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
+    DBuffer stagingBuffer(device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
     stagingBuffer.map(device, size);
     memcpy(stagingBuffer.mapped, data, static_cast<size_t>(size));
@@ -74,12 +32,11 @@ void Buffer::fillBuffer(std::shared_ptr<Device> device, void* data, vk::DeviceSi
 
     copyBuffer(device, stagingBuffer, *this, size);
 
-    stagingBuffer.destroy(device);
     this->size = size;
 }
 
-vk::DescriptorBufferInfo Buffer::GetBufferInfo()
+vk::DescriptorBufferInfo DBuffer::GetBufferInfo()
 {
-    vk::DescriptorBufferInfo descriptor{_buffer, 0, size};
+    vk::DescriptorBufferInfo descriptor{ buffer, 0, size };
     return descriptor;
 }

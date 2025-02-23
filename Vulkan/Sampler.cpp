@@ -1,11 +1,8 @@
 #include "pch.h"
 #include "Sampler.h"
-std::vector<Sampler> Sampler::samplers = {};
-Sampler::Sampler()
-{
-}
+std::vector<vk::raii::Sampler> Sampler::samplers = {};
 
-Sampler::Sampler(Device& device, SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType)
+vk::raii::Sampler createSampler(Device& device, SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType)
 {
     vk::SamplerCreateInfo samplerInfo{};
     samplerInfo.anisotropyEnable = VK_TRUE;
@@ -20,5 +17,7 @@ Sampler::Sampler(Device& device, SamplerMipMapType mipmapType, SamplerModeType m
     samplerInfo.compareEnable = vk::False;
     samplerInfo.compareOp = vk::CompareOp::eAlways;
 
-    _sampler = device.logical.createSampler(samplerInfo);
+    auto sampler = device.logical.createSampler(samplerInfo);
+
+    return sampler;
 }

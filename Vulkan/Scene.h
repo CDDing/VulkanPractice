@@ -2,9 +2,14 @@
 class Scene
 {
 public:
-	Skybox skybox;
-	std::vector<Model> models;
+	Scene(std::nullptr_t) : skybox(nullptr) {};
+	Scene(const Scene&) = delete;
+	Scene& operator=(const Scene&) = delete;
 
-	void destroy(std::shared_ptr<Device> device);
+	Scene(Scene&&) = default;
+	Scene& operator=(Scene&&) = default;
+	Skybox skybox;
+	std::vector<Model> models = {};
+
 };
 

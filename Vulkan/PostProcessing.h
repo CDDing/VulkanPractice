@@ -2,18 +2,15 @@
 class PostProcessing
 {
 public:
-    PostProcessing() {};
-	PostProcessing(std::shared_ptr<Device> device, SwapChain& swapChain);
-    void destroy();
-
-    RenderPass renderPass;
-    std::vector<vk::Framebuffer> framebuffers;
+    PostProcessing(Device& device, SwapChain& swapChain);
+    
+    vk::raii::RenderPass renderPass;
+    std::vector<vk::raii::Framebuffer> framebuffers;
 
 private:
-	void createRenderPass();
-	void createFramebuffers();
+	void createRenderPass(Device& device);
+	void createFramebuffers(Device& device);
 
 	SwapChain* swapChain;
-    std::shared_ptr<Device> device;
 };
 

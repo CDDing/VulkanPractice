@@ -1,22 +1,14 @@
 #include "pch.h"
 #include "PostProcessing.h"
 
-PostProcessing::PostProcessing(std::shared_ptr<Device> device, SwapChain& swapChain) : device(device), swapChain(&swapChain)
+PostProcessing::PostProcessing(Device& device, SwapChain& swapChain) : swapChain(&swapChain),
+renderPass(nullptr)
 {
-	createRenderPass();
-	createFramebuffers();
+	createRenderPass(device);
+	createFramebuffers(device);
 }
 
-void PostProcessing::destroy()
-{
-    device->logical.destroyRenderPass(renderPass);
-    for (auto& framebuffer : framebuffers) {
-        device->logical.destroyFramebuffer(framebuffer);
-    }
-
-}
-
-void PostProcessing::createRenderPass()
+void PostProcessing::createRenderPass(Device& device)
 {
 
     vk::AttachmentDescription colorAttachment{};
@@ -30,7 +22,7 @@ void PostProcessing::createRenderPass()
     colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
     vk::AttachmentDescription depthAttachment{};
-    depthAttachment.format = findDepthFormat(*device);
+    depthAttachment.format = findDepthFormat(device);
     depthAttachment.samples = vk::SampleCountFlagBits::e1;
     depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
     depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
@@ -66,27 +58,25 @@ void PostProcessing::createRenderPass()
         {},attachments,{postsubpass},{postdependency}
     };
 
-    renderPass = device->logical.createRenderPass(postrenderPassInfo);
+    renderPass = device.logical.createRenderPass(postrenderPassInfo);
 }
 
-void PostProcessing::createFramebuffers()
+void PostProcessing::createFramebuffers(Device& device)
 {
-
-    framebuffers.resize(swapChain->images.size());
+	framebuffers.reserve(swapChain->images.size());
     for (size_t i = 0; i < swapChain->images.size(); i++) {
         std::array<vk::ImageView, 2> attachments = {
-            swapChain->images[i].imageView,
-            swapChain->depthImage.imageView
+            swapChain->imageViews[i],
+            swapChain->depthImage.view
         };
         vk::FramebufferCreateInfo framebufferInfo{ };
         framebufferInfo.setRenderPass(renderPass);
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
+        framebufferInfo.setAttachments(attachments);
         framebufferInfo.width = swapChain->extent.width;
         framebufferInfo.height = swapChain->extent.height;
         framebufferInfo.layers = 1;
 
 
-        framebuffers[i] = device->logical.createFramebuffer(framebufferInfo);
+        framebuffers.emplace_back(device,framebufferInfo,nullptr);
     }
 }

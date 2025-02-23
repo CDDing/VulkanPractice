@@ -4,13 +4,21 @@ class RayTracing
 {
 
 public:
-	void init(std::shared_ptr<Device> device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain, Scene& scene,std::vector<Buffer>& guiBuffers);
-	void destroy();
-	void recordCommandBuffer(vk::CommandBuffer commandBuffer, int currentFrame,uint32_t imageIndex);
+	RayTracing(std::nullptr_t) : 
+		descriptorPool(nullptr), 
+		pipeline(nullptr), 
+		pipelineLayout(nullptr),
+		descriptorSetLayout(nullptr),
+		raygenShaderBindingTable(nullptr),
+		missShaderBindingTable(nullptr),
+		hitShaderBindingTable(nullptr)
+	{};
+	RayTracing(Device& device, SwapChain& swapChain, Scene& scene, std::vector<DBuffer>& uboBuffers, std::vector<DBuffer>& guiBuffers);
+	void recordCommandBuffer(Device& device, vk::raii::CommandBuffer& commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
-		VkAccelerationStructureKHR handle;
+		vk::raii::AccelerationStructureKHR handle;
 		uint64_t deviceAddress;
-		Buffer buffer;
+		DBuffer buffer;
 	};
 	struct GeometryNode {
 		uint64_t vertexBufferAddress;
@@ -19,33 +27,22 @@ public:
 
 	std::vector<std::vector<AccelerationStructure>> BLASs{};
 	std::vector<AccelerationStructure> TLASs{};
-	DescriptorSetLayout descriptorSetLayout;
-	std::vector<DescriptorSet> descriptorSets;
-	std::shared_ptr<DescriptorPool> descriptorPool;
-	vk::PipelineLayout pipelineLayout;
+	std::vector<DBuffer> geometryNodeBuffers;
+	std::vector<vk::raii::DescriptorSet> descriptorSets;
+	vk::raii::DescriptorSetLayout descriptorSetLayout;
+	vk::raii::DescriptorPool descriptorPool;
+	vk::raii::PipelineLayout pipelineLayout;
 
-	std::vector<Buffer> geometryNodeBuffers;
 private:
-	std::shared_ptr<Device> device;
-	void createTlas(std::vector<Model>& models);
-	void createBlas(std::vector<Model>& models);
-	void createSBT();
-	void createRTPipeline();
-	void createOutputImages();
-	void createDescriptorSets(std::vector<Buffer>& uboBuffers,std::vector<Buffer>& guiBuffers, Scene& scene);
-	void loadFunctions();
+	void createTlas(Device& device, std::vector<Model>& models);
+	void createBlas(Device& device, std::vector<Model>& models);
+	void createSBT(Device& device);
+	void createRTPipeline(Device& device);
+	void createOutputImages(Device& device);
+	void createDescriptorSets(Device& device, Scene& scene, std::vector<DBuffer>& uboBuffers,std::vector<DBuffer>& guiBuffers);
+	void loadFunctions(Device& device);
 	
-	vk::PhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
-	vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
-	std::vector<vk::RayTracingShaderGroupCreateInfoKHR> shaderGroups{};
-	vk::Pipeline pipeline;
-	Buffer raygenShaderBindingTable;
-	Buffer missShaderBindingTable;
-	std::vector<ImageSet> outputImages;
-	Buffer hitShaderBindingTable;
-	SwapChain* swapChain;
-	
-	uint64_t getBufferDeviceAddress(Buffer& buffer);
+	uint64_t getBufferDeviceAddress(Device& device, vk::raii::Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
 	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
@@ -56,5 +53,17 @@ private:
 	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
 	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
 	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
+
+
+
+	vk::PhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
+	vk::PhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
+	std::vector<vk::RayTracingShaderGroupCreateInfoKHR> shaderGroups{};
+	DBuffer raygenShaderBindingTable;
+	DBuffer missShaderBindingTable;
+	DBuffer hitShaderBindingTable;
+	SwapChain* swapChain;
+	vk::raii::Pipeline pipeline;
+	std::vector<DImage> outputImages;
 };
 

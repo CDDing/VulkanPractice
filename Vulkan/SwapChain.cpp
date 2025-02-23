@@ -1,17 +1,16 @@
 #include "pch.h"
 #include "SwapChain.h"
 
-SwapChain::SwapChain()
-{
-}
 
-SwapChain::SwapChain(std::shared_ptr<Device> device,Surface& surface) : device(device), surface(&surface)
+SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface) : surface(&surface), swapChain(nullptr),
+    depthImage(nullptr), renderPass(nullptr)
 {
     create(device);
 }
-void SwapChain::create(std::shared_ptr<Device> device)
+void SwapChain::create(Device& device)
 {
-    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(*device, *surface);
+    vk::raii::PhysicalDevice d(nullptr);
+    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(d, *surface);
 
     vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -32,7 +31,7 @@ void SwapChain::create(std::shared_ptr<Device> device)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage| vk::ImageUsageFlagBits::eTransferDst;
 
-    QueueFamilyIndices indices = findQueueFamilies(*device, *surface);
+    QueueFamilyIndices indices = findQueueFamilies(device, *surface);
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily) {
@@ -52,12 +51,11 @@ void SwapChain::create(std::shared_ptr<Device> device)
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    swapChain = device->logical.createSwapchainKHR(createInfo);
+    swapChain = device.logical.createSwapchainKHR(createInfo);
     
-    std::vector<vk::Image> temp = device->logical.getSwapchainImagesKHR(swapChain);
-    images.resize(imageCount);
+    std::vector<vk::Image> temp = swapChain.getImages();;
     for (int i = 0; i < imageCount;i++) {
-        images[i].image = temp[i];
+        images.push_back(vk::raii::Image(device.logical,temp[i]));
     }
 
 
@@ -65,17 +63,26 @@ void SwapChain::create(std::shared_ptr<Device> device)
     this->extent = extent;
 
     for (size_t i = 0; i < images.size(); i++) {
-        images[i].imageView = ImageView(device, images[i].image, imageFormat, vk::ImageAspectFlagBits::eColor, 1);
+        vk::ImageViewCreateInfo createInfo{};
+		createInfo.image = images[i];
+		createInfo.viewType = vk::ImageViewType::e2D;
+		createInfo.format = imageFormat;
+		createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+        imageViews[i] = vk::raii::ImageView(device, createInfo);
     }
 
     //Depth
-    vk::Format depthFormat = findDepthFormat(*device);
-    depthImage.image = Image(device, extent.width, this->extent.height, 1, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    depthImage.imageView = ImageView(device, depthImage.image, depthFormat, vk::ImageAspectFlagBits::eDepth, 1);
+    vk::Format depthFormat = findDepthFormat(device);
 
-    vk::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
-    depthImage.image.transitionLayout(device,cmdBuf, vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageAspectFlagBits::eDepth);
-    endSingleTimeCommands(device, cmdBuf);
+	depthImage = DImage(device, 1, depthFormat, extent, vk::ImageTiling::eOptimal, 
+        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        vk::MemoryPropertyFlagBits::eDeviceLocal, 
+        vk::ImageAspectFlagBits::eDepth);
 
     vk::AttachmentDescription colorAttachment{};
     colorAttachment.format = imageFormat;
@@ -111,33 +118,36 @@ void SwapChain::create(std::shared_ptr<Device> device)
     subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    VkSubpassDependency dependency{};
+    vk::SubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput| vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.srcAccessMask = {};
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput| vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 
     std::vector<vk::AttachmentDescription> attachments = { colorAttachment,depthAttachment };
-
-    renderPass = RenderPass(device, attachments, subpass,dependency);
+    vk::RenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.setAttachments(attachments);
+    renderPassInfo.setSubpasses(subpass);
+	renderPassInfo.setDependencies(dependency);
+    renderPass = vk::raii::RenderPass(device, renderPassInfo);
     
-    framebuffers.resize(images.size());
+    framebuffers.reserve(images.size());
     for (size_t i = 0; i < images.size(); i++) {
         std::array<vk::ImageView, 2> attachments = {
-            images[i].imageView,
-            depthImage.imageView
+            imageViews[i],
+            depthImage.view
         };
         vk::FramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.renderPass = renderPass.operator vk::RenderPass &();
+        framebufferInfo.renderPass = renderPass;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = this->extent.width;
         framebufferInfo.height = this->extent.height;
         framebufferInfo.layers = 1;
 
-        framebuffers[i] = device->logical.createFramebuffer(framebufferInfo);
+        framebuffers.emplace_back(device,framebufferInfo,nullptr);
     }
 
 }
@@ -146,18 +156,18 @@ void SwapChain::destroy(std::shared_ptr<Device> device)
 {
 
     
-    depthImage.image.destroy(device);
-    depthImage.imageView.destroy(device);
-    for (size_t i = 0; i < framebuffers.size(); i++) {
-        device->logical.destroyFramebuffer(framebuffers[i]);
-    }
+    //depthImage.image.destroy(device);
+    //depthImage.view.destroy(device);
+    //for (size_t i = 0; i < framebuffers.size(); i++) {
+    //    device->logical.destroyFramebuffer(framebuffers[i]);
+    //}
 
-    for (auto& image : images) {
-        image.imageView.destroy(device);
-    }
-    device->logical.destroySwapchainKHR(swapChain);
+    //for (auto& image : images) {
+    //    image.imageView.destroy(device);
+    //}
+    //device->logical.destroySwapchainKHR(swapChain);
 
-    device->logical.destroyRenderPass(renderPass);
+    //device->logical.destroyRenderPass(renderPass);
 }
 
 

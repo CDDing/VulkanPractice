@@ -2,7 +2,7 @@
 
 #include <DirectXTex.h>
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -43,20 +43,14 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 #include "Device.h"
 #include "CommandPool.h"
 #include "VL.h"
-#include "RenderPass.h"
 #include "Sampler.h"
 #include "SwapChain.h"
 #include "Buffer.h"
 #include "Image.h"
-#include "ImageView.h"
-#include "Fence.h"
-#include "Semaphore.h"
 #include "FileLoader.h"
-#include "Shader.h"
 #include "Pipeline.h"
-#include "DescriptorPool.h"
-#include "DescriptorSet.h"
 #include "DescriptorSetLayout.h"
+#include "Shader.h"
 #include "Camera.h"
 #include "Material.h"
 #include "Model.h"
@@ -65,8 +59,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 #include "GUI.h"
 #include "RayTracing.h"
 #include "Scene.h"
-#include "Fence.h"
-#include "Semaphore.h"
 #include "Deferred.h"
 #include "PostProcessing.h"
 //TODO 상수값들 위치 수정

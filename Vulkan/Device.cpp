@@ -1,23 +1,31 @@
 #include "pch.h"
 #include "Device.h"
-Device::Device() {
-
-}
 
 //Setup with Vulkan Physical and Logical Device
-Device::Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface)
+Device::Device(Instance& instance, vk::raii::SurfaceKHR& surface) : logical(VK_NULL_HANDLE), physical(VK_NULL_HANDLE)
 {
 
 
-    pickPhysicalDevice(*instance,*surface);
-    createLogicalDevice(*surface);
+    pickPhysicalDevice(instance,surface);
+    createLogicalDevice(surface);
 
+    Sampler::init(*this);
+
+    std::array<vk::DescriptorPoolSize, 2> poolSizes{};
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+    vk::DescriptorPoolCreateInfo poolInfo{ {/*Flags*/},
+        static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100 ,poolSizes };
+
+    DescriptorSetLayout::Init(*this);
+    DescriptorPool::Pool = vk::raii::DescriptorPool(logical, poolInfo);
+    Material::dummy = Material::GetDefaultMaterial(*this);
 }
 
-void Device::pickPhysicalDevice(vk::Instance& instance,vk::SurfaceKHR& surface)
+void Device::pickPhysicalDevice(Instance& instance, vk::raii::SurfaceKHR& surface)
 {
-    uint32_t deviceCount = 0;
-    auto devices = instance.enumeratePhysicalDevices();
+    vk::raii::PhysicalDevices devices(instance);
     
     for (const auto& device : devices) {
         if (isDeviceSuitable(device,surface)) {
@@ -31,7 +39,7 @@ void Device::pickPhysicalDevice(vk::Instance& instance,vk::SurfaceKHR& surface)
     }
 }
 
-void Device::createLogicalDevice(vk::SurfaceKHR& surface)
+void Device::createLogicalDevice(vk::raii::SurfaceKHR& surface)
 {
     QueueFamilyIndices indices = findQueueFamilies(physical,surface);
 
@@ -76,7 +84,7 @@ void Device::createLogicalDevice(vk::SurfaceKHR& surface)
     createInfo.pNext = &deviceFeatures;
 
     logical = physical.createDevice(createInfo);
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(logical);
+    //VULKAN_HPP_DEFAULT_DISPATCHER.init(logical);
     
     for (int i = 0; i < QueueType::END; i++) {
         vk::Queue q;
@@ -87,7 +95,7 @@ void Device::createLogicalDevice(vk::SurfaceKHR& surface)
     GetQueue(QueueType::PRESENT) = logical.getQueue(indices.presentFamily.value(), 0);
 }
 
-bool Device::isDeviceSuitable(vk::PhysicalDevice device,vk::SurfaceKHR& surface)
+bool Device::isDeviceSuitable(vk::raii::PhysicalDevice device, vk::raii::SurfaceKHR& surface)
 {
     QueueFamilyIndices indices = findQueueFamilies(device,surface);
 
@@ -101,7 +109,4 @@ bool Device::isDeviceSuitable(vk::PhysicalDevice device,vk::SurfaceKHR& surface)
 
     vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
     return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
-Device::~Device() {
-    logical.destroy();
 }

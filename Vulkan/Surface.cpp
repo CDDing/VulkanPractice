@@ -1,19 +1,10 @@
 #include "pch.h"
 #include "Surface.h"
-
-Surface::Surface()
+vk::raii::SurfaceKHR createSurface(Instance& instance, GLFWwindow* window)
 {
-}
-
-Surface::Surface(std::shared_ptr<Instance> instance,GLFWwindow* window)
-{
-    if (glfwCreateWindowSurface(instance->Get(), window, nullptr, (VkSurfaceKHR*)&_surface) != VK_SUCCESS) {
+	vk::raii::SurfaceKHR surface(nullptr);
+    if (glfwCreateWindowSurface(*instance.Get(), window, nullptr, (VkSurfaceKHR*)&surface) != VK_SUCCESS) {
         throw std::runtime_error("failed to create window surface!");
     }
-    _instance = &instance->Get();
-}
-
-Surface::~Surface()
-{
-    _instance->destroySurfaceKHR(_surface);
+    return surface;
 }

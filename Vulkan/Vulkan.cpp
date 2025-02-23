@@ -1,41 +1,203 @@
 ﻿#include "pch.h"
+vk::raii::CommandPool createCommandPool(Device& device, QueueFamilyIndices queueFamilyIndices) {
+
+	//QueueFamilyIndices queueFamilyIndices = findQueueFamilies(device, surface);
+	if (CommandPool::TransientPool == VK_NULL_HANDLE) {
+		vk::CommandPoolCreateInfo poolInfo{ vk::CommandPoolCreateFlagBits::eTransient,
+	queueFamilyIndices.graphicsFamily.value() };
+		CommandPool::TransientPool = device.logical.createCommandPool(poolInfo);
+
+	}
+
+	vk::CommandPoolCreateInfo poolInfo{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+	queueFamilyIndices.graphicsFamily.value() };
+
+	return device.logical.createCommandPool(poolInfo);
+}
+//Scene createScene(Device& device) {
+//	Scene scene(nullptr);
+//	scene.models.push_back(Model(device, {},
+//		BaseModel::Square,
+//		{},
+//		glm::translate(glm::mat4(30.0f), glm::vec3(0, -2.f / 30.f, 0))));
+//	scene.models.push_back(Model(device, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
+//		"Resources/models/vk2vcdl/vk2vcdl.fbx",
+//		{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
+//		"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
+//		"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
+//		"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
+//		glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(1.5, 0, 2)), glm::radians(45.0f), glm::vec3(-2, 3, 1))));
+//	scene.models.push_back(Model(device, {},
+//		BaseModel::Sphere,
+//		{},
+//		glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f))));
+//	scene.skybox = Skybox(device);
+//	return scene;
+//}
+
+template<typename T>
+std::vector<DBuffer> createDBuffer(Device& device) {
+	std::vector<DBuffer> result;
+
+	VkDeviceSize bufferSize = sizeof(T);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		result.push_back(DBuffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent));
+		result[i].map(device, bufferSize, 0);
+
+	}
+	return result;
+}
+std::vector<vk::raii::Semaphore> createSemaphores(Device& device) {
+	std::vector<vk::raii::Semaphore> result;
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		vk::SemaphoreCreateInfo semaphoreInfo{};
+		result.push_back(device.logical.createSemaphore(semaphoreInfo));
+	}
+	return result;
+}
+std::vector<vk::raii::Fence> createFences(Device& device) {
+	std::vector<vk::raii::Fence> result;
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		vk::FenceCreateInfo fenceInfo{};
+		fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+		result.push_back(device.logical.createFence(fenceInfo));
+	}
+	return result;
+}
+template<typename T>
+std::vector<vk::raii::DescriptorSet> createSets(Device& device, std::vector<DBuffer>& buffers) {
+	std::vector<vk::raii::DescriptorSet> result;
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool ,*DescriptorSetLayout::Get(DescriptorType::VP) };
+		result.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+
+		vk::DescriptorBufferInfo bufferInfo;
+		bufferInfo.buffer = buffers[i].buffer;
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(T);
+
+		vk::WriteDescriptorSet descriptorWrite{};
+		descriptorWrite.dstSet = result[i];
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		device.logical.updateDescriptorSets(descriptorWrite, nullptr);
+
+	}
+
+	return result;
+}
+std::vector<Pipeline> createPipelines(Device& device,SwapChain& swapChain, Deferred& deferred) {
+	std::vector<Pipeline> result;
+
+	std::vector<std::vector<vk::DescriptorSetLayout>> descriptorSetLayoutList;
+	descriptorSetLayoutList = {
+		//기본 셰이더
+		{
+			*DescriptorSetLayout::Get(0),
+			*DescriptorSetLayout::Get(1),
+			*DescriptorSetLayout::Get(4),
+			},
+			//스카이박스 셰이더
+			{
+				*DescriptorSetLayout::Get(0),
+			*DescriptorSetLayout::Get(1)
+			},
+		//디퍼드 셰이더
+			{
+				*DescriptorSetLayout::Get(0),
+				*DescriptorSetLayout::Get(2),
+			*DescriptorSetLayout::Get(3),
+			*DescriptorSetLayout::Get(0)}
+			};
+
+	result.push_back(Pipeline(device,
+		swapChain.extent,
+		descriptorSetLayoutList,
+		swapChain.renderPass,
+		"shaders/shader.vert.spv",
+		"shaders/shader.frag.spv",
+		ShaderType::DEFAULT));
+
+	result.push_back(Pipeline(device,
+		swapChain.extent,
+		descriptorSetLayoutList,
+		swapChain.renderPass,
+		"shaders/skybox.vert.spv",
+		"shaders/skybox.frag.spv",
+		ShaderType::SKYBOX));
+
+	result.push_back(Pipeline(device,
+		swapChain.extent,
+		descriptorSetLayoutList,
+		deferred.renderPass,
+		"shaders/deferred.vert.spv",
+		"shaders/deferred.frag.spv",
+		ShaderType::DEFERRED));
+
+	return result;
+}
 class VulkanApp {
 public:
+	VulkanApp() :
+		instance("DDing"), window(initWindow()),
+		surface(createSurface(instance, window)), device(instance, surface),
+		swapChain(device, surface), 
+		deferred(device, swapChain), 
+		pp(device, swapChain),
+		commandPool(createCommandPool(device, findQueueFamilies(device, surface))),
+		imgui(device, window, instance, swapChain.renderPass),
+		//scene(std::move(createScene(device))),
+		uniformBuffers(std::move(createDBuffer<UniformBufferObject>(device))),
+		GUIBuffers(std::move(createDBuffer<GUIControl>(device))),
+		uboDescriptorSets(createSets<UniformBufferObject>(device,uniformBuffers)),
+		GUIDescriptorSets(createSets<GUIControl>(device,GUIBuffers)),
+		pipelines(createPipelines(device, swapChain, deferred)),
+		//rt(device, swapChain, scene, uniformBuffers, GUIBuffers),
+		scene(nullptr),rt(nullptr),
+
+		imageAvailableSemaphores(createSemaphores(device)),
+		renderFinishedSemaphores(createSemaphores(device)),
+		inFlightFences(createFences(device))
+
+	{
+
+		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::ePrimary,1 };
+			commandBuffers.push_back(std::move(vk::raii::CommandBuffers(device, allocInfo).front()));
+		}
+	}
 	void run() {
-		initWindow();
-		initVulkan();
 		mainLoop();
 		cleanup();
 	}
 private:
-	std::shared_ptr<Instance> instance;
-	std::shared_ptr<Surface> surface;
-	std::shared_ptr<Device> device;
-	std::shared_ptr<DescriptorPool> descriptorPool;
-	std::shared_ptr<CommandPool> commandPool;
+	Instance instance;
+	vk::raii::SurfaceKHR surface;
+	Device device;
+	vk::raii::CommandPool commandPool;
 
 	GUI imgui;
-	std::vector<vk::CommandBuffer> commandBuffers;
-	std::vector<Buffer> uniformBuffers;
-	std::vector<void*> uniformBuffersMapped;
-
-	std::vector<Buffer> GUIBuffers;
-	std::vector<void*> GUIBuffersMapped;
+	std::vector<vk::raii::CommandBuffer> commandBuffers;
+	std::vector<DBuffer> uniformBuffers;
+	std::vector<DBuffer> GUIBuffers;
 	GUIControl guiControl{};
 	Scene scene;
-	std::vector<DescriptorSet> uboDescriptorSets;
-	std::vector<DescriptorSet> GUIDescriptorSets;
+	std::vector<vk::raii::DescriptorSet> uboDescriptorSets;
+	std::vector<vk::raii::DescriptorSet> GUIDescriptorSets;
 
-	std::vector<DescriptorSetLayout> descriptorSetLayouts;
-	std::vector<std::vector<vk::DescriptorSetLayout>> descriptorSetLayoutList;
 
 	std::vector<Pipeline> pipelines;
 
 	Camera camera;
 	GLFWwindow* window;
-	std::vector<std::shared_ptr<Semaphore>> imageAvailableSemaphores;
-	std::vector<std::shared_ptr<Semaphore>> renderFinishedSemaphores;
-	std::vector<std::shared_ptr<Fence>> inFlightFences;
+	std::vector<vk::raii::Semaphore> imageAvailableSemaphores;
+	std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
+	std::vector<vk::raii::Fence> inFlightFences;
 	uint32_t currentFrame = 0;
 
 	RayTracing rt;
@@ -78,7 +240,7 @@ private:
 		auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
 	}
-	void initWindow() {
+	GLFWwindow* initWindow() {
 		glfwInit();
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -89,261 +251,27 @@ private:
 		glfwSetCursorPosCallback(window, mouseInput);
 		glfwSetKeyCallback(window, keyboardInput);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+		return window;
 	}
-	void initVulkan() {
-		instance = std::make_shared<Instance>("DDing");
-		surface = std::make_shared<Surface>(instance, window);
-		device = std::make_shared<Device>(instance, surface);
-		descriptorPool = std::make_shared<DescriptorPool>(device);
-		commandPool = std::make_shared<CommandPool>(device, findQueueFamilies(*device,*surface));
-		initSamplers();
-		swapChain = SwapChain(device, *surface);
-		
-		initGUI();
-		createDescriptorSetLayouts();
-		insertModels();
-		createUniformBuffers();
-
-		deferred = Deferred(device, swapChain);
-		pp = PostProcessing(device, swapChain);
-		createDescriptorSets();
-		createPipelines();
-		initRayTracing();
-		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vk::CommandBufferAllocateInfo allocInfo{ *commandPool,vk::CommandBufferLevel::ePrimary,1 };
-			vk::CommandBuffer cb = device->logical.allocateCommandBuffers(allocInfo).front();
-			commandBuffers.push_back(cb);
-		}
-		createSyncObjects();
-	}
-	void createDescriptorSetLayouts() {
-		descriptorSetLayouts =
-		{
-			DescriptorSetLayout(*device,DescriptorType::VP),
-			DescriptorSetLayout(*device,DescriptorType::Skybox),
-			DescriptorSetLayout(*device,DescriptorType::Material),
-			DescriptorSetLayout(*device,DescriptorType::Model),
-			DescriptorSetLayout(*device,DescriptorType::GBuffer),
-		};
-	}
-	void initSamplers() {
-		Sampler::init(*device);
-	}
-	void initRayTracing() {
-
-		rt = RayTracing();
-		rt.init(device,uniformBuffers,swapChain,scene,GUIBuffers);
-	}
-	void initGUI() {
-
-		imgui = GUI(device);
-		imgui.init(static_cast<float>(WIDTH), static_cast<float>(HEIGHT));
-		imgui.initResources(window,*instance, swapChain.renderPass);
-	}
-	void createPipelines() {
-		pipelines.resize(3);
-		descriptorSetLayoutList = {
-			//기본 셰이더
-			{descriptorSetLayouts[0],
-			descriptorSetLayouts[1],
-			descriptorSetLayouts[4]},
-			//스카이박스 셰이더
-			{descriptorSetLayouts[0],
-		descriptorSetLayouts[1]},
-		//디퍼드 셰이더
-			{descriptorSetLayouts[0],
-				descriptorSetLayouts[2],
-		descriptorSetLayouts[3],
-		descriptorSetLayouts[0]}
-		};
-		Pipeline defaultPipeline = Pipeline(device,
-			swapChain.extent,
-			descriptorSetLayoutList,
-			swapChain.renderPass,
-			"shaders/shader.vert.spv",
-			"shaders/shader.frag.spv",
-			ShaderType::DEFAULT);
-
-		Pipeline skyboxPipeline = Pipeline(device,
-			swapChain.extent,
-			descriptorSetLayoutList,
-			swapChain.renderPass,
-			"shaders/skybox.vert.spv",
-			"shaders/skybox.frag.spv",
-			ShaderType::SKYBOX);
-
-		Pipeline deferredPipeline = Pipeline(device,
-			swapChain.extent,
-			descriptorSetLayoutList,
-			deferred.renderPass,
-			"shaders/deferred.vert.spv",
-			"shaders/deferred.frag.spv",
-			ShaderType::DEFERRED);
-
-		pipelines[Pipeline::DEFAULT] = (defaultPipeline);
-		pipelines[Pipeline::SKYBOX] = (skyboxPipeline);
-		pipelines[Pipeline::DEFERRED] = (deferredPipeline);
-	}
-	void insertModels() {
-		//Model model = makeBox(*device, 1.0f, "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_Color.png", "Resources/models/Bricks075A_1K-PNG/Bricks075A_1K-PNG_NormalDX.png");
-		Model plane = makeSqaure(device, glm::translate(glm::mat4(30.0f),glm::vec3(0,-2.f/30.f,0)), 
-			{}, 
-			{});
-		Model model2 = Model(device, 1.f
-			, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
-			"Resources/models/vk2vcdl/vk2vcdl.fbx",
-			{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
-			"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
-			"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
-			"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
-			glm::rotate(glm::translate(glm::mat4(1.0f),glm::vec3(1.5,0,2)), glm::radians(45.0f), glm::vec3(-2, 3, 1)));
-		Model model = makeSphere(device, glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)) ,
-			{ },
-			{ });
-		scene.models.push_back(model);
-		scene.models.push_back(model2);
-		scene.models.push_back(plane);
-		scene.skybox = makeSkyBox(device);
-	}
-
-	void createDescriptorSets() {
-		Material::dummy = Material::GetDefaultMaterial(device);
-
-		//GBuffer 디스크립터 셋
-		deferred.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-		for (auto& descriptorSet : deferred.descriptorSets) {
-			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::GBuffer)]);
-		}
-		
-		//skybox용 디스크립터 셋
-		scene.skybox.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-		for (auto& descriptorSet : scene.skybox.material.descriptorSets) {
-			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Skybox)]);
-		}
-
-		//머테리얼 디스크립터 셋
-		for (auto& model : scene.models) {
-			model.material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-			for (auto& descriptorSet : model.material.descriptorSets) {
-				descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Material)]);
-			}
-		}
-		//모델 행렬 디스크립터 셋
-		for (auto& model : scene.models) {
-			model.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-			for (auto& descriptorSet : model.descriptorSets) {
-				descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::Model)]);
-			}
-		}
-		//카메라 행렬 디스크립터 셋
-		uboDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-		for (auto& descriptorSet : uboDescriptorSets) {
-			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
-		}
-		//GUI 버퍼 디스크립터 셋
-		GUIDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-		for (auto& descriptorSet : GUIDescriptorSets) {
-			descriptorSet = DescriptorSet(*device, *descriptorPool, descriptorSetLayouts[static_cast<int>(DescriptorType::VP)]);
-		}
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			for (auto& model : scene.models) {
-				model.InitDescriptorSet(device);
-				model.InitDescriptorSetForModelMatrix(device);
-			}
-			
-			//스카이박스
-			scene.skybox.InitDescriptorSet(device);
-			
-			deferred.updateDescriptorSets();
-			//카메라 행렬 유니폼 버퍼
-			vk::DescriptorBufferInfo bufferInfo;
-			bufferInfo.buffer = uniformBuffers[i];
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-
-			vk::WriteDescriptorSet descriptorWrite{};
-			descriptorWrite.dstSet = uboDescriptorSets[i];
-			descriptorWrite.dstBinding = 0;
-			descriptorWrite.dstArrayElement = 0;
-			descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-			descriptorWrite.descriptorCount = 1;
-			descriptorWrite.pBufferInfo = &bufferInfo;
-
-			device->logical.updateDescriptorSets(descriptorWrite, nullptr);
-		
-			//GUI 행렬 유니폼 버퍼
-			vk::DescriptorBufferInfo guibufferInfo;
-			guibufferInfo.buffer = GUIBuffers[i];
-			guibufferInfo.offset = 0;
-			guibufferInfo.range = sizeof(GUIControl);
-
-			vk::WriteDescriptorSet guidescriptorWrite{};
-			guidescriptorWrite.dstSet = GUIDescriptorSets[i];
-			guidescriptorWrite.dstBinding = 0;
-			guidescriptorWrite.dstArrayElement = 0;
-			guidescriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-			guidescriptorWrite.descriptorCount = 1;
-			guidescriptorWrite.pBufferInfo = &guibufferInfo;
-
-			device->logical.updateDescriptorSets(guidescriptorWrite, nullptr);
-
-		}
-	}
-
-	void createUniformBuffers() {
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-		uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-		uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			uniformBuffers[i] = Buffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
-			uniformBuffers[i].map(device, bufferSize, 0);
-
-		}
-		VkDeviceSize guibufferSize = sizeof(GUIControl);
-
-		GUIBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-		GUIBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			GUIBuffers[i] = Buffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-			GUIBuffers[i].map(device, guibufferSize, 0);
-
-		}
-	}
-
+	
+	
 
 	void recreateSwapChain() {
-		int width = 0, height = 0;
-		glfwGetFramebufferSize(window, &width, &height);
-		while (width == 0 || height == 0) {
-			glfwGetFramebufferSize(window, &width, &height);
-			glfwWaitEvents();
-		}
-		device->logical.waitIdle();
-		swapChain.destroy(device);
-		swapChain.create(device);
-		deferred.updateDescriptorSets();
+		//TODO
+		//int width = 0, height = 0;
+		//glfwGetFramebufferSize(window, &width, &height);
+		//while (width == 0 || height == 0) {
+		//	glfwGetFramebufferSize(window, &width, &height);
+		//	glfwWaitEvents();
+		//}
+		//device.logical.waitIdle();
+		//swapChain.destroy(device);
+		//swapChain.create(device);
+		//deferred.updateDescriptorSets();
 		//imgui.init(static_cast<float>(width), static_cast<float>(height));
 		//imgui.initResources(swapChain.GetRenderPass());
 	}
-
-	void createSyncObjects() {
-		imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-
-
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-
-			imageAvailableSemaphores[i] = std::make_shared<Semaphore>(device);
-			renderFinishedSemaphores[i] = std::make_shared<Semaphore>(device);
-			inFlightFences[i] = std::make_shared<Fence>(device);		
-		}
-	}
-	void recordCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Model>& models) {
+	void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, std::vector<Model>& models) {
 		vk::CommandBufferBeginInfo beginInfo{};
 
 		imgui.newFrame();
@@ -359,7 +287,7 @@ private:
 
 		if (guiControl.RayTracing) {
 
-			rt.recordCommandBuffer(commandBuffer, currentFrame, imageIndex);
+			rt.recordCommandBuffer(device, commandBuffer, currentFrame, imageIndex);
 			vk::RenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.setRenderPass(pp.renderPass);
 			renderPassInfo.framebuffer = pp.framebuffers[imageIndex];
@@ -416,10 +344,10 @@ private:
 
 			for (auto& model : models) {
 				for (auto& mesh : model.meshes) {
-					vk::Buffer vertexBuffers[] = { mesh.vertexBuffer };
+					vk::Buffer vertexBuffers[] = { mesh.vertexBuffer.buffer};
 					vk::DeviceSize offsets[] = { 0 };
 					commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
-					commandBuffer.bindIndexBuffer(mesh.indexBuffer,0,vk::IndexType::eUint32);
+					commandBuffer.bindIndexBuffer(mesh.indexBuffer.buffer,0,vk::IndexType::eUint32);
 					
 					int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
 					std::vector<VkBool32> data(5);
@@ -439,12 +367,12 @@ private:
 						pipelines[Pipeline::DEFERRED].GetLayout(),
 						0, descriptorSetListForModel, {});
 
-					vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+					commandBuffer.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
 
 				}
 			}
 
-			vkCmdEndRenderPass(commandBuffer);
+			commandBuffer.endRenderPass();
 
 			vk::RenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.setRenderPass(swapChain.renderPass);
@@ -471,15 +399,14 @@ private:
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 				pipelines[Pipeline::SKYBOX].GetLayout(), 0, descriptorSetListForSkybox, {});
 
-			vk::Buffer vertexBuffers[] = { scene.skybox.meshes[0].vertexBuffer };
+			vk::Buffer vertexBuffers[] = { scene.skybox.meshes[0].vertexBuffer.buffer };
 			vk::DeviceSize offsets[] = { 0 };
 			
 			
 			commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
-			commandBuffer.bindIndexBuffer(scene.skybox.meshes[0].indexBuffer, 0, vk::IndexType::eUint32);
+			commandBuffer.bindIndexBuffer(scene.skybox.meshes[0].indexBuffer.buffer, 0, vk::IndexType::eUint32);
 
-
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(scene.skybox.meshes[0].indices.size()), 1, 0, 0, 0);
+			commandBuffer.drawIndexed(static_cast<uint32_t>(scene.skybox.meshes[0].indices.size()), 1, 0, 0, 0);
 
 			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFAULT]);
 			std::vector<vk::DescriptorSet> descriptorSetListForModel = {
@@ -489,13 +416,13 @@ private:
 			};
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 				pipelines[Pipeline::DEFAULT].GetLayout(), 0, descriptorSetListForModel, {});
-			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+			commandBuffer.draw(3, 1, 0, 0);
 			imgui.drawFrame(commandBuffer);
-			vkCmdEndRenderPass(commandBuffer);
+			commandBuffer.endRenderPass();
 		}
-		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-			throw std::runtime_error("failed to record command buffer!");
-		}
+
+		commandBuffer.end();
 
 	}
 
@@ -524,7 +451,7 @@ private:
 			}
 			drawFrame();
 		}
-		device->logical.waitIdle();
+		device.logical.waitIdle();
 	}
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
@@ -545,10 +472,11 @@ private:
 		memcpy(GUIBuffers[currentImage].mapped, &guiControl, sizeof(GUIControl));
 	}
 	void drawFrame() {
-		device->logical.waitForFences({ *inFlightFences[currentFrame] }, vk::True, UINT64_MAX);
+		device.logical.waitForFences({ *inFlightFences[currentFrame] }, vk::True, UINT64_MAX);
 
-		uint32_t imageIndex;
-		vk::Result result =device->logical.acquireNextImageKHR(swapChain, UINT64_MAX, *imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+		auto acquireImage = swapChain.Get().acquireNextImage(UINT64_MAX, *imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE);
+		uint32_t imageIndex = acquireImage.second;
+		vk::Result result = acquireImage.first;
 		if (result == vk::Result::eErrorOutOfDateKHR) {
 			recreateSwapChain();
 			return;
@@ -556,7 +484,7 @@ private:
 		else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
-		device->logical.resetFences({ *inFlightFences[currentFrame] });
+		device.logical.resetFences({ *inFlightFences[currentFrame] });
 		updateUniformBuffer(currentFrame);
 		commandBuffers[currentFrame].reset({});
 		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, scene.models);
@@ -568,8 +496,7 @@ private:
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 
-
-		std::vector<vk::CommandBuffer> commandBuffersToSubmit = { commandBuffers[currentFrame]};
+		std::vector<vk::CommandBuffer> commandBuffersToSubmit = { *commandBuffers[currentFrame]};
 		submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit.size());
 		submitInfo.pCommandBuffers = commandBuffersToSubmit.data();
 
@@ -577,19 +504,19 @@ private:
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		device->GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, *inFlightFences[currentFrame]);
+		device.GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, *inFlightFences[currentFrame]);
 
 		vk::PresentInfoKHR presentInfo{};
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 
-		vk::SwapchainKHR swapChains[1] = { swapChain };
+		vk::SwapchainKHR swapChains[1] = { swapChain.Get()};
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 
-		result = device->GetQueue(Device::QueueType::PRESENT).presentKHR(presentInfo);
+		result = device.GetQueue(Device::QueueType::PRESENT).presentKHR(presentInfo);
 		if (result == vk::Result::eErrorOutOfDateKHR|| result == vk::Result::eSuboptimalKHR|| framebufferResized) {
 			framebufferResized = false;
 			recreateSwapChain();
@@ -601,36 +528,8 @@ private:
 	}
 
 	void cleanup() {
-		swapChain.destroy(device);
-		imgui.destroy();
-		pp.destroy();
-		deferred.destroy();
-		Material::dummy.image.destroy(device);
-		Material::dummy.imageView.destroy(device);
-		Sampler::destroySamplers(*device);
-		CommandPool::TransientPool.~CommandPool();
+		//swapChain.destroy(device);
 
-
-
-
-
-
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			uniformBuffers[i].destroy(device);
-			GUIBuffers[i].destroy(device);
-		}
-
-		for (auto& descriptorSetLayout : descriptorSetLayouts) {
-			descriptorSetLayout.destroy(*device);
-		}
-
-		scene.destroy(device);
-		for (int i = 0; i < 3;i++) {
-			auto& pipeline = pipelines[i];
-			pipeline.destroy(*device);
-		}
-		rt.destroy();
 
 		glfwDestroyWindow(window);
 

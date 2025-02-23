@@ -4,8 +4,8 @@ class Skybox :
     public Model
 {
 public:
-    virtual void InitDescriptorSet(std::shared_ptr<Device> device);
+	Skybox(std::nullptr_t) : Model(nullptr) {};
+    Skybox(Device& device);
+
+    virtual void InitDescriptorSet(Device& device);
 };
-
-
-Skybox makeSkyBox(std::shared_ptr<Device> device);

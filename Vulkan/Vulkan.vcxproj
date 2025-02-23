@@ -108,6 +108,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,15 +159,11 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="Deferred.cpp" />
-    <ClCompile Include="DescriptorPool.cpp" />
-    <ClCompile Include="DescriptorSet.cpp" />
     <ClCompile Include="DescriptorSetLayout.cpp" />
     <ClCompile Include="Device.cpp" />
-    <ClCompile Include="Fence.cpp" />
     <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="Framebuffer.cpp" />
     <ClCompile Include="Image.cpp" />
-    <ClCompile Include="ImageView.cpp" />
     <ClCompile Include="GUI.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="Material.cpp" />
@@ -180,10 +177,8 @@
     <ClCompile Include="PostProcessing.cpp" />
     <ClCompile Include="Rasterization.cpp" />
     <ClCompile Include="RayTracing.cpp" />
-    <ClCompile Include="RenderPass.cpp" />
     <ClCompile Include="Sampler.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Semaphore.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="Struct.cpp" />
@@ -209,15 +204,11 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommandPool.h" />
     <ClInclude Include="Deferred.h" />
-    <ClInclude Include="DescriptorPool.h" />
-    <ClInclude Include="DescriptorSet.h" />
     <ClInclude Include="DescriptorSetLayout.h" />
     <ClInclude Include="Device.h" />
-    <ClInclude Include="Fence.h" />
     <ClInclude Include="FileLoader.h" />
     <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="Image.h" />
-    <ClInclude Include="ImageView.h" />
     <ClInclude Include="GUI.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="Material.h" />
@@ -228,10 +219,8 @@
     <ClInclude Include="PostProcessing.h" />
     <ClInclude Include="Rasterization.h" />
     <ClInclude Include="RayTracing.h" />
-    <ClInclude Include="RenderPass.h" />
     <ClInclude Include="Sampler.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="Semaphore.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Skybox.h" />
     <ClInclude Include="Struct.h" />

@@ -11,18 +11,16 @@ public:
 		DEFERRED,
 		END,
 	};
-	Pipeline();
-	Pipeline(std::shared_ptr<Device> device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
-	operator vk::Pipeline& () {
-		return _pipeline;
+	Pipeline(Device& device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, vk::raii::RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
+	operator vk::raii::Pipeline& () {
+		return pipeline;
 	}
-	vk::PipelineLayout& GetLayout() { return _pipelineLayout; }
+	operator vk::Pipeline() {
+		return pipeline;
+	}
+	vk::raii::PipelineLayout& GetLayout() { return pipelineLayout; }
 
-	void destroy(vk::Device& device) {
-		device.destroyPipeline(_pipeline);
-		device.destroyPipelineLayout(_pipelineLayout);
-	}
 private:
-	vk::PipelineLayout _pipelineLayout;
-	vk::Pipeline _pipeline;
+	vk::raii::PipelineLayout pipelineLayout;
+	vk::raii::Pipeline pipeline;
 };

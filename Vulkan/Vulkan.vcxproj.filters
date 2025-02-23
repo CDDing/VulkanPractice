@@ -70,9 +70,6 @@
     <Filter Include="소스 파일\VulkanWrapping\Display">
       <UniqueIdentifier>{7bbf3b15-7928-493c-b9fc-6b68805a05b6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\VulkanWrapping\Resource\Image">
-      <UniqueIdentifier>{c97a9a43-46cb-4c4f-bb6c-4c352a52f211}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Shaders\Rasterization">
       <UniqueIdentifier>{3e5fa8f3-b1d0-4fcc-8964-fa2825d70e11}</UniqueIdentifier>
     </Filter>
@@ -106,12 +103,6 @@
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
     <ClCompile Include="DescriptorSetLayout.cpp">
-      <Filter>소스 파일\VulkanWrapping\Shader\Descriptor</Filter>
-    </ClCompile>
-    <ClCompile Include="DescriptorSet.cpp">
-      <Filter>소스 파일\VulkanWrapping\Shader\Descriptor</Filter>
-    </ClCompile>
-    <ClCompile Include="DescriptorPool.cpp">
       <Filter>소스 파일\VulkanWrapping\Shader\Descriptor</Filter>
     </ClCompile>
     <ClCompile Include="Instance.cpp">
@@ -153,17 +144,11 @@
     <ClCompile Include="VL.cpp">
       <Filter>소스 파일\VulkanWrapping</Filter>
     </ClCompile>
-    <ClCompile Include="RenderPass.cpp">
-      <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClCompile>
     <ClCompile Include="Surface.cpp">
       <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClCompile>
     <ClCompile Include="SwapChain.cpp">
       <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClCompile>
-    <ClCompile Include="Shader.cpp">
-      <Filter>소스 파일\VulkanWrapping\Shader</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>소스 파일\Scene</Filter>
@@ -177,17 +162,26 @@
     <ClCompile Include="Material.cpp">
       <Filter>소스 파일\Scene\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Image.cpp">
-      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
-    </ClCompile>
-    <ClCompile Include="ImageView.cpp">
-      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
-    </ClCompile>
-    <ClCompile Include="ImageSet.cpp">
-      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
-    </ClCompile>
     <ClCompile Include="Scene.cpp">
       <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Framebuffer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Skybox.cpp">
+      <Filter>소스 파일\Scene\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Deferred.cpp">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="PostProcessing.cpp">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Image.cpp">
+      <Filter>소스 파일\VulkanWrapping\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>소스 파일\VulkanWrapping\Shader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -214,12 +208,6 @@
     </ClInclude>
     <ClInclude Include="Utils.h">
       <Filter>소스 파일\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorSet.h">
-      <Filter>소스 파일\VulkanWrapping\Shader\Descriptor</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorPool.h">
-      <Filter>소스 파일\VulkanWrapping\Shader\Descriptor</Filter>
     </ClInclude>
     <ClInclude Include="Instance.h">
       <Filter>소스 파일\VulkanWrapping\Core</Filter>
@@ -266,17 +254,11 @@
     <ClInclude Include="VL.h">
       <Filter>소스 파일\VulkanWrapping</Filter>
     </ClInclude>
-    <ClInclude Include="RenderPass.h">
-      <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClInclude>
     <ClInclude Include="Surface.h">
       <Filter>소스 파일\VulkanWrapping\Display</Filter>
     </ClInclude>
     <ClInclude Include="SwapChain.h">
       <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClInclude>
-    <ClInclude Include="Shader.h">
-      <Filter>소스 파일\VulkanWrapping\Shader</Filter>
     </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>소스 파일\Scene</Filter>
@@ -290,17 +272,26 @@
     <ClInclude Include="Model.h">
       <Filter>소스 파일\Scene\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Image.h">
-      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
-    </ClInclude>
-    <ClInclude Include="ImageView.h">
-      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
-    </ClInclude>
-    <ClInclude Include="ImageSet.h">
-      <Filter>소스 파일\VulkanWrapping\Resource\Image</Filter>
-    </ClInclude>
     <ClInclude Include="Scene.h">
       <Filter>소스 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Framebuffer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Skybox.h">
+      <Filter>소스 파일\Scene\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Deferred.h">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="PostProcessing.h">
+      <Filter>소스 파일\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Image.h">
+      <Filter>소스 파일\VulkanWrapping\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>소스 파일\VulkanWrapping\Shader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

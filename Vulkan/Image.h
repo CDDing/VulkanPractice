@@ -1,38 +1,134 @@
 #pragma once
-class Image
-{
-public:
-    Image();
-    Image(std::shared_ptr<Device> device, uint32_t width, uint32_t height, uint32_t mipLevels, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties,uint32_t arrayLayers = 1) ;
-    operator vk::Image& () {
-        return _image;
-    }
-    void operator=(vk::Image& image) {
-        _image = image;
-    }
-    void destroy(std::shared_ptr<Device> device) {
-        if (_image != VK_NULL_HANDLE) device->logical.destroyImage(_image);
-        if (_imageMemory != VK_NULL_HANDLE) device->logical.freeMemory(_imageMemory);
-    }
-    void fillImage(std::shared_ptr<Device> device, void* data, vk::DeviceSize size);
-    void transitionLayout(std::shared_ptr<Device> device, vk::CommandBuffer commandBuffer, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor);
-    void generateMipmaps(std::shared_ptr<Device> device);
-    vk::DeviceMemory& GetMemory() { return _imageMemory; }
-    vk::ImageLayout layout = vk::ImageLayout::eUndefined;
-    vk::Format format;
+struct DImage {
+	DImage(std::nullptr_t) : image(nullptr), view(nullptr), memory(nullptr) {}
+	DImage() : image(nullptr), view(nullptr), memory(nullptr) {}
+    //For Child
+    DImage(Device& device,
+        uint32_t mipLevels,
+        vk::Format format,
+        vk::Extent2D extent,
+        vk::ImageLayout layout,
+        vk::MemoryPropertyFlags memoryProperties) :
+        mipLevels(mipLevels), format(format), extent(extent), layout(layout), formatProperties(device.physical.getFormatProperties(format)),
+        image(nullptr), view(nullptr), memory(nullptr) {}
 
-private:
-    vk::Image _image = VK_NULL_HANDLE;
-    vk::DeviceMemory _imageMemory = VK_NULL_HANDLE;
-    uint32_t _width = WIDTH;
-    uint32_t _height = HEIGHT;
-    uint32_t _mipLevels = 1;
+    DImage(Device& device,
+        uint32_t mipLevels,
+        vk::Format format,
+        vk::Extent2D extent,
+        vk::ImageTiling tiling,
+        vk::ImageUsageFlags usage,
+        vk::ImageLayout layout,
+        vk::MemoryPropertyFlags memoryProperties,
+        vk::ImageAspectFlags aspectMask) : 
+		//Initialize Field
+		format(format), layout(layout), extent(extent), mipLevels(mipLevels), formatProperties(device.physical.getFormatProperties(format)),
+        image(nullptr),view(nullptr), memory(nullptr){
+        
+        //Create Image
+        vk::ImageCreateInfo imageInfo{};
+        imageInfo.setArrayLayers(1);
+        imageInfo.setExtent({ extent.width, extent.height, 1 });
+		imageInfo.setFormat(format);
+		imageInfo.setImageType(vk::ImageType::e2D);
+		imageInfo.setMipLevels(1);
+		imageInfo.setSamples(vk::SampleCountFlagBits::e1);
+		imageInfo.setTiling(tiling);
+		imageInfo.setUsage(usage);
+		imageInfo.setInitialLayout(layout);
+        imageInfo.setSharingMode(vk::SharingMode::eExclusive);
+        imageInfo.setMipLevels(1);
+        image = vk::raii::Image(device.logical, imageInfo);
+
+        auto memRequirements = image.getMemoryRequirements();
+
+		vk::MemoryAllocateInfo allocInfo{};
+		allocInfo.setAllocationSize(memRequirements.size);
+		allocInfo.setMemoryTypeIndex(findMemoryType(device.physical, memRequirements.memoryTypeBits, memoryProperties));
+		
+        memory = vk::raii::DeviceMemory(device.logical, allocInfo);
+
+        image.bindMemory(memory, 0);
+
+		//Create Image View
+        vk::ImageViewCreateInfo imageViewInfo{};
+        imageViewInfo.setImage(image);
+        imageViewInfo.setFormat(format);
+		imageViewInfo.setViewType(vk::ImageViewType::e2D);
+		imageViewInfo.setSubresourceRange({ aspectMask, 0, mipLevels, 0, 1});
+		view = vk::raii::ImageView(device.logical, imageViewInfo);
+    }
+
+    virtual void setImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::ImageLayout newLayout);
+	virtual void copyFromBuffer(vk::raii::CommandBuffer& commandBuffer, vk::raii::Buffer& buffer);
+    virtual void generateMipmaps(vk::raii::CommandBuffer& commandBuffer);
+
+
+    vk::raii::DeviceMemory memory{ nullptr };
+    vk::raii::Image image{ nullptr };
+    vk::raii::ImageView view{ nullptr };
+
+    
+    vk::Format format;
+	vk::FormatProperties formatProperties;
+    vk::ImageLayout layout;
+    vk::Extent2D extent;
+    uint32_t mipLevels;
 };
 
-void copyBufferToImage(std::shared_ptr<Device> device, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
+struct CubemapImage : public DImage {
+	CubemapImage(std::nullptr_t) : DImage(nullptr) {}
+	CubemapImage(Device& device,
+        vk::DeviceSize layerSize,
+		uint32_t mipLevels,
+		vk::Format format,
+		vk::Extent2D extent,
+		vk::ImageTiling tiling,
+		vk::ImageUsageFlags usage,
+		vk::ImageLayout layout,
+		vk::MemoryPropertyFlags memoryProperties,
+		vk::ImageAspectFlags aspectMask) : DImage(device, mipLevels, format, extent, tiling, usage, layout, memoryProperties, aspectMask),
+		layerSize(layerSize)
+    {
 
-//For Cubemaps
+        //Create Image
+        vk::ImageCreateInfo imageInfo{};
+        imageInfo.setArrayLayers(6);
+        imageInfo.setExtent({ extent.width, extent.height, 1 });
+        imageInfo.setFormat(format);
+        imageInfo.setImageType(vk::ImageType::e2D);
+        imageInfo.setMipLevels(1);
+        imageInfo.setSamples(vk::SampleCountFlagBits::e1);
+        imageInfo.setTiling(tiling);
+        imageInfo.setUsage(usage);
+        imageInfo.setInitialLayout(layout);
+        imageInfo.setSharingMode(vk::SharingMode::eExclusive);
+        imageInfo.setMipLevels(1);
+        imageInfo.setFlags(vk::ImageCreateFlagBits::eCubeCompatible);
+        image = vk::raii::Image(device.logical, imageInfo);
 
-void copyBufferToImageForCubemap(std::shared_ptr<Device> device, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height,vk::DeviceSize layerSize);
-void generateMipmapsForCubemap(std::shared_ptr<Device> device, vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
-void transitionImageLayoutForCubemap(std::shared_ptr<Device> device, Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels);
+        auto memRequirements = image.getMemoryRequirements();
+
+        vk::MemoryAllocateInfo allocInfo{};
+        allocInfo.setAllocationSize(memRequirements.size);
+        allocInfo.setMemoryTypeIndex(findMemoryType(device.physical, memRequirements.memoryTypeBits, memoryProperties));
+
+        memory = vk::raii::DeviceMemory(device.logical, allocInfo);
+
+        image.bindMemory(memory, 0);
+
+        //Create Image View
+        vk::ImageViewCreateInfo imageViewInfo{};
+        imageViewInfo.setImage(image);
+        imageViewInfo.setFormat(format);
+        imageViewInfo.setViewType(vk::ImageViewType::e2D);
+        imageViewInfo.setSubresourceRange({ aspectMask, 0, mipLevels, 0, 1 });
+        view = vk::raii::ImageView(device.logical, imageViewInfo);
+	}
+
+	void setImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::ImageLayout newLayout) override;
+	void copyFromBuffer(vk::raii::CommandBuffer& commandBuffer, vk::raii::Buffer& buffer) override;
+	void generateMipmaps(vk::raii::CommandBuffer& commandBuffer) override;
+
+    vk::DeviceSize layerSize;
+};

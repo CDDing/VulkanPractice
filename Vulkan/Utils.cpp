@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Utils.h"
-uint32_t findMemoryType(vk::PhysicalDevice& device, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+uint32_t findMemoryType(vk::raii::PhysicalDevice& device, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
     vk::PhysicalDeviceMemoryProperties memProperties = device.getMemoryProperties();
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
@@ -19,31 +19,31 @@ uint32_t SBTalignedSize(uint32_t value, uint32_t alignment)
 {
     return (value + alignment - 1) & ~(alignment - 1);
 }
-vk::CommandBuffer beginSingleTimeCommands(std::shared_ptr<Device> device) {
-    vk::CommandBufferAllocateInfo allocInfo{ CommandPool::TransientPool ,vk::CommandBufferLevel::ePrimary,1 };
+vk::raii::CommandBuffer beginSingleTimeCommands(Device& device) {
+    vk::CommandBufferAllocateInfo allocInfo{ CommandPool::TransientPool ,vk::CommandBufferLevel::ePrimary,1};
 
-    vk::CommandBuffer commandBuffer = device->logical.allocateCommandBuffers(allocInfo).front();
+    vk::raii::CommandBuffer commandBuffer = std::move(vk::raii::CommandBuffers(device,allocInfo).front());
 
     vk::CommandBufferBeginInfo beginInfo{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
     commandBuffer.begin(beginInfo);
 
     return commandBuffer;
 }
-void endSingleTimeCommands(std::shared_ptr<Device> device, vk::CommandBuffer commandBuffer) {
+void endSingleTimeCommands(Device& device, vk::raii::CommandBuffer& commandBuffer) {
     commandBuffer.end();
     
-    vk::SubmitInfo submitInfo{ {},{}, { commandBuffer } };
-    device->GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, VK_NULL_HANDLE);
-    device->GetQueue(Device::QueueType::GRAPHICS).waitIdle();
+    vk::SubmitInfo submitInfo{};
+	submitInfo.setCommandBuffers({ *commandBuffer });
+    device.GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, VK_NULL_HANDLE);
+    device.GetQueue(Device::QueueType::GRAPHICS).waitIdle();
 
-    device->logical.freeCommandBuffers(CommandPool::TransientPool, commandBuffer);
 }
-void copyBuffer(std::shared_ptr<Device> device, Buffer srcBuffer, Buffer dstBuffer, vk::DeviceSize size) {
-    vk::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+void copyBuffer(Device& device, DBuffer& srcBuffer, DBuffer& dstBuffer, vk::DeviceSize size) {
+    vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
 
     vk::BufferCopy copyRegion{};
     copyRegion.size = size;
-    commandBuffer.copyBuffer(srcBuffer, dstBuffer, copyRegion);
+    commandBuffer.copyBuffer(srcBuffer.buffer, dstBuffer.buffer, copyRegion);
 
     endSingleTimeCommands(device, commandBuffer);
     dstBuffer.size = size;

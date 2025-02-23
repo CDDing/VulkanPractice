@@ -3,11 +3,6 @@
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
-Instance::Instance()
-{
-}
-
-
 PFN_vkCreateDebugUtilsMessengerEXT  pfnVkCreateDebugUtilsMessengerEXT;
 std::vector<const char*> getRequiredExtensions() {
     uint32_t glfwExtensionCount = 0;
@@ -28,7 +23,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(VkInstance        
     VkDebugUtilsMessengerEXT* pMessenger) {
     return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
 }
-void setupDebugMessenger(vk::Instance& instance, vk::DebugUtilsMessengerEXT& debugMessenger) {
+void setupDebugMessenger(vk::raii::Instance& instance, vk::DebugUtilsMessengerEXT& debugMessenger) {
     if (!enableValidationLayers) return;
 
     vk::DebugUtilsMessengerCreateInfoEXT createInfo;
@@ -37,15 +32,16 @@ void setupDebugMessenger(vk::Instance& instance, vk::DebugUtilsMessengerEXT& deb
     pfnVkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(instance.getProcAddr("vkCreateDebugUtilsMessengerEXT"));;
     debugMessenger = instance.createDebugUtilsMessengerEXT(createInfo);
 }
-Instance::Instance(const char* ApplicationName)
+Instance::Instance(const char* ApplicationName) : _instance(nullptr)
 {
     if (enableValidationLayers && !checkValidationLayerSupport()) {
         throw std::runtime_error("validation layers requested, but not available!");
     }
+    auto extension = context.enumerateInstanceExtensionProperties();
 
-    vk::detail::DynamicLoader dl;
-    auto vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+    //vk::detail::DynamicLoader dl;
+    //auto vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+    //VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 
     vk::ApplicationInfo appInfo{ "DDing",
     VK_MAKE_VERSION(1,0,0),
@@ -83,8 +79,7 @@ Instance::Instance(const char* ApplicationName)
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    _instance = vk::createInstance(createInfo,nullptr);
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(_instance);
+    _instance = vk::raii::Instance(context, createInfo);
 
     setupDebugMessenger(_instance,_debugMessenger);
 }
@@ -95,5 +90,4 @@ Instance::~Instance()
 
         DestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
     }
-    _instance.destroy();
 }

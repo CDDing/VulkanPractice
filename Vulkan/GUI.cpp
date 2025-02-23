@@ -1,8 +1,30 @@
 #include "pch.h"
 #include "GUI.h"
-void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass renderPass)
+GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::RenderPass& renderPass) :
+	vertexBuffer(nullptr), indexBuffer(nullptr), fontImage(nullptr), pipeline(nullptr), pipelineLayout(nullptr), pipelineCache(nullptr), descriptorPool(nullptr), descriptorSet(nullptr), descriptorSetLayout(nullptr)
 {
+	ImGui::CreateContext();
+
 	ImGuiIO& io = ImGui::GetIO();
+	io.FontGlobalScale = 1;
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(1);
+
+
+	vulkanStyle = ImGui::GetStyle();
+	vulkanStyle.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
+	vulkanStyle.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
+	vulkanStyle.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+	vulkanStyle.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+	vulkanStyle.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+	setStyle(0);
+
+	// Dimensions
+	io.DisplaySize = ImVec2(WIDTH, HEIGHT);
+	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
 
 	unsigned char* fontData;
 	int texWidth, texHeight;
@@ -16,46 +38,59 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
 		vkGetPhysicalDeviceProperties2(_device->GetPhysical(), &deviceProperties2);
 	}*/
-	_fontImage.image = Image(_device, texWidth, texHeight, 1,
-		vk::Format::eR8G8B8A8Unorm,
+	fontImage = DImage(device,1,vk::Format::eR8G8B8A8Unorm,
+		vk::Extent2D(texWidth, texHeight),
 		vk::ImageTiling::eOptimal,
 		vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal);
-	_fontImage.imageView = ImageView(_device,
-		_fontImage.image,
-		vk::Format::eR8G8B8A8Unorm,
-		vk::ImageAspectFlagBits::eColor, 1);
+		vk::ImageLayout::eTransferDstOptimal,
+		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		vk::ImageAspectFlagBits::eColor);
 
-	
-	_fontImage.image.fillImage(_device, fontData, uploadSize);
+	DBuffer stagingBuffer(device, uploadSize, vk::BufferUsageFlagBits::eTransferSrc,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-	vk::CommandBuffer cmdBuf = beginSingleTimeCommands(_device);
-	_fontImage.image.transitionLayout(_device, cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageAspectFlagBits::eColor);
-	endSingleTimeCommands(_device, cmdBuf);
+	stagingBuffer.map(device, uploadSize, 0);
+	memcpy(stagingBuffer.mapped, fontData, static_cast<size_t>(uploadSize));
+	stagingBuffer.unmap(device);
 
-	VkDescriptorPoolSize pool_sizes[] =
+	vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+	fontImage.setImageLayout(commandBuffer, vk::ImageLayout::eTransferDstOptimal);
+	fontImage.copyFromBuffer(commandBuffer, stagingBuffer.buffer);
+	fontImage.setImageLayout(commandBuffer, vk::ImageLayout::eShaderReadOnlyOptimal);
+	endSingleTimeCommands(device, commandBuffer);
+
+
+
+	vk::DescriptorPoolSize pool_sizes[] =
 	{
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10*IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
+		{ vk::DescriptorType::eCombinedImageSampler, 10 * IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
 	};
-	VkDescriptorPoolCreateInfo pool_info = {};
-	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	pool_info.maxSets = 0;
-	for (VkDescriptorPoolSize& pool_size : pool_sizes)
+	vk::DescriptorPoolCreateInfo pool_info = {};
+	pool_info.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
+	pool_info.setMaxSets(0);
+	for (vk::DescriptorPoolSize& pool_size : pool_sizes)
 		pool_info.maxSets += pool_size.descriptorCount;
-	pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
-	pool_info.pPoolSizes = pool_sizes;
+	pool_info.setPoolSizes(pool_sizes);
 
-	_descriptorPool = std::make_shared<DescriptorPool>();
-	_descriptorPool->_device = _device;
-	_descriptorPool->_descriptorPool = _device->logical.createDescriptorPool(pool_info);
-	_descriptorSetLayout = DescriptorSetLayout(*_device, DescriptorType::ImGUI);
-	_descriptorSet = DescriptorSet(*_device, *_descriptorPool, _descriptorSetLayout);
-	initDescriptorSet();
+	descriptorPool = vk::raii::DescriptorPool(device, pool_info);
+
+
+	std::vector<vk::DescriptorSetLayoutBinding> bindings;
+	auto components = DescriptorSetLayout::GetComponents(DescriptorType::ImGUI);
+	bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
+	vk::DescriptorSetLayoutCreateInfo layoutInfo{ {},bindings };
+
+	descriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);
+
+	vk::DescriptorSetAllocateInfo alloc_info = {};
+	alloc_info.setDescriptorPool(*descriptorPool);
+	alloc_info.setSetLayouts(*descriptorSetLayout);
+	descriptorSet = std::move(vk::raii::DescriptorSets(device, alloc_info).front());
+	initDescriptorSet(device);
 
 	//파이프라인
 	vk::PipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-	_pipelineCache = _device->logical.createPipelineCache(pipelineCacheCreateInfo);
+	pipelineCache = vk::raii::PipelineCache(device, pipelineCacheCreateInfo);
 
 	// Pipeline layout
 	// Push constants for UI rendering parameters
@@ -63,9 +98,9 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	pushConstantRange.size = sizeof(PushConstBlock);
 	pushConstantRange.offset = 0;
 	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex;
-	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{ {},{_descriptorSetLayout},{pushConstantRange } };
+	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{ {},{*descriptorSetLayout},{pushConstantRange } };
 
-	_pipelineLayout = _device->logical.createPipelineLayout(pipelineLayoutCreateInfo);
+	pipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutCreateInfo);
 
 	// Setup graphics pipeline for UI rendering
 	vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState{};
@@ -85,7 +120,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	// Enable blending
 	vk::PipelineColorBlendAttachmentState blendAttachmentState{};
 	blendAttachmentState.blendEnable = vk::True;
-	blendAttachmentState.colorWriteMask = vk::ColorComponentFlagBits::eR| vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+	blendAttachmentState.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
 	blendAttachmentState.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
 	blendAttachmentState.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
 	blendAttachmentState.colorBlendOp = vk::BlendOp::eAdd;
@@ -109,7 +144,7 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	viewportState.flags = {};
 
 	vk::PipelineMultisampleStateCreateInfo multisampleState{};
-	
+
 	std::vector<vk::DynamicState> dynamicStateEnables = {
 		vk::DynamicState::eViewport,
 		vk::DynamicState::eScissor
@@ -119,8 +154,8 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages{};
 
 	vk::GraphicsPipelineCreateInfo pipelineCreateInfo{};
-	pipelineCreateInfo.layout = _pipelineLayout;
-	pipelineCreateInfo.renderPass = renderPass.operator vk::RenderPass &();
+	pipelineCreateInfo.layout = pipelineLayout;
+	pipelineCreateInfo.renderPass = renderPass;
 	pipelineCreateInfo.flags = (vk::PipelineCreateFlagBits)0;
 	pipelineCreateInfo.basePipelineIndex = -1;
 	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -159,11 +194,11 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 		vInputAttribDescription1,vInputAttribDescription2,vInputAttribDescription3
 	};
 	vk::PipelineVertexInputStateCreateInfo vertexInputState{ {},vertexInputBindings,vertexInputAttributes };
-	
+
 	pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-	auto vertexShaderModule = Shader(_device, "shaders/imgui.vert.spv");
-	auto fragmentShaderModule = Shader(_device, "shaders/imgui.frag.spv");
+	auto vertexShaderModule = createShader(device, "shaders/imgui.vert.spv");
+	auto fragmentShaderModule = createShader(device, "shaders/imgui.frag.spv");
 	shaderStages[0].stage = vk::ShaderStageFlagBits::eVertex;
 	shaderStages[0].pName = "main";
 	shaderStages[0].module = vertexShaderModule;
@@ -172,20 +207,19 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	shaderStages[1].pName = "main";
 	shaderStages[1].module = fragmentShaderModule;
 
-	vk::Result result;
-	std::tie(result,_pipeline) = _device->logical.createGraphicsPipeline(_pipelineCache, pipelineCreateInfo);
+	pipeline = vk::raii::Pipeline(device, pipelineCache, pipelineCreateInfo);
 
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance = Instance;
-	init_info.PhysicalDevice = _device->physical;
-	init_info.Device = _device->logical;
-	init_info.QueueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(_device->physical);
-	VkQueue queue = _device->GetQueue(init_info.QueueFamily);
+	init_info.PhysicalDevice = *device.physical;
+	init_info.Device = *device.logical;
+	init_info.QueueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(*device.physical);
+	VkQueue queue = device.GetQueue(init_info.QueueFamily);
 	init_info.Queue = queue;
-	init_info.PipelineCache = _pipelineCache;
-	init_info.DescriptorPool = *_descriptorPool;
-	init_info.RenderPass = renderPass;
+	init_info.PipelineCache = *pipelineCache;
+	init_info.DescriptorPool = *descriptorPool;
+	init_info.RenderPass = *renderPass;
 	init_info.Subpass = 0;
 	init_info.MinImageCount = 2;
 	init_info.ImageCount = 2;
@@ -195,24 +229,11 @@ void GUI::initResources(GLFWwindow* window, VkInstance Instance, RenderPass rend
 	ImGui_ImplVulkan_Init(&init_info);
 }
 
-GUI::GUI()
-{
-
-}
-
-void GUI::destroy()
+GUI::~GUI()
 {
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
-	_vertexBuffer.destroy(_device);
-	_indexBuffer.destroy(_device);
-	_fontImage.image.destroy(_device);
-	_fontImage.imageView.destroy(_device);
-	_device->logical.destroyPipelineCache(_pipelineCache);
-	_device->logical.destroyPipeline(_pipeline);
-	_device->logical.destroyPipelineLayout(_pipelineLayout);
-	_descriptorSetLayout.destroy(*_device);
 }
 void GUI::newFrame()
 {
@@ -257,7 +278,7 @@ void GUI::End(){
 
 	ImGui::Render();
 }
-void GUI::updateBuffers()
+void GUI::updateBuffers(Device& device)
 {
 	ImDrawData* imDrawData = ImGui::GetDrawData();
 
@@ -269,26 +290,24 @@ void GUI::updateBuffers()
 	}
 	
 	// Vertex buffer
-	if ((_vertexBuffer == VK_NULL_HANDLE) || (_vertexCount != imDrawData->TotalVtxCount)) {
-		_vertexBuffer.unmap(_device);
-		_vertexBuffer.destroy(_device);
-		_vertexBuffer = Buffer(_device, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
-		_vertexCount = imDrawData->TotalVtxCount;
-		_vertexBuffer.map(_device);
+	if ((vertexBuffer.buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
+		vertexBuffer.unmap(device);
+		vertexBuffer = DBuffer(device, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
+		vertexCount = imDrawData->TotalVtxCount;
+		vertexBuffer.map(device);
 	}
 
 	// Index buffer
-	if ((_indexBuffer == VK_NULL_HANDLE) || (_indexCount < imDrawData->TotalIdxCount)) {
-		_indexBuffer.unmap(_device);
-		_indexBuffer.destroy(_device);
-		_indexBuffer = Buffer(_device, indexBufferSize, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
-		_indexCount = imDrawData->TotalIdxCount;
-		_indexBuffer.map(_device);
+	if ((indexBuffer.buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
+		indexBuffer.unmap(device);
+		indexBuffer = DBuffer(device, indexBufferSize, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
+		indexCount = imDrawData->TotalIdxCount;
+		indexBuffer.map(device);
 	}
 
 	// Upload data
-	ImDrawVert* vtxDst = (ImDrawVert*)_vertexBuffer.mapped;
-	ImDrawIdx* idxDst = (ImDrawIdx*)_indexBuffer.mapped;
+	ImDrawVert* vtxDst = (ImDrawVert*)vertexBuffer.mapped;
+	ImDrawIdx* idxDst = (ImDrawIdx*)indexBuffer.mapped;
 
 	for (int n = 0; n < imDrawData->CmdListsCount; n++) {
 		const ImDrawList* cmd_list = imDrawData->CmdLists[n];
@@ -299,48 +318,31 @@ void GUI::updateBuffers()
 	}
 
 	// Flush to make writes visible to GPU
-	_vertexBuffer.flush(_device);
-	_indexBuffer.flush(_device);
+	vertexBuffer.flush(device);
+	indexBuffer.flush(device);
 }
 
-void GUI::drawFrame(VkCommandBuffer commandBuffer)
+void GUI::drawFrame(vk::raii::CommandBuffer& commandBuffer)
 {
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer, _pipeline);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *commandBuffer, *pipeline);
 
 }
-void GUI::init(float width, float height)
-{
-	vulkanStyle = ImGui::GetStyle();
-	vulkanStyle.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
-	vulkanStyle.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
-	vulkanStyle.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-	vulkanStyle.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-	vulkanStyle.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-
-	setStyle(0);
-
-	// Dimensions
-	ImGuiIO& io = ImGui::GetIO();
-	io.DisplaySize = ImVec2(width, height);
-	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-}
-
-void GUI::initDescriptorSet()
+void GUI::initDescriptorSet(Device& device)
 {
 	vk::DescriptorImageInfo imageInfo{};
 	imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-	imageInfo.imageView = _fontImage.imageView;
+	imageInfo.imageView = fontImage.view;
 
 	vk::WriteDescriptorSet descriptorWrite{};
-	descriptorWrite.dstSet = _descriptorSet;
+	descriptorWrite.dstSet = descriptorSet;
 	descriptorWrite.dstBinding = 0;
 	descriptorWrite.dstArrayElement = 0;
 	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
 
-	_device->logical.updateDescriptorSets({ descriptorWrite },nullptr);
+	device.logical.updateDescriptorSets({ descriptorWrite },nullptr);
 
 
 }

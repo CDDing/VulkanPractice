@@ -3,13 +3,12 @@
 #include "Material.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-ImageSet Material::dummy = {};
-Material::Material(std::shared_ptr<Device> device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath)
+DImage Material::dummy(nullptr);
+Material::Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath)
 {
-	_components.resize(static_cast<int>(MaterialComponent::END));
-    _materials.resize(static_cast<int>(MaterialComponent::END));
+	this->components.resize(static_cast<int>(MaterialComponent::END));
 	for (auto component : components) {
-		_components[static_cast<int>(component)] = true;
+		this->components[static_cast<int>(component)] = true;
 	}
 
 
@@ -21,28 +20,19 @@ Material::Material(std::shared_ptr<Device> device, std::vector<MaterialComponent
     }
 }
 
-void Material::destroy(std::shared_ptr<Device> device)
+Material&& Material::createMaterialForSkybox(Device& device)
 {
-	for (auto& material : _materials) {
-		material.image.destroy(device);
-		material.imageView.destroy(device);
-	}
-}
-
-Material Material::createMaterialForSkybox(std::shared_ptr<Device> device)
-{
-    Material material;
+    Material material(nullptr);
     material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleEnvHDR.dds", 6);
     material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleDiffuseHDR.dds", 6);
     material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleSpecularHDR.dds", 6);
     material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleBrdf.dds", 1);
     
-    return material;
+    return std::move(material);
 }
 
-void Material::loadImage(std::shared_ptr<Device> device, const std::string& filePath, const MaterialComponent component,vk::Format format)
+void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format)
 {
-    ImageSet materialData;
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     vk::DeviceSize imageSize = texWidth * texHeight * 4;
@@ -52,25 +42,33 @@ void Material::loadImage(std::shared_ptr<Device> device, const std::string& file
     }
 
 
-    materialData.image = Image(device,
-        texWidth, texHeight, mipLevels, format,
+    DImage materialData(device,mipLevels,format,
+        vk::Extent2D(texWidth,texHeight),
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-        vk::MemoryPropertyFlagBits::eDeviceLocal);
-	materialData.imageView = ImageView(device, materialData.image, format, vk::ImageAspectFlagBits::eColor, mipLevels);
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vk::ImageAspectFlagBits::eColor);
+    
+    DBuffer stagingBuffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-    materialData.image.fillImage(device, pixels, imageSize);
-    materialData.image.generateMipmaps(device);
+    stagingBuffer.map(device, imageSize, 0);
+    memcpy(stagingBuffer.mapped, pixels, static_cast<size_t>(imageSize));
+    stagingBuffer.unmap(device);
 
+    vk::raii::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
+	materialData.copyFromBuffer(cmdBuf, stagingBuffer.buffer);
+	materialData.generateMipmaps(cmdBuf);
+	endSingleTimeCommands(device, cmdBuf);
 
     stbi_image_free(pixels);
-    _materials[static_cast<int>(component)] = materialData;
+    materials[static_cast<int>(component)] = std::move(materialData);
 }
 
-void Material::loadImageFromDDSFile(std::shared_ptr<Device> device, const std::wstring& filePath, int cnt)
+void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt)
 {
-    ImageSet materialData;
-    int width, height, channels;
+    int width, height;
     uint32_t mipLevels;
     DirectX::ScratchImage imageData;
     DirectX::LoadFromDDSFile(filePath.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, imageData);
@@ -85,8 +83,7 @@ void Material::loadImageFromDDSFile(std::shared_ptr<Device> device, const std::w
     mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
     //mipLevels = 01;
 
-    Buffer stagingBuffer;
-    stagingBuffer = Buffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
+    DBuffer stagingBuffer(device, imageSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
 
 
 
@@ -99,30 +96,45 @@ void Material::loadImageFromDDSFile(std::shared_ptr<Device> device, const std::w
     };
     stagingBuffer.unmap(device);
 
-    materialData.image = Image(device, width, height, mipLevels, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc| vk::ImageUsageFlagBits::eTransferDst| vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal, cnt);
+	vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+    CubemapImage ci(nullptr);
+	DImage di(nullptr);
+    switch (cnt) {
+    case 6:
 
-    if (cnt == 6) {
-        transitionImageLayoutForCubemap(device, materialData.image, vk::Format::eR32G32B32A32Sfloat, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, vk::ImageAspectFlagBits::eColor, mipLevels);
-        copyBufferToImageForCubemap(device, stagingBuffer, materialData.image, static_cast<uint32_t>(width), static_cast<uint32_t>(height), layerSize);
-        //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        ci = CubemapImage(device,layerSize,mipLevels,vk::Format::eR32G32B32A32Sfloat,
+            vk::Extent2D(width,height),
+            vk::ImageTiling::eOptimal,
+			vk::ImageUsageFlagBits::eTransferSrc |
+			vk::ImageUsageFlagBits::eTransferDst |
+			vk::ImageUsageFlagBits::eSampled,
+			vk::ImageLayout::eTransferDstOptimal,
+			vk::MemoryPropertyFlagBits::eDeviceLocal,
+			vk::ImageAspectFlagBits::eColor);
+		ci.copyFromBuffer(commandBuffer, stagingBuffer.buffer);
+		ci.generateMipmaps(commandBuffer);
 
+		//TODO 이미지 벡터에 넣기
+        //materials.push_back(std::move(ci));
+		endSingleTimeCommands(device, commandBuffer);
+        break;
+    case 1:
 
-        generateMipmapsForCubemap(device, materialData.image, vk::Format::eR32G32B32A32Sfloat, width, height, mipLevels);
+        di = DImage(device,mipLevels,vk::Format::eR32G32B32A32Sfloat,
+            vk::Extent2D(width,height),
+            vk::ImageTiling::eOptimal,
+            vk::ImageUsageFlagBits::eTransferSrc|
+            vk::ImageUsageFlagBits::eTransferDst|
+            vk::ImageUsageFlagBits::eSampled,
+            vk::ImageLayout::eTransferDstOptimal,
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
+            vk::ImageAspectFlagBits::eColor);
+        di.copyFromBuffer(commandBuffer, stagingBuffer.buffer);
+        di.generateMipmaps(commandBuffer);
+
+        //TODO 이미지 벡터에 넣기
+        materials.push_back(std::move(di));
+		endSingleTimeCommands(device, commandBuffer);
+        break;
     }
-    else {
-        VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
-        materialData.image.transitionLayout(device, cmdBuf, vk::ImageLayout::eTransferDstOptimal, vk::ImageAspectFlagBits::eColor);
-        endSingleTimeCommands(device, cmdBuf);
-        copyBufferToImage(device, stagingBuffer, materialData.image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-        //transitionImageLayoutForCubemap(device, image.image.Get(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-
-
-        materialData.image.generateMipmaps(device);
-    }
-
-    stagingBuffer.destroy(device);
-    materialData.imageView = ImageView(device, materialData.image, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor, mipLevels, cnt);
-    //materialData.sampler = Sampler::Get(SamplerMipMapType::High);
-
-    _materials.push_back(materialData);
 }

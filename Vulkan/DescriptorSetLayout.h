@@ -12,21 +12,20 @@ enum class ShaderComponent {
     STORAGE_IMAGE,
     AS
 };
+enum class DescriptorType {
+    VP,
+    Skybox,
+    Material,
+    Model,
+    GBuffer,
+    ImGUI,
+    RayTracing,
+    END
+};
 class DescriptorSetLayout
 {
 public:
-	DescriptorSetLayout();
-	DescriptorSetLayout(Device& device,DescriptorType type);
-    operator vk::DescriptorSetLayout& () {
-        return _descriptorSetLayout;
-    }
-    vk::DescriptorSetLayout* operator&() {
-        return &_descriptorSetLayout;
-    }
-    void destroy(Device& device) {
-        device.logical.destroyDescriptorSetLayout(_descriptorSetLayout);
-    }
-    static vk::DescriptorSetLayoutBinding inputLayoutBinding(uint32_t binding, ShaderComponent component,int cnt,vk::ShaderStageFlags shaderStageFlags) {
+	static vk::DescriptorSetLayoutBinding inputLayoutBinding(uint32_t binding, ShaderComponent component,int cnt,vk::ShaderStageFlags shaderStageFlags) {
         uint32_t descriptorCount = static_cast<uint32_t>(cnt);
         switch (component) {
         case ShaderComponent::UNIFORM_BUFFER:
@@ -110,6 +109,37 @@ public:
         }
         return results;
     }
+    static void Init(Device& device) {
+
+        std::vector<DescriptorType> dt = { 
+            DescriptorType::VP,
+            DescriptorType::Skybox,
+            DescriptorType::Material,
+            DescriptorType::Model,
+            DescriptorType::GBuffer };
+
+        for (auto type : dt) {
+
+            std::vector<vk::DescriptorSetLayoutBinding> bindings;
+            auto components = DescriptorSetLayout::GetComponents(type);
+            bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
+            vk::DescriptorSetLayoutCreateInfo layoutInfo{ {},bindings };
+
+            descriptorSetLayouts.push_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
+        }
+    }
+	static vk::raii::DescriptorSetLayout& Get(DescriptorType type) {
+		return descriptorSetLayouts[static_cast<int>(type)];
+	}
+    static vk::raii::DescriptorSetLayout& Get(int idx) {
+		return descriptorSetLayouts[idx];
+    }
 private:
-	vk::DescriptorSetLayout _descriptorSetLayout;
+
+    static std::vector<vk::raii::DescriptorSetLayout> descriptorSetLayouts;
+};
+
+class DescriptorPool {
+public:
+    static vk::raii::DescriptorPool Pool;
 };

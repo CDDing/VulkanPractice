@@ -2,25 +2,25 @@
 #include "RayTracing.h"
 
 
-void RayTracing::init(std::shared_ptr<Device> device, std::vector<Buffer>& uboBuffers, SwapChain& swapChain,Scene& scene, std::vector<Buffer>& guiBuffers)
+RayTracing::RayTracing(Device& device, SwapChain& swapChain, Scene& scene, std::vector<DBuffer>& uboBuffers, std::vector<DBuffer>& guiBuffers) :
+	//BLASs(MAX_FRAMES_IN_FLIGHT, { scene.models.size(),AccelerationStructure{vk::raii::AccelerationStructureKHR(nullptr),0,DBuffer(nullptr)}}),
+	//TLASs(MAX_FRAMES_IN_FLIGHT, AccelerationStructure{ vk::raii::AccelerationStructureKHR(nullptr),0,DBuffer(nullptr) }),
+	pipelineLayout(nullptr), pipeline(nullptr), descriptorPool(nullptr),raygenShaderBindingTable(nullptr), missShaderBindingTable(nullptr), hitShaderBindingTable(nullptr), descriptorSetLayout(nullptr)
 {
-	this->device = device;
 	this->swapChain = &swapChain;
-	auto deviceProperties2 = device->physical.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceRayTracingPipelinePropertiesKHR>();
+	auto deviceProperties2 = device.physical.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceRayTracingPipelinePropertiesKHR>();
 	rayTracingPipelineProperties = deviceProperties2.get<vk::PhysicalDeviceRayTracingPipelinePropertiesKHR>();
-	loadFunctions();
+	loadFunctions(device);
 
-	createOutputImages();
-	BLASs.resize(MAX_FRAMES_IN_FLIGHT);
-	TLASs.resize(MAX_FRAMES_IN_FLIGHT);
-	createBlas(scene.models);
-	createTlas(scene.models);
-	createRTPipeline();
-	createSBT();
-	createDescriptorSets(uboBuffers,guiBuffers,scene);
+	createOutputImages(device);
+	createBlas(device, scene.models);
+	createTlas(device, scene.models);
+	createRTPipeline(device);
+	createSBT(device);
+	createDescriptorSets(device, scene, uboBuffers,guiBuffers);
 }
 
-void RayTracing::createTlas(std::vector<Model>& models)
+void RayTracing::createTlas(Device& device, std::vector<Model>& models)
 {
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -37,7 +37,7 @@ void RayTracing::createTlas(std::vector<Model>& models)
 			instance.accelerationStructureReference = BLASs[i][j].deviceAddress;
 			instances.push_back(instance);
 		}
-		Buffer instanceBuffer = Buffer(device,
+		DBuffer instanceBuffer(device,
 			sizeof(VkAccelerationStructureInstanceKHR) * instances.size(),
 			vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
 			vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -46,7 +46,7 @@ void RayTracing::createTlas(std::vector<Model>& models)
 		instanceBuffer.unmap(device);
 
 		vk::DeviceOrHostAddressConstKHR instanceDataDeviceAddress{};
-		instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(instanceBuffer);
+		instanceDataDeviceAddress.deviceAddress = getBufferDeviceAddress(device,instanceBuffer.buffer);
 
 		vk::AccelerationStructureGeometryInstancesDataKHR instancesData;
 		instancesData.setArrayOfPointers(false);
@@ -65,19 +65,19 @@ void RayTracing::createTlas(std::vector<Model>& models)
 
 		uint32_t primitive_count = models.size();
 
-		vk::AccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo=device->logical.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, accelerationStructureBuildGeometryInfo, primitive_count);
+		vk::AccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo = device.logical.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, accelerationStructureBuildGeometryInfo, primitive_count);
 		
-		TLASs[i].buffer = Buffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
+		TLASs[i].buffer = DBuffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
 			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR| vk::BufferUsageFlagBits::eShaderDeviceAddress,
 			vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 		vk::AccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
-		accelerationStructureCreateInfo.buffer = TLASs[i].buffer;
+		accelerationStructureCreateInfo.buffer = TLASs[i].buffer.buffer;
 		accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 		accelerationStructureCreateInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
-		TLASs[i].handle = device->logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
+		TLASs[i].handle = device.logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
 
-		Buffer scratchBuffer = Buffer(device, accelerationStructureBuildSizesInfo.buildScratchSize,
+		DBuffer scratchBuffer(device, accelerationStructureBuildSizesInfo.buildScratchSize,
 			vk::BufferUsageFlagBits::eStorageBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress,
 			vk::MemoryPropertyFlagBits::eDeviceLocal
 		);
@@ -89,7 +89,7 @@ void RayTracing::createTlas(std::vector<Model>& models)
 		accelerationBuildGeometryInfo.dstAccelerationStructure = TLASs[i].handle;
 		accelerationBuildGeometryInfo.geometryCount = 1;
 		accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-		accelerationBuildGeometryInfo.scratchData.deviceAddress = getBufferDeviceAddress(scratchBuffer);
+		accelerationBuildGeometryInfo.scratchData.deviceAddress = getBufferDeviceAddress(device, scratchBuffer.buffer);
 
 		vk::AccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
 		accelerationStructureBuildRangeInfo.primitiveCount = models.size();
@@ -98,18 +98,17 @@ void RayTracing::createTlas(std::vector<Model>& models)
 		accelerationStructureBuildRangeInfo.transformOffset = 0;
 		std::vector<vk::AccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
 
-		vk::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+		vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
 		commandBuffer.buildAccelerationStructuresKHR(accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos);
 		endSingleTimeCommands(device, commandBuffer);
 
 		vk::AccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{TLASs[i].handle};
-		TLASs[i].deviceAddress = device->logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
-		scratchBuffer.destroy(device);
-		instanceBuffer.destroy(device);
+		TLASs[i].deviceAddress = device.logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
+		
 	}
 }
 
-void RayTracing::createBlas(std::vector<Model>& models)
+void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 {
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vk::AccelerationStructureGeometryKHR accelerationGeometry{};
@@ -118,7 +117,6 @@ void RayTracing::createBlas(std::vector<Model>& models)
 		
 
 		std::vector<GeometryNode> geometryNodes;
-		BLASs[i].resize(models.size());
 		for (int j = 0; j < 3;j++) {
 			std::vector<vk::AccelerationStructureGeometryKHR> geometries;
 			std::vector<uint32_t> maxPrimitiveCounts;
@@ -129,9 +127,9 @@ void RayTracing::createBlas(std::vector<Model>& models)
 				vk::DeviceOrHostAddressConstKHR vertexDeviceAddress{};
 				vk::DeviceOrHostAddressConstKHR indexDeviceAddress{};
 				vk::DeviceOrHostAddressConstKHR transformDeviceAddress{};
-				vertexDeviceAddress.deviceAddress = getBufferDeviceAddress(mesh.vertexBuffer);
-				indexDeviceAddress.deviceAddress = getBufferDeviceAddress(mesh.indexBuffer);
-				transformDeviceAddress.deviceAddress = getBufferDeviceAddress(model.uniformBuffers[i]);
+				vertexDeviceAddress.deviceAddress = getBufferDeviceAddress(device, mesh.vertexBuffer.buffer);
+				indexDeviceAddress.deviceAddress = getBufferDeviceAddress(device, mesh.indexBuffer.buffer);
+				transformDeviceAddress.deviceAddress = getBufferDeviceAddress(device, model.uniformBuffers[i].buffer);
 
 				vk::AccelerationStructureGeometryTrianglesDataKHR triangles{};
 				triangles.vertexFormat = vk::Format::eR32G32B32Sfloat;
@@ -176,22 +174,22 @@ void RayTracing::createBlas(std::vector<Model>& models)
 			accelerationStructureBuildGeometryInfo.pGeometries = geometries.data();
 
 			vk::AccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo =	
-				device->logical.getAccelerationStructureBuildSizesKHR(
+				device.logical.getAccelerationStructureBuildSizesKHR(
 				vk::AccelerationStructureBuildTypeKHR::eDevice,
 				accelerationStructureBuildGeometryInfo,
 				maxPrimitiveCounts);
 			
-			BLASs[i][j].buffer = Buffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
+			BLASs[i][j].buffer = DBuffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
 				vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR| vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eShaderDeviceAddress,
 				vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 			vk::AccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
-			accelerationStructureCreateInfo.buffer = BLASs[i][j].buffer;
+			accelerationStructureCreateInfo.buffer = BLASs[i][j].buffer.buffer;
 			accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 			accelerationStructureCreateInfo.type = vk::AccelerationStructureTypeKHR::eBottomLevel;
-			BLASs[i][j].handle = device->logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
+			BLASs[i][j].handle = device.logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
 
-			Buffer scratchBuffer = Buffer(device,
+			DBuffer scratchBuffer(device,
 				accelerationStructureBuildSizesInfo.buildScratchSize,
 				vk::BufferUsageFlagBits::eStorageBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress,
 				vk::MemoryPropertyFlagBits::eDeviceLocal);
@@ -203,22 +201,22 @@ void RayTracing::createBlas(std::vector<Model>& models)
 			accelerationBuildGeometryInfo.dstAccelerationStructure = BLASs[i][j].handle;
 			accelerationBuildGeometryInfo.geometryCount = static_cast<uint32_t>(geometries.size());
 			accelerationBuildGeometryInfo.pGeometries = geometries.data();
-			accelerationBuildGeometryInfo.scratchData.deviceAddress = getBufferDeviceAddress(scratchBuffer);
+			accelerationBuildGeometryInfo.scratchData.deviceAddress = getBufferDeviceAddress(device, scratchBuffer.buffer);
 
 
-			vk::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+			vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
 			commandBuffer.buildAccelerationStructuresKHR(accelerationBuildGeometryInfo, pbuildRangeInfos);
 			endSingleTimeCommands(device, commandBuffer);
 
 			vk::AccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
 			accelerationDeviceAddressInfo.accelerationStructure = BLASs[i][j].handle;
-			BLASs[i][j].deviceAddress = device->logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
-			scratchBuffer.destroy(device);
+			BLASs[i][j].deviceAddress = device.logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
+			
 
 		}
 
 
-		Buffer geometryNodeBuffer = Buffer(device,
+		DBuffer geometryNodeBuffer(device,
 			sizeof(GeometryNode) * static_cast<uint32_t>(geometryNodes.size()),
 			vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eStorageBuffer| vk::BufferUsageFlagBits::eTransferDst,
 			vk::MemoryPropertyFlagBits::eDeviceLocal);
@@ -227,12 +225,12 @@ void RayTracing::createBlas(std::vector<Model>& models)
 			sizeof(GeometryNode)* static_cast<uint32_t>(geometryNodes.size()));
 
 
-		geometryNodeBuffers.push_back(geometryNodeBuffer);
+		geometryNodeBuffers.push_back(std::move(geometryNodeBuffer));
 
 	}
 }
 
-void RayTracing::createSBT()
+void RayTracing::createSBT(Device& device)
 {
 	const uint32_t handleSize = rayTracingPipelineProperties.shaderGroupHandleSize;
 	
@@ -242,13 +240,14 @@ void RayTracing::createSBT()
 
 	const uint32_t sbtSize = groupCount * handleSizeAligned;
 
-	std::vector<uint8_t> shaderHandleStorage = device->logical.getRayTracingShaderGroupHandlesKHR<uint8_t>(pipeline, 0, groupCount, sbtSize);
+	
+	std::vector<uint8_t> shaderHandleStorage = pipeline.getRayTracingShaderGroupHandlesKHR<uint8_t>(0, groupCount, sbtSize);;
 	
 	const vk::BufferUsageFlags bufferUsageFlags = vk::BufferUsageFlagBits::eShaderBindingTableKHR| vk::BufferUsageFlagBits::eShaderDeviceAddress;
 	const vk::MemoryPropertyFlags memoryUsageFlags = vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent;
-	raygenShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
-	missShaderBindingTable = Buffer(device, handleSize * 2, bufferUsageFlags, memoryUsageFlags);
-	hitShaderBindingTable = Buffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
+	raygenShaderBindingTable = DBuffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
+	missShaderBindingTable = DBuffer(device, handleSize * 2, bufferUsageFlags, memoryUsageFlags);
+	hitShaderBindingTable = DBuffer(device, handleSize, bufferUsageFlags, memoryUsageFlags);
 
 
 	raygenShaderBindingTable.map(device);
@@ -259,21 +258,28 @@ void RayTracing::createSBT()
 	memcpy(hitShaderBindingTable.mapped, shaderHandleStorage.data() + handleSizeAligned * 3, handleSize);
 }
 
-void RayTracing::createRTPipeline()
+void RayTracing::createRTPipeline(Device& device)
 {
-	descriptorSetLayout = DescriptorSetLayout(*device, DescriptorType::RayTracing);
+
+	std::vector<vk::DescriptorSetLayoutBinding> bindings;
+	auto components = DescriptorSetLayout::GetComponents(DescriptorType::RayTracing);
+	bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
+	vk::DescriptorSetLayoutCreateInfo layoutInfo{ {},bindings };
+
+	descriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);
+
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-	pipelineLayoutCreateInfo.setLayoutCount = 1;
-	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayout = device->logical.createPipelineLayout(pipelineLayoutCreateInfo);
+	pipelineLayoutCreateInfo.setSetLayouts(*descriptorSetLayout);
+	pipelineLayout = device.logical.createPipelineLayout(pipelineLayoutCreateInfo);
 	
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 
-	Shader rayGenShader = Shader(device, "shaders/raygen.rgen.spv");
-	Shader missShader = Shader(device, "shaders/miss.rmiss.spv");
-	Shader hitShader = Shader(device, "shaders/hit.rchit.spv");
-	Shader shadowShader = Shader(device, "shaders/shadow.rmiss.spv");
+
+	vk::raii::ShaderModule rayGenShader = createShader(device, "shaders/raygen.rgen.spv");
+	vk::raii::ShaderModule missShader = createShader(device, "shaders/miss.rmiss.spv");
+	vk::raii::ShaderModule hitShader = createShader(device, "shaders/hit.rchit.spv");
+	vk::raii::ShaderModule shadowShader = createShader(device, "shaders/shadow.rmiss.spv");
 
 	//RayGen
 	vk::PipelineShaderStageCreateInfo rayGenShaderStage{};
@@ -338,63 +344,47 @@ void RayTracing::createRTPipeline()
 	rayTracingPipelineCreateInfo.maxPipelineRayRecursionDepth = 2;
 	rayTracingPipelineCreateInfo.layout = pipelineLayout;
 
-	vk::Result result;
-	std::tie(result,pipeline) = device->logical.createRayTracingPipelineKHR(VK_NULL_HANDLE, VK_NULL_HANDLE,
-		rayTracingPipelineCreateInfo);
+	pipeline = vk::raii::Pipeline(device, nullptr, nullptr, rayTracingPipelineCreateInfo);
 	
 }
 
-void RayTracing::createOutputImages()
+void RayTracing::createOutputImages(Device& device)
 {
-	outputImages.resize(MAX_FRAMES_IN_FLIGHT);
-	for (auto& image : outputImages) {
-		image.image = Image(device,
-			swapChain->extent.width, swapChain->extent.height,
-			1, swapChain->imageFormat,
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT;i++) {
+		outputImages.push_back(DImage(device,1,
+			swapChain->imageFormat,
+			swapChain->extent,
 			vk::ImageTiling::eOptimal,
 			vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
-			vk::MemoryPropertyFlagBits::eDeviceLocal);
-		image.imageView = ImageView(device,
-			image.image,
-			swapChain->imageFormat,
-			vk::ImageAspectFlagBits::eColor,1);
-
-		VkCommandBuffer cmdBuf = beginSingleTimeCommands(device);
-		image.image.transitionLayout(device, cmdBuf, vk::ImageLayout::eGeneral, vk::ImageAspectFlagBits::eColor);
-		endSingleTimeCommands(device, cmdBuf);
+			vk::ImageLayout::eGeneral,
+			vk::MemoryPropertyFlagBits::eDeviceLocal,
+			vk::ImageAspectFlagBits::eColor));
 	}
 }
 
-void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vector<Buffer>& guiBuffers, Scene& scene)
+void RayTracing::createDescriptorSets(Device& device, Scene& scene, std::vector<DBuffer>& uboBuffers, std::vector<DBuffer>& guiBuffers)
 {
-	std::vector<VkDescriptorPoolSize> poolSizes = {
-		{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,1},
-		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,1},
-		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1},
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,2},
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,15 }
+	std::vector<vk::DescriptorPoolSize> poolSizes = {
+		{vk::DescriptorType::eAccelerationStructureKHR,1},
+		{vk::DescriptorType::eStorageImage,1},
+		{vk::DescriptorType::eStorageBuffer,1},
+		{vk::DescriptorType::eUniformBuffer,2},
+		{ vk::DescriptorType::eCombinedImageSampler,4 },
+		{ vk::DescriptorType::eCombinedImageSampler,15 }
 	};
 
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{};
-	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo{};
 	descriptorPoolCreateInfo.maxSets = 2;
-	descriptorPoolCreateInfo.pPoolSizes = poolSizes.data();
-	descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-
-	descriptorPool = std::make_shared<DescriptorPool>();
-	descriptorPool->_descriptorPool = device->logical.createDescriptorPool(descriptorPoolCreateInfo);
-	descriptorPool->_device = device;
-	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	descriptorPoolCreateInfo.setPoolSizes(poolSizes);
+	descriptorPool = vk::raii::DescriptorPool(device, descriptorPoolCreateInfo);
+	
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 
+		vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo{ descriptorPool,*descriptorSetLayout };
+		descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, descriptorSetAllocateInfo).front()));
 
-		descriptorSets[i] = DescriptorSet(*device, *descriptorPool, descriptorSetLayout);
-
-		VkWriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
-		descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-		descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-		descriptorAccelerationStructureInfo.pAccelerationStructures = &TLASs[i].handle;
+		vk::WriteDescriptorSetAccelerationStructureKHR descriptorAccelerationStructureInfo{};
+		descriptorAccelerationStructureInfo.setAccelerationStructures({ *TLASs[i].handle });
 
 		vk::WriteDescriptorSet accelerationStructureWrite{};
 		accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo;
@@ -404,7 +394,7 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 		accelerationStructureWrite.descriptorType = vk::DescriptorType::eAccelerationStructureKHR;
 
 		vk::DescriptorImageInfo storageImageDescriptor{};
-		storageImageDescriptor.imageView = outputImages[i].imageView;
+		storageImageDescriptor.imageView = outputImages[i].view;
 		storageImageDescriptor.imageLayout = vk::ImageLayout::eGeneral;
 
 		vk::DescriptorBufferInfo bufferInfo = uboBuffers[i].GetBufferInfo();
@@ -431,7 +421,7 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 		for (int i = 0; i < 3; i++) {
 			auto& imageInfo = imageInfos[i];
 			imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-			imageInfo.imageView = scene.skybox.material.Get(i).imageView;
+			imageInfo.imageView = scene.skybox.material.Get(i).view;
 			imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
 		}
 		vk::WriteDescriptorSet descriptorWriteForMap{};
@@ -445,7 +435,7 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 
 		vk::DescriptorImageInfo lutImageInfo{};
 		lutImageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-		lutImageInfo.imageView = scene.skybox.material.Get(3).imageView;
+		lutImageInfo.imageView = scene.skybox.material.Get(3).view;
 		lutImageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
 		imageInfos[3] = lutImageInfo;
 		vk::WriteDescriptorSet descriptorWriteForLut{};
@@ -476,10 +466,10 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 			for (int k = 0; k < materialCnt;k++) {
 				vk::DescriptorImageInfo imageInfo{};
 				imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-				imageInfo.imageView = model.material.Get(k).imageView;
+				imageInfo.imageView = model.material.Get(k).view;
 				imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
 				if (!model.material.hasComponent(k)) {
-					imageInfo.imageView = Material::dummy.imageView;
+					imageInfo.imageView = Material::dummy.view;
 					imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
 				}
 
@@ -522,82 +512,67 @@ void RayTracing::createDescriptorSets(std::vector<Buffer>& uboBuffers, std::vect
 				descriptorWriteForMaterials,
 				guiBufferWrite
 		};
-		device->logical.updateDescriptorSets(writeDescriptorSets, nullptr);
+		device.logical.updateDescriptorSets(writeDescriptorSets, nullptr);
 	}
 }
 
-void RayTracing::destroy()
-{
-	for (auto& image : outputImages) {
-		image.image.destroy(device);
-		image.imageView.destroy(device);
-	}
 
-	device->logical.destroyPipeline(pipeline);
-	device->logical.destroyPipelineLayout(pipelineLayout);
-	device->logical.destroyDescriptorSetLayout(descriptorSetLayout);
-	for (auto& blas : BLASs) {
-		for (auto& blasPerModels : blas) {
-			blasPerModels.buffer.destroy(device);
-			device->logical.destroyAccelerationStructureKHR(blasPerModels.handle);
-		}
-	}
-
-	for (auto& tlas : TLASs) {
-		tlas.buffer.destroy(device);
-		device->logical.destroyAccelerationStructureKHR(tlas.handle);
-	}
-
-	for (auto& buffer : geometryNodeBuffers) {
-		buffer.destroy(device);
-	}
-
-	raygenShaderBindingTable.destroy(device);
-	missShaderBindingTable.destroy(device);
-	hitShaderBindingTable.destroy(device);
-}
-
-void RayTracing::recordCommandBuffer(vk::CommandBuffer commandBuffer,int currentFrame,uint32_t imageIndex)
+void RayTracing::recordCommandBuffer(Device& device, vk::raii::CommandBuffer& commandBuffer,int currentFrame,uint32_t imageIndex)
 {
 
 
 	const uint32_t handleSizeAligned = SBTalignedSize(rayTracingPipelineProperties.shaderGroupHandleSize, rayTracingPipelineProperties.shaderGroupHandleAlignment);
 
 	VkStridedDeviceAddressRegionKHR raygenShaderSbtEntry{};
-	raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(raygenShaderBindingTable);
+	raygenShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device, raygenShaderBindingTable.buffer);
 	raygenShaderSbtEntry.stride = handleSizeAligned;
 	raygenShaderSbtEntry.size = handleSizeAligned;
 
 	VkStridedDeviceAddressRegionKHR missShaderSbtEntry{};
-	missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(missShaderBindingTable);
+	missShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device, missShaderBindingTable.buffer);
 	missShaderSbtEntry.stride = handleSizeAligned;
 	missShaderSbtEntry.size = handleSizeAligned * 2;
 
 	VkStridedDeviceAddressRegionKHR hitShaderSbtEntry{};
-	hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(hitShaderBindingTable);
+	hitShaderSbtEntry.deviceAddress = getBufferDeviceAddress(device, hitShaderBindingTable.buffer);
 	hitShaderSbtEntry.stride = handleSizeAligned;
 	hitShaderSbtEntry.size = handleSizeAligned;
 
 	VkStridedDeviceAddressRegionKHR callableShaderSbtEntry{};
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, pipeline);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, pipelineLayout, 0, { descriptorSets[currentFrame] }, {});
 	
-	vkCmdTraceRaysKHR(
-		commandBuffer,
-		&raygenShaderSbtEntry,
-		&missShaderSbtEntry,
-		&hitShaderSbtEntry,
-		&callableShaderSbtEntry,
+	commandBuffer.traceRaysKHR(
+		raygenShaderSbtEntry,
+	missShaderSbtEntry,
+	hitShaderSbtEntry,
+		callableShaderSbtEntry,
 		swapChain->extent.width,
 		swapChain->extent.height,
 		1);
 
-	auto& outputSwapChain = swapChain->images[imageIndex].image;
-	auto& outputImage = outputImages[currentFrame].image;
-	outputSwapChain.transitionLayout(device, commandBuffer,
-		vk::ImageLayout::eTransferDstOptimal);
-	outputImage.transitionLayout(device, commandBuffer,
-		vk::ImageLayout::eTransferSrcOptimal);
+	auto& outputSwapChain = swapChain->images[imageIndex];
+	auto& outputImage = outputImages[currentFrame];
+	vk::AccessFlags sourceAccessMask;
+	vk::PipelineStageFlags sourceStage;
+
+	vk::AccessFlags destinationAccessMask = vk::AccessFlagBits::eTransferWrite; 
+	vk::PipelineStageFlags destinationStage;
+	vk::ImageLayout layout = vk::ImageLayout::ePresentSrcKHR;
+	vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor;
+	vk::ImageSubresourceRange imageSubresourceRange(aspectMask, 0, 1, 0, 1);
+	vk::ImageMemoryBarrier    imageMemoryBarrier(sourceAccessMask,
+		destinationAccessMask,
+		layout,
+		vk::ImageLayout::eTransferDstOptimal,
+		VK_QUEUE_FAMILY_IGNORED,
+		VK_QUEUE_FAMILY_IGNORED,
+		outputSwapChain,
+		imageSubresourceRange);
+
+	commandBuffer.pipelineBarrier(sourceStage, destinationStage, {}, nullptr, nullptr, imageMemoryBarrier);
+	layout = vk::ImageLayout::eTransferDstOptimal;
+	outputImage.setImageLayout(commandBuffer, vk::ImageLayout::eTransferSrcOptimal);
 
 
 	vk::ImageCopy copyRegion{};
@@ -607,37 +582,53 @@ void RayTracing::recordCommandBuffer(vk::CommandBuffer commandBuffer,int current
 	copyRegion.dstOffset = vk::Offset3D{ 0, 0, 0 };
 	copyRegion.extent = vk::Extent3D{ swapChain->extent.width, swapChain->extent.height, 1};
 	
-	commandBuffer.copyImage(outputImage,
+	commandBuffer.copyImage(outputImage.image,
 		vk::ImageLayout::eTransferSrcOptimal,
 		outputSwapChain,
 		vk::ImageLayout::eTransferDstOptimal,
 		copyRegion);
 
-	outputSwapChain.transitionLayout(device, commandBuffer,
-		vk::ImageLayout::ePresentSrcKHR);
-	outputImage.transitionLayout(device, commandBuffer,
-		vk::ImageLayout::eGeneral);
+	sourceAccessMask= vk::AccessFlagBits::eTransferWrite;
+	sourceStage = vk::PipelineStageFlagBits::eTransfer;
+
+	destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
+	destinationStage = vk::PipelineStageFlagBits::eBottomOfPipe;
+
+	aspectMask = vk::ImageAspectFlagBits::eColor;
+	imageSubresourceRange = { aspectMask, 0, 1, 0, 1 };
+	imageMemoryBarrier = { sourceAccessMask,
+		destinationAccessMask,
+		layout,
+		vk::ImageLayout::ePresentSrcKHR,
+		VK_QUEUE_FAMILY_IGNORED,
+		VK_QUEUE_FAMILY_IGNORED,
+		outputSwapChain,
+		imageSubresourceRange };
+
+	commandBuffer.pipelineBarrier(sourceStage, destinationStage, {}, nullptr, nullptr, imageMemoryBarrier);
+
+	outputImage.setImageLayout(commandBuffer, vk::ImageLayout::eGeneral);
 
 }
 
-void RayTracing::loadFunctions()
+void RayTracing::loadFunctions(Device& device)
 {
-	vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device->logical, "vkGetBufferDeviceAddressKHR"));
-	vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device->logical, "vkCmdBuildAccelerationStructuresKHR"));
-	vkBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device->logical, "vkBuildAccelerationStructuresKHR"));
-	vkCreateAccelerationStructureKHR = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(vkGetDeviceProcAddr(device->logical, "vkCreateAccelerationStructureKHR"));
-	vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(vkGetDeviceProcAddr(device->logical, "vkDestroyAccelerationStructureKHR"));
-	vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(vkGetDeviceProcAddr(device->logical, "vkGetAccelerationStructureBuildSizesKHR"));
-	vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(vkGetDeviceProcAddr(device->logical, "vkGetAccelerationStructureDeviceAddressKHR"));
-	vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device->logical, "vkCmdTraceRaysKHR"));
-	vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(device->logical, "vkGetRayTracingShaderGroupHandlesKHR"));
-	vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device->logical, "vkCreateRayTracingPipelinesKHR"));
+	//vkGetBufferDeviceAddressKHR = reinterpret_cast<PFN_vkGetBufferDeviceAddressKHR>(vkGetDeviceProcAddr(device.logical, "vkGetBufferDeviceAddressKHR"));
+	//vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device.logical, "vkCmdBuildAccelerationStructuresKHR"));
+	//vkBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkBuildAccelerationStructuresKHR>(vkGetDeviceProcAddr(device.logical, "vkBuildAccelerationStructuresKHR"));
+	//vkCreateAccelerationStructureKHR = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(vkGetDeviceProcAddr(device.logical, "vkCreateAccelerationStructureKHR"));
+	//vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(vkGetDeviceProcAddr(device.logical, "vkDestroyAccelerationStructureKHR"));
+	//vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(vkGetDeviceProcAddr(device.logical, "vkGetAccelerationStructureBuildSizesKHR"));
+	//vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(vkGetDeviceProcAddr(device.logical, "vkGetAccelerationStructureDeviceAddressKHR"));
+	//vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(vkGetDeviceProcAddr(device.logical, "vkCmdTraceRaysKHR"));
+	//vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(vkGetDeviceProcAddr(device.logical, "vkGetRayTracingShaderGroupHandlesKHR"));
+	//vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(vkGetDeviceProcAddr(device.logical, "vkCreateRayTracingPipelinesKHR"));
 
 }
 
-uint64_t RayTracing::getBufferDeviceAddress(Buffer& buffer)
+uint64_t RayTracing::getBufferDeviceAddress(Device& device, vk::raii::Buffer& buffer)
 {
 	vk::BufferDeviceAddressInfoKHR bufferDeviceAI{};
 	bufferDeviceAI.buffer = buffer;
-	return device->logical.getBufferAddressKHR(bufferDeviceAI);
+	return device.logical.getBufferAddressKHR(bufferDeviceAI);
 }

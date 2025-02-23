@@ -18,17 +18,11 @@ enum class SamplerFilterType {
 	END
 
 };
+vk::raii::Sampler createSampler(Device& device, SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType);
 class Sampler
 {
 public:
-	Sampler();
-	Sampler(Device& device, SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType);
-	operator vk::Sampler& () {
-		return _sampler;
-	}
-	void destroy(vk::Device & device) {
-		device.destroySampler(_sampler);
-	}
+	static std::vector<vk::raii::Sampler> samplers;
 	static void init(Device& device) {
 		auto maxValue0 = static_cast<int>(SamplerMipMapType::END);
 		auto maxValue1 = static_cast<int>(SamplerFilterType::END);
@@ -37,23 +31,17 @@ public:
 
 
 		for (auto i = 0; i < maxValue; i++) {
-			samplers.push_back(Sampler(device, GetMipMapType(i),
+			samplers.push_back(createSampler(device, GetMipMapType(i),
 				GetModeType(i),
 				GetFilterType(i)));
 		}
 	}
-	static void destroySamplers(vk::Device& device) {
-		for (auto& sampler : samplers) {
-			sampler.destroy(device);
-		}
-	}
-	static Sampler& Get(SamplerMipMapType mipmapType = SamplerMipMapType::Low, 
+	static vk::raii::Sampler& Get(SamplerMipMapType mipmapType = SamplerMipMapType::Low, 
 		SamplerModeType modeType = SamplerModeType::Clamp, 
 		SamplerFilterType filterType = SamplerFilterType::Linear) {
 		auto index = GetIndex(mipmapType, modeType, filterType);
 		return samplers[index];
 	}
-private:
 
 	//Index
 	static int GetIndex(SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType) {
@@ -115,11 +103,9 @@ private:
 		case SamplerFilterType::Nearest:
 			createInfo.magFilter = vk::Filter::eNearest;
 			createInfo.minFilter = vk::Filter::eNearest;
+			break;
 		default:
 			break;
 		}
 	}
-	vk::Sampler _sampler;
-
-	static std::vector<Sampler> samplers;
 };
