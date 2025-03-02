@@ -2,7 +2,7 @@
 class Material
 {
 public:
-	static Material&& createMaterialForSkybox(Device& device);
+	static Material createMaterialForSkybox(Device& device);
 	static DImage dummy;
 	static DImage GetDefaultMaterial(Device& device) {
 		const uint32_t pixelData = 0xFFFFFFFF;
@@ -28,13 +28,14 @@ public:
 			vk::ImageUsageFlagBits::eTransferSrc |
 			vk::ImageUsageFlagBits::eTransferDst |
 			vk::ImageUsageFlagBits::eSampled,
-			vk::ImageLayout::eTransferDstOptimal,
+			vk::ImageLayout::eUndefined,
 			vk::MemoryPropertyFlagBits::eDeviceLocal,
 			vk::ImageAspectFlagBits::eColor);
 
 
 
 		vk::raii::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
+		image.setImageLayout(cmdBuf, vk::ImageLayout::eTransferDstOptimal);
 		image.copyFromBuffer(cmdBuf, stagingBuffer.buffer);
 		image.setImageLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
 		endSingleTimeCommands(device, cmdBuf);
@@ -44,15 +45,21 @@ public:
 	}
 	Material(std::nullptr_t) {};
 	Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath);
+	Material(const Material& other) = delete;
+	Material& operator=(const Material& other) = delete;
+
+	Material(Material&& other) = default;
+	Material& operator=(Material&& other) = default;
+	
 	DImage& Get(MaterialComponent component) { return materials[static_cast<int>(component)]; }
 	DImage& Get(int idx) { return materials[idx]; }
 	bool hasComponent(int idx) { return components[idx]; }
 
 	std::vector<vk::raii::DescriptorSet> descriptorSets = {};
 private:
-	std::vector<DImage> materials = {};
+	std::unordered_map<int,DImage> materials = {};
 	std::vector<bool> components;
 	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format);
-	void loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt);
+	void loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt,int idx);
 };
 

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Instance.h"
 
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 PFN_vkCreateDebugUtilsMessengerEXT  pfnVkCreateDebugUtilsMessengerEXT;
 std::vector<const char*> getRequiredExtensions() {
@@ -37,11 +36,7 @@ Instance::Instance(const char* ApplicationName) : _instance(nullptr)
     if (enableValidationLayers && !checkValidationLayerSupport()) {
         throw std::runtime_error("validation layers requested, but not available!");
     }
-    auto extension = context.enumerateInstanceExtensionProperties();
 
-    //vk::detail::DynamicLoader dl;
-    //auto vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
-    //VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 
     vk::ApplicationInfo appInfo{ "DDing",
     VK_MAKE_VERSION(1,0,0),
@@ -76,6 +71,7 @@ Instance::Instance(const char* ApplicationName) : _instance(nullptr)
     }
 
     auto extensions = getRequiredExtensions();
+    extensions.push_back(vk::KHRSurfaceExtensionName);
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 

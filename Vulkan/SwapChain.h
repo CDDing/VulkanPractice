@@ -16,7 +16,7 @@ public:
     void create(Device& device);
     void destroy(std::shared_ptr<Device> device);
 
-    static SwapChainSupportDetails querySwapChainSupport(vk::raii::PhysicalDevice& device,vk::SurfaceKHR surface) {
+    static SwapChainSupportDetails querySwapChainSupport(vk::raii::PhysicalDevice& device,vk::raii::SurfaceKHR& surface) {
         SwapChainSupportDetails details;
         details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
         details.formats = device.getSurfaceFormatsKHR(surface);

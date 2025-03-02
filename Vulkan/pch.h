@@ -1,7 +1,6 @@
 #pragma once
 
 #include <DirectXTex.h>
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
 
@@ -16,6 +15,7 @@
 #include <optional>
 #include <set>
 #include <fstream>
+#include <map>
 #include <array>
 #include <unordered_map>
 #include <chrono>

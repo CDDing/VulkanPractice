@@ -2,38 +2,31 @@
 vk::raii::CommandPool createCommandPool(Device& device, QueueFamilyIndices queueFamilyIndices) {
 
 	//QueueFamilyIndices queueFamilyIndices = findQueueFamilies(device, surface);
-	if (CommandPool::TransientPool == VK_NULL_HANDLE) {
-		vk::CommandPoolCreateInfo poolInfo{ vk::CommandPoolCreateFlagBits::eTransient,
-	queueFamilyIndices.graphicsFamily.value() };
-		CommandPool::TransientPool = device.logical.createCommandPool(poolInfo);
-
-	}
-
 	vk::CommandPoolCreateInfo poolInfo{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 	queueFamilyIndices.graphicsFamily.value() };
 
 	return device.logical.createCommandPool(poolInfo);
 }
-//Scene createScene(Device& device) {
-//	Scene scene(nullptr);
-//	scene.models.push_back(Model(device, {},
-//		BaseModel::Square,
-//		{},
-//		glm::translate(glm::mat4(30.0f), glm::vec3(0, -2.f / 30.f, 0))));
-//	scene.models.push_back(Model(device, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
-//		"Resources/models/vk2vcdl/vk2vcdl.fbx",
-//		{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
-//		"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
-//		"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
-//		"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
-//		glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(1.5, 0, 2)), glm::radians(45.0f), glm::vec3(-2, 3, 1))));
-//	scene.models.push_back(Model(device, {},
-//		BaseModel::Sphere,
-//		{},
-//		glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f))));
-//	scene.skybox = Skybox(device);
-//	return scene;
-//}
+Scene createScene(Device& device) {
+	Scene scene(nullptr);
+	scene.models.push_back(Model(device, {},
+		BaseModel::Square,
+		{},
+		glm::translate(glm::mat4(30.0f), glm::vec3(0, -2.f / 30.f, 0))));
+	scene.models.push_back(Model(device, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
+		"Resources/models/vk2vcdl/vk2vcdl.fbx",
+		{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
+		"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
+		"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
+		"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
+		glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(1.5, 0, 2)), glm::radians(45.0f), glm::vec3(-2, 3, 1))));
+	scene.models.push_back(Model(device, {},
+		BaseModel::Sphere,
+		{},
+		glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f))));
+	scene.skybox = Skybox(device);
+	return scene;
+}
 
 template<typename T>
 std::vector<DBuffer> createDBuffer(Device& device) {
@@ -141,24 +134,36 @@ std::vector<Pipeline> createPipelines(Device& device,SwapChain& swapChain, Defer
 
 	return result;
 }
+GLFWwindow* initWindow() {
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+	GLFWwindow* w = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	return w;
+}
 class VulkanApp {
 public:
 	VulkanApp() :
-		instance("DDing"), window(initWindow()),
-		surface(createSurface(instance, window)), device(instance, surface),
+		window(initWindow()),
+		instance("DDing"), 
+		surface(createSurface(instance, window)), 
+		device(instance, surface),
 		swapChain(device, surface), 
 		deferred(device, swapChain), 
 		pp(device, swapChain),
 		commandPool(createCommandPool(device, findQueueFamilies(device, surface))),
 		imgui(device, window, instance, swapChain.renderPass),
-		//scene(std::move(createScene(device))),
+		scene(std::move(createScene(device))),
 		uniformBuffers(std::move(createDBuffer<UniformBufferObject>(device))),
 		GUIBuffers(std::move(createDBuffer<GUIControl>(device))),
 		uboDescriptorSets(createSets<UniformBufferObject>(device,uniformBuffers)),
 		GUIDescriptorSets(createSets<GUIControl>(device,GUIBuffers)),
 		pipelines(createPipelines(device, swapChain, deferred)),
 		//rt(device, swapChain, scene, uniformBuffers, GUIBuffers),
-		scene(nullptr),rt(nullptr),
+		//scene(nullptr),
+		rt(nullptr),
 
 		imageAvailableSemaphores(createSemaphores(device)),
 		renderFinishedSemaphores(createSemaphores(device)),
@@ -166,6 +171,10 @@ public:
 
 	{
 
+		glfwSetWindowUserPointer(window, this);
+		glfwSetCursorPosCallback(window, mouseInput);
+		glfwSetKeyCallback(window, keyboardInput);
+		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::ePrimary,1 };
 			commandBuffers.push_back(std::move(vk::raii::CommandBuffers(device, allocInfo).front()));
@@ -176,35 +185,36 @@ public:
 		cleanup();
 	}
 private:
+	GLFWwindow* window;
 	Instance instance;
 	vk::raii::SurfaceKHR surface;
 	Device device;
-	vk::raii::CommandPool commandPool;
-
-	GUI imgui;
-	std::vector<vk::raii::CommandBuffer> commandBuffers;
-	std::vector<DBuffer> uniformBuffers;
-	std::vector<DBuffer> GUIBuffers;
-	GUIControl guiControl{};
-	Scene scene;
-	std::vector<vk::raii::DescriptorSet> uboDescriptorSets;
-	std::vector<vk::raii::DescriptorSet> GUIDescriptorSets;
-
-
-	std::vector<Pipeline> pipelines;
-
-	Camera camera;
-	GLFWwindow* window;
-	std::vector<vk::raii::Semaphore> imageAvailableSemaphores;
-	std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
-	std::vector<vk::raii::Fence> inFlightFences;
-	uint32_t currentFrame = 0;
-
-	RayTracing rt;
-
 	SwapChain swapChain;
 	Deferred deferred;
 	PostProcessing pp;
+	vk::raii::CommandPool commandPool;
+
+	GUI imgui;
+	Scene scene;
+	std::vector<DBuffer> uniformBuffers;
+	std::vector<DBuffer> GUIBuffers;
+	std::vector<vk::raii::DescriptorSet> uboDescriptorSets;
+	std::vector<vk::raii::DescriptorSet> GUIDescriptorSets;
+	std::vector<Pipeline> pipelines;
+	RayTracing rt;
+	std::vector<vk::raii::Semaphore> imageAvailableSemaphores;
+	std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
+	std::vector<vk::raii::Fence> inFlightFences;
+
+
+	std::vector<vk::raii::CommandBuffer> commandBuffers;
+	GUIControl guiControl{};
+
+
+
+	Camera camera;
+	uint32_t currentFrame = 0;
+
 
 	bool keyPressed[256] = { false, };
 
@@ -239,19 +249,6 @@ private:
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<VulkanApp*> (glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
-	}
-	GLFWwindow* initWindow() {
-		glfwInit();
-
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-		glfwSetWindowUserPointer(window, this);
-		glfwSetCursorPosCallback(window, mouseInput);
-		glfwSetKeyCallback(window, keyboardInput);
-		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-		return window;
 	}
 	
 	
@@ -539,6 +536,7 @@ private:
 };
 
 int main() {
+
 	VulkanApp app;
 
 	try {

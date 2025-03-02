@@ -31,13 +31,12 @@ struct DImage {
         imageInfo.setExtent({ extent.width, extent.height, 1 });
 		imageInfo.setFormat(format);
 		imageInfo.setImageType(vk::ImageType::e2D);
-		imageInfo.setMipLevels(1);
+		imageInfo.setMipLevels(mipLevels);
 		imageInfo.setSamples(vk::SampleCountFlagBits::e1);
 		imageInfo.setTiling(tiling);
 		imageInfo.setUsage(usage);
 		imageInfo.setInitialLayout(layout);
         imageInfo.setSharingMode(vk::SharingMode::eExclusive);
-        imageInfo.setMipLevels(1);
         image = vk::raii::Image(device.logical, imageInfo);
 
         auto memRequirements = image.getMemoryRequirements();
@@ -97,13 +96,12 @@ struct CubemapImage : public DImage {
         imageInfo.setExtent({ extent.width, extent.height, 1 });
         imageInfo.setFormat(format);
         imageInfo.setImageType(vk::ImageType::e2D);
-        imageInfo.setMipLevels(1);
+        imageInfo.setMipLevels(mipLevels);
         imageInfo.setSamples(vk::SampleCountFlagBits::e1);
         imageInfo.setTiling(tiling);
         imageInfo.setUsage(usage);
         imageInfo.setInitialLayout(layout);
         imageInfo.setSharingMode(vk::SharingMode::eExclusive);
-        imageInfo.setMipLevels(1);
         imageInfo.setFlags(vk::ImageCreateFlagBits::eCubeCompatible);
         image = vk::raii::Image(device.logical, imageInfo);
 
@@ -121,8 +119,8 @@ struct CubemapImage : public DImage {
         vk::ImageViewCreateInfo imageViewInfo{};
         imageViewInfo.setImage(image);
         imageViewInfo.setFormat(format);
-        imageViewInfo.setViewType(vk::ImageViewType::e2D);
-        imageViewInfo.setSubresourceRange({ aspectMask, 0, mipLevels, 0, 1 });
+        imageViewInfo.setViewType(vk::ImageViewType::eCube);
+        imageViewInfo.setSubresourceRange({ aspectMask, 0, mipLevels, 0, 6 });
         view = vk::raii::ImageView(device.logical, imageViewInfo);
 	}
 

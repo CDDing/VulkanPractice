@@ -4,7 +4,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 DImage Material::dummy(nullptr);
-Material::Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath)
+Material::Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath) 
 {
 	this->components.resize(static_cast<int>(MaterialComponent::END));
 	for (auto component : components) {
@@ -20,15 +20,15 @@ Material::Material(Device& device, std::vector<MaterialComponent> components, co
     }
 }
 
-Material&& Material::createMaterialForSkybox(Device& device)
+Material Material::createMaterialForSkybox(Device& device)
 {
     Material material(nullptr);
-    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleEnvHDR.dds", 6);
-    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleDiffuseHDR.dds", 6);
-    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleSpecularHDR.dds", 6);
-    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleBrdf.dds", 1);
+    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleEnvHDR.dds", 6, 0);
+    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleDiffuseHDR.dds", 6, 1);
+    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleSpecularHDR.dds", 6, 2);
+    material.loadImageFromDDSFile(device, L"Resources/textures/IBL/sampleBrdf.dds", 1, 3);
     
-    return std::move(material);
+    return material;
 }
 
 void Material::loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format)
@@ -46,7 +46,7 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
         vk::Extent2D(texWidth,texHeight),
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-        vk::ImageLayout::eTransferDstOptimal,
+        vk::ImageLayout::eUndefined,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         vk::ImageAspectFlagBits::eColor);
     
@@ -58,6 +58,7 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
     stagingBuffer.unmap(device);
 
     vk::raii::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
+	materialData.setImageLayout(cmdBuf, vk::ImageLayout::eTransferDstOptimal);
 	materialData.copyFromBuffer(cmdBuf, stagingBuffer.buffer);
 	materialData.generateMipmaps(cmdBuf);
 	endSingleTimeCommands(device, cmdBuf);
@@ -66,7 +67,7 @@ void Material::loadImage(Device& device, const std::string& filePath, const Mate
     materials[static_cast<int>(component)] = std::move(materialData);
 }
 
-void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt)
+void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt, int idx)
 {
     int width, height;
     uint32_t mipLevels;
@@ -108,14 +109,16 @@ void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath
 			vk::ImageUsageFlagBits::eTransferSrc |
 			vk::ImageUsageFlagBits::eTransferDst |
 			vk::ImageUsageFlagBits::eSampled,
-			vk::ImageLayout::eTransferDstOptimal,
+			vk::ImageLayout::eUndefined,
 			vk::MemoryPropertyFlagBits::eDeviceLocal,
 			vk::ImageAspectFlagBits::eColor);
+		ci.setImageLayout(commandBuffer, vk::ImageLayout::eTransferDstOptimal);
 		ci.copyFromBuffer(commandBuffer, stagingBuffer.buffer);
 		ci.generateMipmaps(commandBuffer);
 
 		//TODO 이미지 벡터에 넣기
         //materials.push_back(std::move(ci));
+        materials[idx] = std::move(ci);
 		endSingleTimeCommands(device, commandBuffer);
         break;
     case 1:
@@ -126,14 +129,15 @@ void Material::loadImageFromDDSFile(Device& device, const std::wstring& filePath
             vk::ImageUsageFlagBits::eTransferSrc|
             vk::ImageUsageFlagBits::eTransferDst|
             vk::ImageUsageFlagBits::eSampled,
-            vk::ImageLayout::eTransferDstOptimal,
+            vk::ImageLayout::eUndefined,
             vk::MemoryPropertyFlagBits::eDeviceLocal,
             vk::ImageAspectFlagBits::eColor);
+        di.setImageLayout(commandBuffer, vk::ImageLayout::eTransferDstOptimal);
         di.copyFromBuffer(commandBuffer, stagingBuffer.buffer);
         di.generateMipmaps(commandBuffer);
 
         //TODO 이미지 벡터에 넣기
-        materials.push_back(std::move(di));
+        materials[idx]=(std::move(di));
 		endSingleTimeCommands(device, commandBuffer);
         break;
     }

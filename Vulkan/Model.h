@@ -17,6 +17,12 @@ public:
 	Model(Device& device, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform);
 	Model(Device& device, const std::vector<MaterialComponent> components, BaseModel modelType, const std::vector<std::string>& materialPaths, glm::mat4 transform);
 	virtual ~Model() = default;
+
+	Model(const Model&) = delete;
+	Model& operator=(const Model&) = delete;
+
+	Model(Model&&) = default;
+	Model& operator=(Model&&) = default;
 	void Render();
 
 	void InitUniformBuffer(Device& device, glm::mat4 transform);

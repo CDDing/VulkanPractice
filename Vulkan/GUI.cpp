@@ -42,7 +42,7 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 		vk::Extent2D(texWidth, texHeight),
 		vk::ImageTiling::eOptimal,
 		vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-		vk::ImageLayout::eTransferDstOptimal,
+		vk::ImageLayout::eUndefined,
 		vk::MemoryPropertyFlagBits::eDeviceLocal,
 		vk::ImageAspectFlagBits::eColor);
 

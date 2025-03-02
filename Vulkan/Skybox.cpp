@@ -4,7 +4,7 @@
 Skybox::Skybox(Device& device) : Model(nullptr)
 {
 	GenerateBox(device, *this);
-	material = Material::createMaterialForSkybox(device);
+	material = std::move(Material::createMaterialForSkybox(device));
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         {
             vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Skybox) };

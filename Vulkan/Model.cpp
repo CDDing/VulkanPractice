@@ -19,7 +19,7 @@ Model::Model(Device& device, const std::vector<MaterialComponent> components, co
         material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
 
         vk::DescriptorSetAllocateInfo desallocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Model) };
-        descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+        descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, desallocInfo).front()));
 
     }
     InitDescriptorSet(device);
@@ -27,7 +27,7 @@ Model::Model(Device& device, const std::vector<MaterialComponent> components, co
 }
 
 Model::Model(Device& device, const std::vector<MaterialComponent> components, BaseModel modelType, const std::vector<std::string>& materialPaths, glm::mat4 transform)
-    : material(Material(nullptr))
+    : material(nullptr)
 {
 	switch (modelType) {
 	case BaseModel::Sphere:
@@ -48,7 +48,7 @@ Model::Model(Device& device, const std::vector<MaterialComponent> components, Ba
          material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
          
          vk::DescriptorSetAllocateInfo desallocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Model) };
-         descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+         descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, desallocInfo).front()));
          
     }
     InitDescriptorSet(device);
@@ -64,7 +64,7 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
 {
     VkDeviceSize bufferSize = sizeof(Transform);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers[i] = DBuffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
+        uniformBuffers.push_back(DBuffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent));
         uniformBuffers[i].map(device, bufferSize, 0);
         this->transform.model = { glm::transpose(transform) };
         memcpy(uniformBuffers[i].mapped, &this->transform, sizeof(transform));
@@ -201,13 +201,14 @@ void Model::InitDescriptorSet(Device& device)
         for (int i = 0; i<static_cast<int>(MaterialComponent::END);i++) {
             auto& imageInfo = imageInfos[i];
             imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-            imageInfo.imageView = *material.Get(i).view;
-            imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
             if (!material.hasComponent(i)) {
                 imageInfo.imageView = *Material::dummy.view;
                 imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
             }
-
+            else {
+                imageInfo.imageView = *material.Get(i).view;
+                imageInfo.sampler = Sampler::Get(SamplerMipMapType::High);
+            }
         }
         vk::WriteDescriptorSet descriptorWrite{};
         descriptorWrite.dstSet = *material.descriptorSets[frame];

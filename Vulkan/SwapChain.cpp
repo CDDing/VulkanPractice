@@ -9,8 +9,7 @@ SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface) : surface(&s
 }
 void SwapChain::create(Device& device)
 {
-    vk::raii::PhysicalDevice d(nullptr);
-    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(d, *surface);
+    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(device.physical, *surface);
 
     vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -72,7 +71,7 @@ void SwapChain::create(Device& device)
 		createInfo.subresourceRange.levelCount = 1;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
-        imageViews[i] = vk::raii::ImageView(device, createInfo);
+        imageViews.push_back(vk::raii::ImageView(device, createInfo));
     }
 
     //Depth
@@ -80,9 +79,13 @@ void SwapChain::create(Device& device)
 
 	depthImage = DImage(device, 1, depthFormat, extent, vk::ImageTiling::eOptimal, 
         vk::ImageUsageFlagBits::eDepthStencilAttachment,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        vk::ImageLayout::eUndefined,
         vk::MemoryPropertyFlagBits::eDeviceLocal, 
         vk::ImageAspectFlagBits::eDepth);
+
+	vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+	depthImage.setImageLayout(commandBuffer, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	endSingleTimeCommands(device, commandBuffer);
 
     vk::AttachmentDescription colorAttachment{};
     colorAttachment.format = imageFormat;

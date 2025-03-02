@@ -9,17 +9,23 @@ Device::Device(Instance& instance, vk::raii::SurfaceKHR& surface) : logical(VK_N
     pickPhysicalDevice(instance,surface);
     createLogicalDevice(surface);
 
+    //Initialize Global
     Sampler::init(*this);
+
+	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physical, surface);
+    vk::CommandPoolCreateInfo commandPoolInfo{ vk::CommandPoolCreateFlagBits::eTransient,
+        queueFamilyIndices.graphicsFamily.value() };
+    CommandPool::TransientPool = logical.createCommandPool(commandPoolInfo);
 
     std::array<vk::DescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-    vk::DescriptorPoolCreateInfo poolInfo{ {/*Flags*/},
+    vk::DescriptorPoolCreateInfo descriptorPoolInfo{ {vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet},
         static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100 ,poolSizes };
 
     DescriptorSetLayout::Init(*this);
-    DescriptorPool::Pool = vk::raii::DescriptorPool(logical, poolInfo);
+    DescriptorPool::Pool = vk::raii::DescriptorPool(logical, descriptorPoolInfo);
     Material::dummy = Material::GetDefaultMaterial(*this);
 }
 
