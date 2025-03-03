@@ -8,7 +8,7 @@ public:
         END
     };
     Device(Instance& instance, vk::raii::SurfaceKHR& surface);
-
+    ~Device();
     operator vk::raii::Device& () {
         return logical;
     }

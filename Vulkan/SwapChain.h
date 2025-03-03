@@ -27,7 +27,7 @@ public:
 
 
     vk::raii::RenderPass renderPass;
-    std::vector<vk::raii::Image> images;
+    std::vector<vk::Image> images;
 	std::vector<vk::raii::ImageView> imageViews;
     vk::Format imageFormat;
     vk::Extent2D extent;

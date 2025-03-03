@@ -23,6 +23,11 @@ class Sampler
 {
 public:
 	static std::vector<vk::raii::Sampler> samplers;
+	static void destroy(Device& device) {
+		for (auto& sampler : samplers) {
+			sampler.~Sampler();
+		}
+	}
 	static void init(Device& device) {
 		auto maxValue0 = static_cast<int>(SamplerMipMapType::END);
 		auto maxValue1 = static_cast<int>(SamplerFilterType::END);

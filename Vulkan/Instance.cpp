@@ -84,6 +84,6 @@ Instance::~Instance()
 {
     if (enableValidationLayers) {
 
-        DestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
+        //DestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);
     }
 }

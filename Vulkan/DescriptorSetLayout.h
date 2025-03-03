@@ -128,6 +128,11 @@ public:
             descriptorSetLayouts.push_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
         }
     }
+	static void destroy(Device& device) {
+		for (auto& descriptorSetLayout : descriptorSetLayouts) {
+			descriptorSetLayout.~DescriptorSetLayout();
+		}
+	}
 	static vk::raii::DescriptorSetLayout& Get(DescriptorType type) {
 		return descriptorSetLayouts[static_cast<int>(type)];
 	}

@@ -52,10 +52,7 @@ void SwapChain::create(Device& device)
 
     swapChain = device.logical.createSwapchainKHR(createInfo);
     
-    std::vector<vk::Image> temp = swapChain.getImages();;
-    for (int i = 0; i < imageCount;i++) {
-        images.push_back(vk::raii::Image(device.logical,temp[i]));
-    }
+	images = swapChain.getImages();
 
 
     imageFormat = surfaceFormat.format;

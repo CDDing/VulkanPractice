@@ -116,3 +116,12 @@ bool Device::isDeviceSuitable(vk::raii::PhysicalDevice device, vk::raii::Surface
     vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
     return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
+Device::~Device() {
+    Sampler::destroy(*this);
+
+    CommandPool::TransientPool.~CommandPool();
+	DescriptorPool::Pool.~DescriptorPool();
+	DescriptorSetLayout::destroy(*this);
+    
+    Material::dummy.~DImage();
+}
