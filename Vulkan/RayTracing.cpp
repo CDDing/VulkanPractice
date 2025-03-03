@@ -67,15 +67,15 @@ void RayTracing::createTlas(Device& device, std::vector<Model>& models)
 
 		vk::AccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo = device.logical.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, accelerationStructureBuildGeometryInfo, primitive_count);
 		
-		TLASs[i].buffer = DBuffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
+		auto tlasBuffer = DBuffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
 			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR| vk::BufferUsageFlagBits::eShaderDeviceAddress,
 			vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 		vk::AccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
-		accelerationStructureCreateInfo.buffer = TLASs[i].buffer.buffer;
+		accelerationStructureCreateInfo.buffer = tlasBuffer.buffer;
 		accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 		accelerationStructureCreateInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
-		TLASs[i].handle = device.logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
+		auto accelerationStructure= device.logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
 
 		DBuffer scratchBuffer(device, accelerationStructureBuildSizesInfo.buildScratchSize,
 			vk::BufferUsageFlagBits::eStorageBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress,
@@ -86,7 +86,7 @@ void RayTracing::createTlas(Device& device, std::vector<Model>& models)
 		accelerationBuildGeometryInfo.type = vk::AccelerationStructureTypeKHR::eTopLevel;
 		accelerationBuildGeometryInfo.flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace;
 		accelerationBuildGeometryInfo.mode = vk::BuildAccelerationStructureModeKHR::eBuild;
-		accelerationBuildGeometryInfo.dstAccelerationStructure = TLASs[i].handle;
+		accelerationBuildGeometryInfo.dstAccelerationStructure = accelerationStructure;
 		accelerationBuildGeometryInfo.geometryCount = 1;
 		accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 		accelerationBuildGeometryInfo.scratchData.deviceAddress = getBufferDeviceAddress(device, scratchBuffer.buffer);
@@ -102,9 +102,9 @@ void RayTracing::createTlas(Device& device, std::vector<Model>& models)
 		commandBuffer.buildAccelerationStructuresKHR(accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos);
 		endSingleTimeCommands(device, commandBuffer);
 
-		vk::AccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{TLASs[i].handle};
-		TLASs[i].deviceAddress = device.logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
-		
+		vk::AccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{accelerationStructure};
+		auto deviceAddress = device.logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
+		TLASs.push_back({ std::move(accelerationStructure),deviceAddress,std::move(tlasBuffer) });
 	}
 }
 
@@ -115,7 +115,7 @@ void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 		accelerationGeometry.flags = vk::GeometryFlagBitsKHR::eOpaque;
 		accelerationGeometry.geometryType = vk::GeometryTypeKHR::eTriangles;
 		
-
+		std::vector<AccelerationStructure> blass;
 		std::vector<GeometryNode> geometryNodes;
 		for (int j = 0; j < 3;j++) {
 			std::vector<vk::AccelerationStructureGeometryKHR> geometries;
@@ -179,15 +179,15 @@ void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 				accelerationStructureBuildGeometryInfo,
 				maxPrimitiveCounts);
 			
-			BLASs[i][j].buffer = DBuffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
+			auto blasbuffer = DBuffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
 				vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR| vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eShaderDeviceAddress,
 				vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 			vk::AccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
-			accelerationStructureCreateInfo.buffer = BLASs[i][j].buffer.buffer;
+			accelerationStructureCreateInfo.buffer = blasbuffer.buffer;
 			accelerationStructureCreateInfo.size = accelerationStructureBuildSizesInfo.accelerationStructureSize;
 			accelerationStructureCreateInfo.type = vk::AccelerationStructureTypeKHR::eBottomLevel;
-			BLASs[i][j].handle = device.logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
+			auto accelerationStructure = device.logical.createAccelerationStructureKHR(accelerationStructureCreateInfo);
 
 			DBuffer scratchBuffer(device,
 				accelerationStructureBuildSizesInfo.buildScratchSize,
@@ -198,7 +198,7 @@ void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 			accelerationBuildGeometryInfo.type = vk::AccelerationStructureTypeKHR::eBottomLevel;
 			accelerationBuildGeometryInfo.flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace;
 			accelerationBuildGeometryInfo.mode = vk::BuildAccelerationStructureModeKHR::eBuild;
-			accelerationBuildGeometryInfo.dstAccelerationStructure = BLASs[i][j].handle;
+			accelerationBuildGeometryInfo.dstAccelerationStructure = accelerationStructure;
 			accelerationBuildGeometryInfo.geometryCount = static_cast<uint32_t>(geometries.size());
 			accelerationBuildGeometryInfo.pGeometries = geometries.data();
 			accelerationBuildGeometryInfo.scratchData.deviceAddress = getBufferDeviceAddress(device, scratchBuffer.buffer);
@@ -209,12 +209,13 @@ void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 			endSingleTimeCommands(device, commandBuffer);
 
 			vk::AccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{};
-			accelerationDeviceAddressInfo.accelerationStructure = BLASs[i][j].handle;
-			BLASs[i][j].deviceAddress = device.logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
-			
+			accelerationDeviceAddressInfo.accelerationStructure = accelerationStructure;
+			auto deviceAddress = device.logical.getAccelerationStructureAddressKHR(accelerationDeviceAddressInfo);
+			AccelerationStructure as{ std::move(accelerationStructure), deviceAddress,std::move(blasbuffer) };
 
+			blass.push_back(std::move(as));
 		}
-
+		BLASs.push_back(std::move(blass));
 
 		DBuffer geometryNodeBuffer(device,
 			sizeof(GeometryNode) * static_cast<uint32_t>(geometryNodes.size()),
@@ -356,9 +357,12 @@ void RayTracing::createOutputImages(Device& device)
 			swapChain->extent,
 			vk::ImageTiling::eOptimal,
 			vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
-			vk::ImageLayout::eGeneral,
+			vk::ImageLayout::eUndefined,
 			vk::MemoryPropertyFlagBits::eDeviceLocal,
 			vk::ImageAspectFlagBits::eColor));
+		auto cmdBuf = beginSingleTimeCommands(device);
+		outputImages[i].setImageLayout(cmdBuf, vk::ImageLayout::eGeneral);
+		endSingleTimeCommands(device, cmdBuf);
 	}
 }
 
@@ -376,6 +380,7 @@ void RayTracing::createDescriptorSets(Device& device, Scene& scene, std::vector<
 	vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo{};
 	descriptorPoolCreateInfo.maxSets = 2;
 	descriptorPoolCreateInfo.setPoolSizes(poolSizes);
+	descriptorPoolCreateInfo.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
 	descriptorPool = vk::raii::DescriptorPool(device, descriptorPoolCreateInfo);
 	
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -553,12 +558,19 @@ void RayTracing::recordCommandBuffer(Device& device, vk::raii::CommandBuffer& co
 
 	auto& outputSwapChain = swapChain->images[imageIndex];
 	auto& outputImage = outputImages[currentFrame];
-	vk::AccessFlags sourceAccessMask;
-	vk::PipelineStageFlags sourceStage;
+	vk::AccessFlags sourceAccessMask{};
+	vk::PipelineStageFlags sourceStage = static_cast<vk::PipelineStageFlags>(65536);
 
 	vk::AccessFlags destinationAccessMask = vk::AccessFlagBits::eTransferWrite; 
-	vk::PipelineStageFlags destinationStage;
-	vk::ImageLayout layout = vk::ImageLayout::ePresentSrcKHR;
+	vk::PipelineStageFlags destinationStage = static_cast<vk::PipelineStageFlags>(65536);
+
+	sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
+	destinationStage = vk::PipelineStageFlagBits::eTransfer;
+
+	sourceAccessMask = vk::AccessFlagBits::eNone;
+	destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
+
+	vk::ImageLayout layout = vk::ImageLayout::eUndefined;
 	vk::ImageAspectFlags aspectMask = vk::ImageAspectFlagBits::eColor;
 	vk::ImageSubresourceRange imageSubresourceRange(aspectMask, 0, 1, 0, 1);
 	vk::ImageMemoryBarrier    imageMemoryBarrier(sourceAccessMask,
@@ -589,9 +601,9 @@ void RayTracing::recordCommandBuffer(Device& device, vk::raii::CommandBuffer& co
 		copyRegion);
 
 	sourceAccessMask= vk::AccessFlagBits::eTransferWrite;
-	sourceStage = vk::PipelineStageFlagBits::eTransfer;
+	destinationAccessMask = vk::AccessFlagBits::eMemoryRead;
 
-	destinationAccessMask = vk::AccessFlagBits::eTransferWrite;
+	sourceStage = vk::PipelineStageFlagBits::eTransfer;
 	destinationStage = vk::PipelineStageFlagBits::eBottomOfPipe;
 
 	aspectMask = vk::ImageAspectFlagBits::eColor;

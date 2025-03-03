@@ -161,9 +161,9 @@ public:
 		uboDescriptorSets(createSets<UniformBufferObject>(device,uniformBuffers)),
 		GUIDescriptorSets(createSets<GUIControl>(device,GUIBuffers)),
 		pipelines(createPipelines(device, swapChain, deferred)),
-		//rt(device, swapChain, scene, uniformBuffers, GUIBuffers),
+		rt(device, swapChain, scene, uniformBuffers, GUIBuffers),
 		//scene(nullptr),
-		rt(nullptr),
+		//rt(nullptr),
 
 		imageAvailableSemaphores(createSemaphores(device)),
 		renderFinishedSemaphores(createSemaphores(device)),
@@ -276,6 +276,7 @@ private:
 		imgui.AddBoolGUI("EnableVerticalRotate", camera.enableVerticalRotate);
 		imgui.AddBoolGUI("UseNormalMap", guiControl.useNormalMap);
 		imgui.AddBoolGUI("RayTracing", guiControl.RayTracing);
+		guiControl.RayTracing = true;
 		imgui.AddFloatGUI("Roughness", guiControl.roughness, 0.0f, 1.0f);
 		imgui.AddFloatGUI("metallic", guiControl.metallic, 0.0f, 1.0f);
 		imgui.End();

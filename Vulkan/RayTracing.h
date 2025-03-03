@@ -28,9 +28,9 @@ public:
 	std::vector<std::vector<AccelerationStructure>> BLASs{};
 	std::vector<AccelerationStructure> TLASs{};
 	std::vector<DBuffer> geometryNodeBuffers;
+	vk::raii::DescriptorPool descriptorPool;
 	std::vector<vk::raii::DescriptorSet> descriptorSets;
 	vk::raii::DescriptorSetLayout descriptorSetLayout;
-	vk::raii::DescriptorPool descriptorPool;
 	vk::raii::PipelineLayout pipelineLayout;
 
 private:
