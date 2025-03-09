@@ -1,4 +1,28 @@
 ﻿#include "pch.h"
+bool multithread = false;
+
+//vk::raii::CommandBuffer multithreaded(uint32_t imageIndex, int modelIndex, int meshStart,int meshEnd,
+//	vk::Viewport viewport,vk::Rect2D scissor) {
+//	vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::eSecondary,1 };
+//	auto commandBuffer = (std::move(vk::raii::CommandBuffers(device, allocInfo).front()));
+//
+//	vk::CommandBufferInheritanceInfo inheritanceInfo{};
+//	inheritanceInfo.setRenderPass(deferred.renderPass);
+//	inheritanceInfo.setFramebuffer(deferred.framebuffers[1]); //TODO
+//	inheritanceInfo.setSubpass(0);
+//	vk::CommandBufferBeginInfo beginInfo{};
+//	beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue);
+//	beginInfo.setPInheritanceInfo(&inheritanceInfo);
+//
+//	commandBuffer.setViewport(0, viewport);
+//	commandBuffer.setScissor(0, scissor);
+//
+//
+//
+//
+//	commandBuffer.end();
+//	return commandBuffer;
+//}
 vk::raii::CommandPool createCommandPool(Device& device, QueueFamilyIndices queueFamilyIndices) {
 
 	//QueueFamilyIndices queueFamilyIndices = findQueueFamilies(device, surface);
@@ -23,7 +47,11 @@ Scene createScene(Device& device) {
 	scene.models.push_back(Model(device, {},
 		BaseModel::Sphere,
 		{},
-		glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f))));
+		glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)))); 	
+	scene.models.push_back(Model(device, {},
+			"Resources/BistroInterior.fbx",
+			{},
+			glm::mat4x4(1.f))); 
 	scene.skybox = Skybox(device);
 	return scene;
 }
@@ -147,27 +175,27 @@ class VulkanApp {
 public:
 	VulkanApp() :
 		window(initWindow()),
-		instance("DDing"), 
-		surface(createSurface(instance, window)), 
+		instance("DDing"),
+		surface(createSurface(instance, window)),
 		device(instance, surface),
-		swapChain(device, surface), 
-		deferred(device, swapChain), 
+		swapChain(device, surface),
+		deferred(device, swapChain),
 		pp(device, swapChain),
 		commandPool(createCommandPool(device, findQueueFamilies(device, surface))),
 		imgui(device, window, instance, swapChain.renderPass),
 		scene(std::move(createScene(device))),
 		uniformBuffers(std::move(createDBuffer<UniformBufferObject>(device))),
 		GUIBuffers(std::move(createDBuffer<GUIControl>(device))),
-		uboDescriptorSets(createSets<UniformBufferObject>(device,uniformBuffers)),
-		GUIDescriptorSets(createSets<GUIControl>(device,GUIBuffers)),
+		uboDescriptorSets(createSets<UniformBufferObject>(device, uniformBuffers)),
+		GUIDescriptorSets(createSets<GUIControl>(device, GUIBuffers)),
 		pipelines(createPipelines(device, swapChain, deferred)),
 		rt(device, swapChain, scene, uniformBuffers, GUIBuffers),
-		//scene(nullptr),
-		//rt(nullptr),
 
 		imageAvailableSemaphores(createSemaphores(device)),
 		renderFinishedSemaphores(createSemaphores(device)),
-		inFlightFences(createFences(device))
+		inFlightFences(createFences(device)),
+
+		threadPool(10)
 
 	{
 
@@ -210,7 +238,7 @@ private:
 	std::vector<vk::raii::CommandBuffer> commandBuffers;
 	GUIControl guiControl{};
 
-
+	ThreadPool threadPool;
 
 	Camera camera;
 	uint32_t currentFrame = 0;
@@ -276,7 +304,6 @@ private:
 		imgui.AddBoolGUI("EnableVerticalRotate", camera.enableVerticalRotate);
 		imgui.AddBoolGUI("UseNormalMap", guiControl.useNormalMap);
 		imgui.AddBoolGUI("RayTracing", guiControl.RayTracing);
-		guiControl.RayTracing = true;
 		imgui.AddFloatGUI("Roughness", guiControl.roughness, 0.0f, 1.0f);
 		imgui.AddFloatGUI("metallic", guiControl.metallic, 0.0f, 1.0f);
 		imgui.End();
@@ -339,35 +366,44 @@ private:
 
 			//GBuffer Draw
 			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFERRED]);
+			if (!multithread) {
+				for (auto& model : models) {
+					for (auto& mesh : model.meshes) {
+						vk::Buffer vertexBuffers[] = { mesh.vertexBuffer.buffer };
+						vk::DeviceSize offsets[] = { 0 };
+						commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
+						commandBuffer.bindIndexBuffer(mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
 
-			for (auto& model : models) {
-				for (auto& mesh : model.meshes) {
-					vk::Buffer vertexBuffers[] = { mesh.vertexBuffer.buffer};
-					vk::DeviceSize offsets[] = { 0 };
-					commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
-					commandBuffer.bindIndexBuffer(mesh.indexBuffer.buffer,0,vk::IndexType::eUint32);
-					
-					int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
-					std::vector<VkBool32> data(5);
-					for (int i = 0; i < maxMaterialCnt; i++) {
-						data[i] = model.material.hasComponent(i);
+						int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
+						std::vector<VkBool32> data(5);
+						for (int i = 0; i < maxMaterialCnt; i++) {
+							data[i] = model.material.hasComponent(i);
+						}
+						commandBuffer.pushConstants<VkBool32>(pipelines[Pipeline::DEFERRED].GetLayout(), vk::ShaderStageFlagBits::eFragment, 0, data);
+
+
+						std::vector<vk::DescriptorSet> descriptorSetListForModel = {
+							uboDescriptorSets[currentFrame],
+							model.material.descriptorSets[currentFrame],
+							model.descriptorSets[currentFrame],
+							GUIDescriptorSets[currentFrame]
+						};
+						commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+							pipelines[Pipeline::DEFERRED].GetLayout(),
+							0, descriptorSetListForModel, {});
+
+						commandBuffer.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+
 					}
-					commandBuffer.pushConstants<VkBool32>(pipelines[Pipeline::DEFERRED].GetLayout(), vk::ShaderStageFlagBits::eFragment, 0, data);
-					
-
-					std::vector<vk::DescriptorSet> descriptorSetListForModel = {
-						uboDescriptorSets[currentFrame],
-						model.material.descriptorSets[currentFrame],
-						model.descriptorSets[currentFrame],
-						GUIDescriptorSets[currentFrame]
-					};
-					commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-						pipelines[Pipeline::DEFERRED].GetLayout(),
-						0, descriptorSetListForModel, {});
-
-					commandBuffer.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
-
 				}
+			}
+			else {
+				//auto fut = threadPool.EnqueueJob(multithreaded, 1, 1, 1,1,viewport,scissor);
+				//for (auto& model : models) {
+				//	for (int i = 0; i < model.meshes.size(); i++) {
+
+				//	}
+				//}
 			}
 
 			commandBuffer.endRenderPass();
@@ -470,6 +506,7 @@ private:
 		memcpy(GUIBuffers[currentImage].mapped, &guiControl, sizeof(GUIControl));
 	}
 	void drawFrame() {
+		//이전 프레임 대기
 		device.logical.waitForFences({ *inFlightFences[currentFrame] }, vk::True, UINT64_MAX);
 
 		auto acquireImage = swapChain.Get().acquireNextImage(UINT64_MAX, *imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE);

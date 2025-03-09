@@ -97,9 +97,9 @@ public:
                 //Textures
                 // 머테리얼 컴포넌트 수
                 // 곱하기
-                // 모델 수
+                // 모델 수gg
                 // 만큼의 텍스쳐 전달
-                {ShaderComponent::COMBINED_IMAGE,3 * static_cast<int>(MaterialComponent::END),vk::ShaderStageFlagBits::eClosestHitKHR},
+                {ShaderComponent::COMBINED_IMAGE,4 * static_cast<int>(MaterialComponent::END),vk::ShaderStageFlagBits::eClosestHitKHR},
 
                 //GUI
                 {ShaderComponent::UNIFORM_BUFFER,1,vk::ShaderStageFlagBits::eRaygenKHR | vk::ShaderStageFlagBits::eClosestHitKHR},

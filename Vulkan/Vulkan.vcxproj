@@ -104,8 +104,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\VulkanSDK\1.4.304.0\Include;$(SolutionDir)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)/include/Falcor/Falcor;C:\VulkanSDK\1.4.304.0\Include;$(SolutionDir)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ShowIncludes>true</ShowIncludes>
@@ -114,7 +114,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.304.0\Lib;$(SolutionDir)/lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Falcor.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -162,7 +162,6 @@
     <ClCompile Include="DescriptorSetLayout.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="FileLoader.cpp" />
-    <ClCompile Include="Framebuffer.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="GUI.cpp" />
     <ClCompile Include="Instance.cpp" />
@@ -184,6 +183,7 @@
     <ClCompile Include="Struct.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="SwapChain.cpp" />
+    <ClCompile Include="ThreadPool.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="VL.cpp" />
     <ClCompile Include="Vulkan.cpp">
@@ -207,7 +207,6 @@
     <ClInclude Include="DescriptorSetLayout.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="FileLoader.h" />
-    <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="GUI.h" />
     <ClInclude Include="Instance.h" />
@@ -226,6 +225,7 @@
     <ClInclude Include="Struct.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="SwapChain.h" />
+    <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="VL.h" />
   </ItemGroup>

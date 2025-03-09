@@ -21,9 +21,7 @@ RayTracing::RayTracing(Device& device, SwapChain& swapChain, Scene& scene, std::
 }
 
 void RayTracing::createTlas(Device& device, std::vector<Model>& models)
-{
-
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+{	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		std::vector<VkAccelerationStructureInstanceKHR> instances;
 		for (int j = 0; j < models.size(); j++) {
 			VkTransformMatrixKHR transform;
@@ -117,7 +115,7 @@ void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 		
 		std::vector<AccelerationStructure> blass;
 		std::vector<GeometryNode> geometryNodes;
-		for (int j = 0; j < 3;j++) {
+		for (int j = 0; j < models.size();j++) {
 			std::vector<vk::AccelerationStructureGeometryKHR> geometries;
 			std::vector<uint32_t> maxPrimitiveCounts;
 			std::vector<vk::AccelerationStructureBuildRangeInfoKHR> buildRangeInfos;
@@ -164,14 +162,14 @@ void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 
 
 			for (auto& buildRangeInfo : buildRangeInfos) {
-				pbuildRangeInfos.push_back(&buildRangeInfo);
+				//pbuildRangeInfos.push_back(&buildRangeInfo);
 			}
+			pbuildRangeInfos.push_back(buildRangeInfos.data());
 
 			vk::AccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{};
 			accelerationStructureBuildGeometryInfo.type = vk::AccelerationStructureTypeKHR::eBottomLevel;
 			accelerationStructureBuildGeometryInfo.flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace;
-			accelerationStructureBuildGeometryInfo.geometryCount = static_cast<uint32_t>(geometries.size());
-			accelerationStructureBuildGeometryInfo.pGeometries = geometries.data();
+			accelerationStructureBuildGeometryInfo.setGeometries(geometries);
 
 			vk::AccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo =	
 				device.logical.getAccelerationStructureBuildSizesKHR(
@@ -180,7 +178,7 @@ void RayTracing::createBlas(Device& device, std::vector<Model>& models)
 				maxPrimitiveCounts);
 			
 			auto blasbuffer = DBuffer(device, accelerationStructureBuildSizesInfo.accelerationStructureSize,
-				vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR| vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+				vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR| vk::BufferUsageFlagBits::eShaderDeviceAddress,
 				vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 			vk::AccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{};
@@ -488,8 +486,8 @@ void RayTracing::createDescriptorSets(Device& device, Scene& scene, std::vector<
 		descriptorWriteForMaterials.dstBinding = 6;
 		descriptorWriteForMaterials.dstArrayElement = 0;
 		descriptorWriteForMaterials.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-		descriptorWriteForMaterials.descriptorCount = static_cast<uint32_t>(materialInfos.size());
-		descriptorWriteForMaterials.pImageInfo = materialInfos.data();
+		descriptorWriteForMaterials.descriptorCount = 1;
+		descriptorWriteForMaterials.setImageInfo(materialInfos);
 
 
 
