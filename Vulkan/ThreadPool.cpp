@@ -1,27 +1,31 @@
 #include "pch.h"
 #include "ThreadPool.h"
 
-ThreadPool::~ThreadPool()
+DThreadPool::~DThreadPool()
 {
 	stop_all = true;
 	cv_job_q.notify_all();
 
 	for (auto& t : worker_threads) {
-		t->join();
+		t.worker_thread->join();
 	}
 }
 
 
-void ThreadPool::init(size_t num_threads)
+void DThreadPool::init(DContext& context)
 {
 	stop_all = false;
 	for (size_t i = 0; i < num_threads; i++) {
 		auto worker_thread = std::make_unique<std::thread>([this]() { this->WorkerThread(); });
-		worker_threads.push_back(std::move(worker_thread));
+		
+
+
+		DThread d{ std::move(worker_thread),vk::raii::CommandPool(nullptr) };
+		worker_threads.push_back(std::move(d));
 	}
 }
 
-void ThreadPool::WorkerThread()
+void DThreadPool::WorkerThread()
 {
 	while (true) {
 		std::unique_lock<std::mutex> lock(m_job_q);

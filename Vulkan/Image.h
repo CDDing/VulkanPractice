@@ -3,16 +3,16 @@ struct DImage {
 	DImage(std::nullptr_t) : image(nullptr), view(nullptr), memory(nullptr) {}
 	DImage() : image(nullptr), view(nullptr), memory(nullptr) {}
     //For Child
-    DImage(Device& device,
+    DImage(DContext& context,
         uint32_t mipLevels,
         vk::Format format,
         vk::Extent2D extent,
         vk::ImageLayout layout,
         vk::MemoryPropertyFlags memoryProperties) :
-        mipLevels(mipLevels), format(format), extent(extent), layout(layout), formatProperties(device.physical.getFormatProperties(format)),
+        mipLevels(mipLevels), format(format), extent(extent), layout(layout), formatProperties(context.physical.getFormatProperties(format)),
         image(nullptr), view(nullptr), memory(nullptr) {}
 
-    DImage(Device& device,
+    DImage(DContext& context,
         uint32_t mipLevels,
         vk::Format format,
         vk::Extent2D extent,
@@ -22,7 +22,7 @@ struct DImage {
         vk::MemoryPropertyFlags memoryProperties,
         vk::ImageAspectFlags aspectMask) : 
 		//Initialize Field
-		format(format), layout(layout), extent(extent), mipLevels(mipLevels), formatProperties(device.physical.getFormatProperties(format)),
+		format(format), layout(layout), extent(extent), mipLevels(mipLevels), formatProperties(context.physical.getFormatProperties(format)),
         image(nullptr),view(nullptr), memory(nullptr){
         
         //Create Image
@@ -37,15 +37,15 @@ struct DImage {
 		imageInfo.setUsage(usage);
 		imageInfo.setInitialLayout(layout);
         imageInfo.setSharingMode(vk::SharingMode::eExclusive);
-        image = vk::raii::Image(device.logical, imageInfo);
+        image = vk::raii::Image(context.logical, imageInfo);
 
         auto memRequirements = image.getMemoryRequirements();
 
 		vk::MemoryAllocateInfo allocInfo{};
 		allocInfo.setAllocationSize(memRequirements.size);
-		allocInfo.setMemoryTypeIndex(findMemoryType(device.physical, memRequirements.memoryTypeBits, memoryProperties));
+		allocInfo.setMemoryTypeIndex(findMemoryType(context.physical, memRequirements.memoryTypeBits, memoryProperties));
 		
-        memory = vk::raii::DeviceMemory(device.logical, allocInfo);
+        memory = vk::raii::DeviceMemory(context.logical, allocInfo);
 
         image.bindMemory(memory, 0);
 
@@ -55,7 +55,7 @@ struct DImage {
         imageViewInfo.setFormat(format);
 		imageViewInfo.setViewType(vk::ImageViewType::e2D);
 		imageViewInfo.setSubresourceRange({ aspectMask, 0, mipLevels, 0, 1});
-		view = vk::raii::ImageView(device.logical, imageViewInfo);
+		view = vk::raii::ImageView(context.logical, imageViewInfo);
     }
 
     virtual void setImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::ImageLayout newLayout);
@@ -77,7 +77,7 @@ struct DImage {
 
 struct CubemapImage : public DImage {
 	CubemapImage(std::nullptr_t) : DImage(nullptr) {}
-	CubemapImage(Device& device,
+	CubemapImage(DContext& context,
         vk::DeviceSize layerSize,
 		uint32_t mipLevels,
 		vk::Format format,
@@ -86,7 +86,7 @@ struct CubemapImage : public DImage {
 		vk::ImageUsageFlags usage,
 		vk::ImageLayout layout,
 		vk::MemoryPropertyFlags memoryProperties,
-		vk::ImageAspectFlags aspectMask) : DImage(device, mipLevels, format, extent, tiling, usage, layout, memoryProperties, aspectMask),
+		vk::ImageAspectFlags aspectMask) : DImage(context, mipLevels, format, extent, tiling, usage, layout, memoryProperties, aspectMask),
 		layerSize(layerSize)
     {
 
@@ -103,15 +103,15 @@ struct CubemapImage : public DImage {
         imageInfo.setInitialLayout(layout);
         imageInfo.setSharingMode(vk::SharingMode::eExclusive);
         imageInfo.setFlags(vk::ImageCreateFlagBits::eCubeCompatible);
-        image = vk::raii::Image(device.logical, imageInfo);
+        image = vk::raii::Image(context.logical, imageInfo);
 
         auto memRequirements = image.getMemoryRequirements();
 
         vk::MemoryAllocateInfo allocInfo{};
         allocInfo.setAllocationSize(memRequirements.size);
-        allocInfo.setMemoryTypeIndex(findMemoryType(device.physical, memRequirements.memoryTypeBits, memoryProperties));
+        allocInfo.setMemoryTypeIndex(findMemoryType(context.physical, memRequirements.memoryTypeBits, memoryProperties));
 
-        memory = vk::raii::DeviceMemory(device.logical, allocInfo);
+        memory = vk::raii::DeviceMemory(context.logical, allocInfo);
 
         image.bindMemory(memory, 0);
 
@@ -121,7 +121,7 @@ struct CubemapImage : public DImage {
         imageViewInfo.setFormat(format);
         imageViewInfo.setViewType(vk::ImageViewType::eCube);
         imageViewInfo.setSubresourceRange({ aspectMask, 0, mipLevels, 0, 6 });
-        view = vk::raii::ImageView(device.logical, imageViewInfo);
+        view = vk::raii::ImageView(context.logical, imageViewInfo);
 	}
 
 	void setImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::ImageLayout newLayout) override;

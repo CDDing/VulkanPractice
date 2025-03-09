@@ -109,7 +109,7 @@ public:
         }
         return results;
     }
-    static void Init(Device& device) {
+    static void Init(DContext& context) {
 
         std::vector<DescriptorType> dt = { 
             DescriptorType::VP,
@@ -125,10 +125,10 @@ public:
             bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
             vk::DescriptorSetLayoutCreateInfo layoutInfo{ {},bindings };
 
-            descriptorSetLayouts.push_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
+            descriptorSetLayouts.push_back(vk::raii::DescriptorSetLayout(context.logical, layoutInfo));
         }
     }
-	static void destroy(Device& device) {
+	static void destroy(DContext& context) {
 		for (auto& descriptorSetLayout : descriptorSetLayouts) {
 			descriptorSetLayout.~DescriptorSetLayout();
 		}

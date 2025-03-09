@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "GUI.h"
-GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::RenderPass& renderPass) :
+GUI::GUI(DContext& context, vk::raii::RenderPass& renderPass) :
 	vertexBuffer(nullptr), indexBuffer(nullptr), fontImage(nullptr), pipeline(nullptr), pipelineLayout(nullptr), pipelineCache(nullptr), descriptorPool(nullptr), descriptorSet(nullptr), descriptorSetLayout(nullptr)
 {
 	ImGui::CreateContext();
@@ -38,7 +38,7 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 		driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
 		vkGetPhysicalDeviceProperties2(_device->GetPhysical(), &deviceProperties2);
 	}*/
-	fontImage = DImage(device,1,vk::Format::eR8G8B8A8Unorm,
+	fontImage = DImage(context,1,vk::Format::eR8G8B8A8Unorm,
 		vk::Extent2D(texWidth, texHeight),
 		vk::ImageTiling::eOptimal,
 		vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
@@ -46,18 +46,18 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 		vk::MemoryPropertyFlagBits::eDeviceLocal,
 		vk::ImageAspectFlagBits::eColor);
 
-	DBuffer stagingBuffer(device, uploadSize, vk::BufferUsageFlagBits::eTransferSrc,
+	DBuffer stagingBuffer(context, uploadSize, vk::BufferUsageFlagBits::eTransferSrc,
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-	stagingBuffer.map(device, uploadSize, 0);
+	stagingBuffer.map(uploadSize, 0);
 	memcpy(stagingBuffer.mapped, fontData, static_cast<size_t>(uploadSize));
-	stagingBuffer.unmap(device);
+	stagingBuffer.unmap();
 
-	vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+	vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(context);
 	fontImage.setImageLayout(commandBuffer, vk::ImageLayout::eTransferDstOptimal);
 	fontImage.copyFromBuffer(commandBuffer, stagingBuffer.buffer);
 	fontImage.setImageLayout(commandBuffer, vk::ImageLayout::eShaderReadOnlyOptimal);
-	endSingleTimeCommands(device, commandBuffer);
+	endSingleTimeCommands(context, commandBuffer);
 
 
 
@@ -72,7 +72,7 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 		pool_info.maxSets += pool_size.descriptorCount;
 	pool_info.setPoolSizes(pool_sizes);
 
-	descriptorPool = vk::raii::DescriptorPool(device, pool_info);
+	descriptorPool = vk::raii::DescriptorPool(context.logical, pool_info);
 
 
 	std::vector<vk::DescriptorSetLayoutBinding> bindings;
@@ -80,17 +80,17 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 	bindings = DescriptorSetLayout::inputAttributeDescriptions(components);
 	vk::DescriptorSetLayoutCreateInfo layoutInfo{ {},bindings };
 
-	descriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);
+	descriptorSetLayout = vk::raii::DescriptorSetLayout(context.logical, layoutInfo);
 
 	vk::DescriptorSetAllocateInfo alloc_info = {};
 	alloc_info.setDescriptorPool(*descriptorPool);
 	alloc_info.setSetLayouts(*descriptorSetLayout);
-	descriptorSet = std::move(vk::raii::DescriptorSets(device, alloc_info).front());
-	initDescriptorSet(device);
+	descriptorSet = std::move(vk::raii::DescriptorSets(context.logical, alloc_info).front());
+	initDescriptorSet(context);
 
 	//파이프라인
 	vk::PipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-	pipelineCache = vk::raii::PipelineCache(device, pipelineCacheCreateInfo);
+	pipelineCache = vk::raii::PipelineCache(context.logical, pipelineCacheCreateInfo);
 
 	// Pipeline layout
 	// Push constants for UI rendering parameters
@@ -100,7 +100,7 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex;
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{ {},{*descriptorSetLayout},{pushConstantRange } };
 
-	pipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutCreateInfo);
+	pipelineLayout = vk::raii::PipelineLayout(context.logical, pipelineLayoutCreateInfo);
 
 	// Setup graphics pipeline for UI rendering
 	vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState{};
@@ -197,8 +197,8 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 
 	pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-	auto vertexShaderModule = createShader(device, "shaders/imgui.vert.spv");
-	auto fragmentShaderModule = createShader(device, "shaders/imgui.frag.spv");
+	auto vertexShaderModule = createShader(context, "shaders/imgui.vert.spv");
+	auto fragmentShaderModule = createShader(context, "shaders/imgui.frag.spv");
 	shaderStages[0].stage = vk::ShaderStageFlagBits::eVertex;
 	shaderStages[0].pName = "main";
 	shaderStages[0].module = vertexShaderModule;
@@ -207,15 +207,15 @@ GUI::GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::Rend
 	shaderStages[1].pName = "main";
 	shaderStages[1].module = fragmentShaderModule;
 
-	pipeline = vk::raii::Pipeline(device, pipelineCache, pipelineCreateInfo);
+	pipeline = vk::raii::Pipeline(context.logical, pipelineCache, pipelineCreateInfo);
 
-	ImGui_ImplGlfw_InitForVulkan(window, true);
+	ImGui_ImplGlfw_InitForVulkan(context.window, true);
 	ImGui_ImplVulkan_InitInfo init_info = {};
-	init_info.Instance = Instance;
-	init_info.PhysicalDevice = *device.physical;
-	init_info.Device = *device.logical;
-	init_info.QueueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(*device.physical);
-	VkQueue queue = device.GetQueue(init_info.QueueFamily);
+	init_info.Instance = *context.instance;
+	init_info.PhysicalDevice = *context.physical;
+	init_info.Device = *context.logical;
+	init_info.QueueFamily = ImGui_ImplVulkanH_SelectQueueFamilyIndex(*context.physical);
+	VkQueue queue = context.GetQueue(init_info.QueueFamily);
 	init_info.Queue = queue;
 	init_info.PipelineCache = *pipelineCache;
 	init_info.DescriptorPool = *descriptorPool;
@@ -278,7 +278,7 @@ void GUI::End(){
 
 	ImGui::Render();
 }
-void GUI::updateBuffers(Device& device)
+void GUI::updateBuffers(DContext& context)
 {
 	ImDrawData* imDrawData = ImGui::GetDrawData();
 
@@ -291,18 +291,18 @@ void GUI::updateBuffers(Device& device)
 	
 	// Vertex buffer
 	if ((vertexBuffer.buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
-		vertexBuffer.unmap(device);
-		vertexBuffer = DBuffer(device, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
+		vertexBuffer.unmap();
+		vertexBuffer = DBuffer(context, vertexBufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
 		vertexCount = imDrawData->TotalVtxCount;
-		vertexBuffer.map(device);
+		vertexBuffer.map();
 	}
 
 	// Index buffer
 	if ((indexBuffer.buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
-		indexBuffer.unmap(device);
-		indexBuffer = DBuffer(device, indexBufferSize, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
+		indexBuffer.unmap();
+		indexBuffer = DBuffer(context, indexBufferSize, vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible);
 		indexCount = imDrawData->TotalIdxCount;
-		indexBuffer.map(device);
+		indexBuffer.map();
 	}
 
 	// Upload data
@@ -318,8 +318,8 @@ void GUI::updateBuffers(Device& device)
 	}
 
 	// Flush to make writes visible to GPU
-	vertexBuffer.flush(device);
-	indexBuffer.flush(device);
+	vertexBuffer.flush(context);
+	indexBuffer.flush(context);
 }
 
 void GUI::drawFrame(vk::raii::CommandBuffer& commandBuffer)
@@ -327,7 +327,7 @@ void GUI::drawFrame(vk::raii::CommandBuffer& commandBuffer)
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *commandBuffer, *pipeline);
 
 }
-void GUI::initDescriptorSet(Device& device)
+void GUI::initDescriptorSet(DContext& context)
 {
 	vk::DescriptorImageInfo imageInfo{};
 	imageInfo.sampler = Sampler::Get(SamplerMipMapType::Low);
@@ -342,7 +342,7 @@ void GUI::initDescriptorSet(Device& device)
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
 
-	device.logical.updateDescriptorSets({ descriptorWrite },nullptr);
+	context.logical.updateDescriptorSets({ descriptorWrite },nullptr);
 
 
 }

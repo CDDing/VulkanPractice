@@ -13,8 +13,8 @@ public:
 		missShaderBindingTable(nullptr),
 		hitShaderBindingTable(nullptr)
 	{};
-	RayTracing(Device& device, SwapChain& swapChain, Scene& scene, std::vector<DBuffer>& uboBuffers, std::vector<DBuffer>& guiBuffers);
-	void recordCommandBuffer(Device& device, vk::raii::CommandBuffer& commandBuffer, int currentFrame,uint32_t imageIndex);
+	RayTracing(DContext& context, SwapChain& swapChain, Scene& scene, std::vector<DBuffer>& uboBuffers, std::vector<DBuffer>& guiBuffers);
+	void recordCommandBuffer(DContext& context, vk::raii::CommandBuffer& commandBuffer, int currentFrame,uint32_t imageIndex);
 	struct AccelerationStructure {
 		vk::raii::AccelerationStructureKHR handle;
 		uint64_t deviceAddress;
@@ -34,15 +34,15 @@ public:
 	vk::raii::PipelineLayout pipelineLayout;
 
 private:
-	void createTlas(Device& device, std::vector<Model>& models);
-	void createBlas(Device& device, std::vector<Model>& models);
-	void createSBT(Device& device);
-	void createRTPipeline(Device& device);
-	void createOutputImages(Device& device);
-	void createDescriptorSets(Device& device, Scene& scene, std::vector<DBuffer>& uboBuffers,std::vector<DBuffer>& guiBuffers);
-	void loadFunctions(Device& device);
+	void createTlas(DContext& context, std::vector<Model>& models);
+	void createBlas(DContext& context, std::vector<Model>& models);
+	void createSBT(DContext& context);
+	void createRTPipeline(DContext& context);
+	void createOutputImages(DContext& context);
+	void createDescriptorSets(DContext& context, Scene& scene, std::vector<DBuffer>& uboBuffers,std::vector<DBuffer>& guiBuffers);
+	void loadFunctions(DContext& context);
 	
-	uint64_t getBufferDeviceAddress(Device& device, vk::raii::Buffer& buffer);
+	uint64_t getBufferDeviceAddress(DContext& context, vk::raii::Buffer& buffer);
 	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
 	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;

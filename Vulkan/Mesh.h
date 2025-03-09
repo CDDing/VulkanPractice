@@ -3,7 +3,7 @@ class Mesh
 {
 public:
 	Mesh(std::nullptr_t) : vertexBuffer(nullptr), indexBuffer(nullptr) {};
-	Mesh(Device& device, std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
+	Mesh(DContext& context, std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
 	Mesh(const Mesh&) = delete;
 	Mesh& operator=(const Mesh&) = delete;
 	Mesh(Mesh&&) noexcept = default;
@@ -16,7 +16,7 @@ public:
 	DBuffer vertexBuffer;
 	DBuffer indexBuffer;
 private:
-	void createIndexBuffer(Device& device);
-    void createVertexBuffer(Device& device);
+	void createIndexBuffer(DContext& context);
+    void createVertexBuffer(DContext& context);
 };
 

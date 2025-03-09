@@ -5,7 +5,7 @@ class Skybox :
 {
 public:
 	Skybox(std::nullptr_t) : Model(nullptr) {};
-    Skybox(Device& device);
+    Skybox(DContext& context);
 
-    virtual void InitDescriptorSet(Device& device);
+    virtual void InitDescriptorSet(DContext& context);
 };

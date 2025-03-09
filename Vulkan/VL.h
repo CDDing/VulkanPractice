@@ -13,6 +13,3 @@ VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlag
 
 bool checkValidationLayerSupport();
 void populateDebugMessengerCreateInfo(vk::DebugUtilsMessengerCreateInfoEXT& createInfo);
-void DestroyDebugUtilsMessengerEXT(vk::Instance instance,
-    vk::DebugUtilsMessengerEXT debugMessenger,
-    const vk::AllocationCallbacks* pAllocator);

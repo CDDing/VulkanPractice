@@ -4,55 +4,55 @@
 
 Model::Model(std::nullptr_t) : material(Material(nullptr)) {};
 
-Model::Model(Device& device, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform)
+Model::Model(DContext& context, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform)
 	:material(Material(nullptr))
 {
-    loadModel(device, modelPath);
-    material = Material(device, components, materialPaths);
+    loadModel(context, modelPath);
+    material = Material(context, components, materialPaths);
     
 
 
-    InitUniformBuffer(device, transform);
+    InitUniformBuffer(context, transform);
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Material) };
-        material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+        material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(context.logical, allocInfo).front()));
 
         vk::DescriptorSetAllocateInfo desallocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Model) };
-        descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, desallocInfo).front()));
+        descriptorSets.push_back(std::move(vk::raii::DescriptorSets(context.logical , desallocInfo).front()));
 
     }
-    InitDescriptorSet(device);
-    InitDescriptorSetForModelMatrix(device);
+    InitDescriptorSet(context);
+    InitDescriptorSetForModelMatrix(context);
 }
 
-Model::Model(Device& device, const std::vector<MaterialComponent> components, BaseModel modelType, const std::vector<std::string>& materialPaths, glm::mat4 transform)
+Model::Model(DContext& context, const std::vector<MaterialComponent> components, BaseModel modelType, const std::vector<std::string>& materialPaths, glm::mat4 transform)
     : material(nullptr)
 {
 	switch (modelType) {
 	case BaseModel::Sphere:
-		GenerateSphere(device, *this);
+		GenerateSphere(context, *this);
 		break;
 	case BaseModel::Box:
-		GenerateBox(device, *this);
+		GenerateBox(context, *this);
 		break;
 	case BaseModel::Square:
-		GenerateSquare(device, *this);
+		GenerateSquare(context, *this);
 		break;
 	}
-	material = Material(device, components, materialPaths);
-	InitUniformBuffer(device, transform);
+	material = Material(context, components, materialPaths);
+	InitUniformBuffer(context, transform);
 
     for(int i=0;i<MAX_FRAMES_IN_FLIGHT;i++){
          vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Material)};
-         material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+         material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(context.logical, allocInfo).front()));
          
          vk::DescriptorSetAllocateInfo desallocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Model) };
-         descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, desallocInfo).front()));
+         descriptorSets.push_back(std::move(vk::raii::DescriptorSets(context.logical, desallocInfo).front()));
          
     }
-    InitDescriptorSet(device);
-    InitDescriptorSetForModelMatrix(device);
+    InitDescriptorSet(context);
+    InitDescriptorSetForModelMatrix(context);
 
 }
 
@@ -60,12 +60,12 @@ void Model::Render()
 {
 }
 
-void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
+void Model::InitUniformBuffer(DContext& context,glm::mat4 transform)
 {
     VkDeviceSize bufferSize = sizeof(Transform);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers.push_back(DBuffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent));
-        uniformBuffers[i].map(device, bufferSize, 0);
+        uniformBuffers.push_back(DBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer| vk::BufferUsageFlagBits::eShaderDeviceAddress| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent));
+        uniformBuffers[i].map(bufferSize, 0);
         this->transform.model = { glm::transpose(transform) };
         memcpy(uniformBuffers[i].mapped, &this->transform, sizeof(transform));
 
@@ -73,24 +73,24 @@ void Model::InitUniformBuffer(Device& device,glm::mat4 transform)
     
 }
 
-void Model::processNode(Device& device, aiNode* node, const aiScene* scene)
+void Model::processNode(DContext& context, aiNode* node, const aiScene* scene)
 {
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         // the node object only contains indices to index the actual objects in the scene. 
         // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		processMesh(device, mesh, scene);
+		processMesh(context, mesh, scene);
         
     }
     // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        processNode(device, node->mChildren[i], scene);
+        processNode(context, node->mChildren[i], scene);
     }
 }
 
-void Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
+void Model::processMesh(DContext& context, aiMesh* mesh, const aiScene* scene)
 {// data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -190,11 +190,11 @@ void Model::processMesh(Device& device, aiMesh* mesh, const aiScene* scene)
     //textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
     // return a mesh object created from the extracted mesh data
-	meshes.push_back(Mesh(device, vertices, indices));
+	meshes.push_back(Mesh(context, vertices, indices));
 }
 
 
-void Model::InitDescriptorSet(Device& device)
+void Model::InitDescriptorSet(DContext& context)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(static_cast<uint32_t>(MaterialComponent::END));
@@ -218,11 +218,11 @@ void Model::InitDescriptorSet(Device& device)
         descriptorWrite.descriptorCount = imageInfos.size();
         descriptorWrite.pImageInfo = imageInfos.data();
         
-        device.logical.updateDescriptorSets(descriptorWrite, nullptr);
+        context.logical.updateDescriptorSets(descriptorWrite, nullptr);
     }
 }
 
-void Model::InitDescriptorSetForModelMatrix(Device& device)
+void Model::InitDescriptorSetForModelMatrix(DContext& context)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         vk::DescriptorBufferInfo bufferInfo;
@@ -238,11 +238,11 @@ void Model::InitDescriptorSetForModelMatrix(Device& device)
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &bufferInfo;
 
-        device.logical.updateDescriptorSets(descriptorWrite, nullptr); 
+        context.logical.updateDescriptorSets(descriptorWrite, nullptr); 
     }
 }
 
-void Model::loadModel(Device& device, const std::string& modelPath)
+void Model::loadModel(DContext& context, const std::string& modelPath)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -256,12 +256,12 @@ void Model::loadModel(Device& device, const std::string& modelPath)
     //directory = path.substr(0, path.find_last_of('/'));
 
     // process ASSIMP's root node recursively
-    processNode(device, scene->mRootNode, scene);
+    processNode(context, scene->mRootNode, scene);
 }
 
 
 
-void GenerateSphere(Device& device, Model& model)
+void GenerateSphere(DContext& context, Model& model)
 {
 
 
@@ -308,10 +308,10 @@ void GenerateSphere(Device& device, Model& model)
         }
     }
 
-    model.meshes.push_back(Mesh(device, vertices, indices));
+    model.meshes.push_back(Mesh(context, vertices, indices));
 }
 
-void GenerateSquare(Device& device, Model& model)
+void GenerateSquare(DContext& context, Model& model)
 {
     std::vector<Vertex> vertices;
     Vertex v0, v1, v2, v3;
@@ -362,10 +362,10 @@ void GenerateSquare(Device& device, Model& model)
     vertices.push_back(v1);
     vertices.push_back(v2);
     vertices.push_back(v3);
-    model.meshes.push_back(Mesh(device, vertices, indices));
+    model.meshes.push_back(Mesh(context, vertices, indices));
 }
 
-void GenerateBox(Device& device, Model& model)
+void GenerateBox(DContext& context, Model& model)
 {
     std::vector<Vertex> vertices(24);
     std::vector<uint32_t> indices = {
@@ -430,5 +430,5 @@ void GenerateBox(Device& device, Model& model)
         vertices[i + 3].tangent = tangent;
     }
 
-    model.meshes.push_back(Mesh(device, vertices, indices));
+    model.meshes.push_back(Mesh(context, vertices, indices));
 }

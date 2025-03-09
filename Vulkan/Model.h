@@ -14,8 +14,8 @@ class Model
 {
 public:
 	Model(std::nullptr_t);
-	Model(Device& device, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform);
-	Model(Device& device, const std::vector<MaterialComponent> components, BaseModel modelType, const std::vector<std::string>& materialPaths, glm::mat4 transform);
+	Model(DContext& context, const std::vector<MaterialComponent> components, const std::string& modelPath, const std::vector<std::string>& materialPaths, glm::mat4 transform);
+	Model(DContext& context, const std::vector<MaterialComponent> components, BaseModel modelType, const std::vector<std::string>& materialPaths, glm::mat4 transform);
 	virtual ~Model() = default;
 
 	Model(const Model&) = delete;
@@ -25,10 +25,10 @@ public:
 	Model& operator=(Model&&) = default;
 	void Render();
 
-	void InitUniformBuffer(Device& device, glm::mat4 transform);
-	virtual void InitDescriptorSet(Device& device);
-	void InitDescriptorSetForModelMatrix(Device& device);
-	void loadModel(Device& device, const std::string& modelPath);
+	void InitUniformBuffer(DContext& context, glm::mat4 transform);
+	virtual void InitDescriptorSet(DContext& context);
+	void InitDescriptorSetForModelMatrix(DContext& context);
+	void loadModel(DContext& context, const std::string& modelPath);
 
 
 	std::vector<Mesh> meshes = {};
@@ -37,12 +37,12 @@ public:
 	Material material;
 	Transform transform;
 private:
-	void processNode(Device& device, aiNode* node, const aiScene* scene);
-	void processMesh(Device& device, aiMesh* mesh, const aiScene* scene);
+	void processNode(DContext& context, aiNode* node, const aiScene* scene);
+	void processMesh(DContext& context, aiMesh* mesh, const aiScene* scene);
 	
 	uint32_t _mipLevels;
 };
 
-void GenerateSphere(Device& device, Model& model);
-void GenerateSquare(Device& device, Model& model);
-void GenerateBox(Device& device, Model& model);
+void GenerateSphere(DContext& context, Model& model);
+void GenerateSquare(DContext& context, Model& model);
+void GenerateBox(DContext& context, Model& model);

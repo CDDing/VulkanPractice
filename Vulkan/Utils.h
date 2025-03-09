@@ -1,6 +1,5 @@
 #pragma once
-class Device;
-class Buffer;
+class DContext;
 struct DBuffer;
 uint32_t findMemoryType(vk::raii::PhysicalDevice& device, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 std::ostream& operator<<(std::ostream& os, const glm::vec3& vec);
@@ -13,6 +12,6 @@ static void check_vk_result(VkResult err)
         abort();
 }
 uint32_t SBTalignedSize(uint32_t value, uint32_t alignment);
-vk::raii::CommandBuffer beginSingleTimeCommands(Device& device);
-void endSingleTimeCommands(Device& device, vk::raii::CommandBuffer& commandBuffer);
-void copyBuffer(Device& device, DBuffer& srcBuffer, DBuffer& dstBuffer, vk::DeviceSize size);
+vk::raii::CommandBuffer beginSingleTimeCommands(DContext& context);
+void endSingleTimeCommands(DContext& context, vk::raii::CommandBuffer& commandBuffer);
+void copyBuffer(DContext& context, DBuffer& srcBuffer, DBuffer& dstBuffer, vk::DeviceSize size);

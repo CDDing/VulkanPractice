@@ -25,7 +25,7 @@ private:
 	} pushConstBlock;
 
 public:
-	GUI(Device& device, GLFWwindow* window, VkInstance Instance, vk::raii::RenderPass& renderPass);
+	GUI(DContext& context, vk::raii::RenderPass& renderPass);
 	~GUI();
 	void newFrame();
 	void AddFloatGUI(std::string text, float& value,float min,float max);
@@ -33,9 +33,9 @@ public:
 	void AddText(const std::string text);
 	void AddText(const char* format, ...);
 	void End();
-	void updateBuffers(Device& device);
+	void updateBuffers(DContext& context);
 	void drawFrame(vk::raii::CommandBuffer& commandBuffer);
-	void initDescriptorSet(Device& device);
+	void initDescriptorSet(DContext& context);
 	void setStyle(uint32_t index)
 	{
 		switch (index)

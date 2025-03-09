@@ -18,17 +18,17 @@ enum class SamplerFilterType {
 	END
 
 };
-vk::raii::Sampler createSampler(Device& device, SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType);
+vk::raii::Sampler createSampler(DContext& context, SamplerMipMapType mipmapType, SamplerModeType modeType, SamplerFilterType filterType);
 class Sampler
 {
 public:
 	static std::vector<vk::raii::Sampler> samplers;
-	static void destroy(Device& device) {
+	static void destroy(DContext& context) {
 		for (auto& sampler : samplers) {
 			sampler.~Sampler();
 		}
 	}
-	static void init(Device& device) {
+	static void init(DContext& context) {
 		auto maxValue0 = static_cast<int>(SamplerMipMapType::END);
 		auto maxValue1 = static_cast<int>(SamplerFilterType::END);
 		auto maxValue2 = static_cast<int>(SamplerModeType::END);
@@ -36,7 +36,7 @@ public:
 
 
 		for (auto i = 0; i < maxValue; i++) {
-			samplers.push_back(createSampler(device, GetMipMapType(i),
+			samplers.push_back(createSampler(context, GetMipMapType(i),
 				GetModeType(i),
 				GetFilterType(i)));
 		}

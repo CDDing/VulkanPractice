@@ -2,14 +2,14 @@
 class PostProcessing
 {
 public:
-    PostProcessing(Device& device, SwapChain& swapChain);
+    PostProcessing(DContext& context, SwapChain& swapChain);
     
     vk::raii::RenderPass renderPass;
     std::vector<vk::raii::Framebuffer> framebuffers;
 
 private:
-	void createRenderPass(Device& device);
-	void createFramebuffers(Device& device);
+	void createRenderPass(DContext& context);
+	void createFramebuffers(DContext& context);
 
 	SwapChain* swapChain;
 };

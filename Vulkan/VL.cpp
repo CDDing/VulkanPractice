@@ -79,12 +79,3 @@ bool checkValidationLayerSupport() {
     return true;
 }
 
-
-void DestroyDebugUtilsMessengerEXT(vk::Instance instance,
-    vk::DebugUtilsMessengerEXT debugMessenger,
-    const vk::AllocationCallbacks* pAllocator) {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)instance.getProcAddr("vkDestroyDebugUtilsMessengerEXT");;
-    if (func != nullptr) {
-        func(instance, debugMessenger, reinterpret_cast<const VkAllocationCallbacks*>(pAllocator));
-    }
-}

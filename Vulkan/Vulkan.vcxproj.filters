@@ -67,9 +67,6 @@
     <Filter Include="소스 파일\Shaders\Header">
       <UniqueIdentifier>{0498053b-9a16-4219-be22-989ffddef0e4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\VulkanWrapping\Display">
-      <UniqueIdentifier>{7bbf3b15-7928-493c-b9fc-6b68805a05b6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Shaders\Rasterization">
       <UniqueIdentifier>{3e5fa8f3-b1d0-4fcc-8964-fa2825d70e11}</UniqueIdentifier>
     </Filter>
@@ -87,9 +84,6 @@
     <ClCompile Include="FileLoader.cpp">
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
-    <ClCompile Include="Device.cpp">
-      <Filter>소스 파일\VulkanWrapping\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Pipeline.cpp">
       <Filter>소스 파일\VulkanWrapping\Core</Filter>
     </ClCompile>
@@ -104,9 +98,6 @@
     </ClCompile>
     <ClCompile Include="DescriptorSetLayout.cpp">
       <Filter>소스 파일\VulkanWrapping\Shader\Descriptor</Filter>
-    </ClCompile>
-    <ClCompile Include="Instance.cpp">
-      <Filter>소스 파일\VulkanWrapping\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sampler.cpp">
       <Filter>소스 파일\VulkanWrapping\Resource</Filter>
@@ -144,12 +135,6 @@
     <ClCompile Include="VL.cpp">
       <Filter>소스 파일\VulkanWrapping</Filter>
     </ClCompile>
-    <ClCompile Include="Surface.cpp">
-      <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClCompile>
-    <ClCompile Include="SwapChain.cpp">
-      <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
@@ -183,6 +168,12 @@
     <ClCompile Include="ThreadPool.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="Context.cpp">
+      <Filter>소스 파일\VulkanWrapping\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="SwapChain.cpp">
+      <Filter>소스 파일\VulkanWrapping\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -193,9 +184,6 @@
     </ClInclude>
     <ClInclude Include="Struct.h">
       <Filter>소스 파일\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="Device.h">
-      <Filter>소스 파일\VulkanWrapping\Core</Filter>
     </ClInclude>
     <ClInclude Include="Pipeline.h">
       <Filter>소스 파일\VulkanWrapping\Core</Filter>
@@ -208,9 +196,6 @@
     </ClInclude>
     <ClInclude Include="Utils.h">
       <Filter>소스 파일\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="Instance.h">
-      <Filter>소스 파일\VulkanWrapping\Core</Filter>
     </ClInclude>
     <ClInclude Include="Sampler.h">
       <Filter>소스 파일\VulkanWrapping\Resource</Filter>
@@ -254,12 +239,6 @@
     <ClInclude Include="VL.h">
       <Filter>소스 파일\VulkanWrapping</Filter>
     </ClInclude>
-    <ClInclude Include="Surface.h">
-      <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClInclude>
-    <ClInclude Include="SwapChain.h">
-      <Filter>소스 파일\VulkanWrapping\Display</Filter>
-    </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>소스 파일\Scene</Filter>
     </ClInclude>
@@ -292,6 +271,12 @@
     </ClInclude>
     <ClInclude Include="ThreadPool.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Context.h">
+      <Filter>소스 파일\VulkanWrapping\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapChain.h">
+      <Filter>소스 파일\VulkanWrapping\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

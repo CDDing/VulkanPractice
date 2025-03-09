@@ -2,14 +2,15 @@
 #include "SwapChain.h"
 
 
-SwapChain::SwapChain(Device& device, vk::raii::SurfaceKHR& surface) : surface(&surface), swapChain(nullptr),
-    depthImage(nullptr), renderPass(nullptr)
+SwapChain::SwapChain(DContext& context) : context(&context),
+//TODO Swapchain Create Function    
+swapChain(nullptr),depthImage(nullptr), renderPass(nullptr)
 {
-    create(device);
+    create();
 }
-void SwapChain::create(Device& device)
+void SwapChain::create()
 {
-    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(device.physical, *surface);
+    SwapChainSupportDetails swapChainSupport = SwapChain::querySwapChainSupport(context->physical, context->surface);
 
     vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -22,7 +23,7 @@ void SwapChain::create(Device& device)
     }
 
     vk::SwapchainCreateInfoKHR createInfo{};
-    createInfo.surface = *surface;
+    createInfo.surface = *context->surface;
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -30,7 +31,7 @@ void SwapChain::create(Device& device)
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage| vk::ImageUsageFlagBits::eTransferDst;
 
-    QueueFamilyIndices indices = findQueueFamilies(device, *surface);
+    QueueFamilyIndices indices = findQueueFamilies(context->physical, context->surface);
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily) {
@@ -50,7 +51,7 @@ void SwapChain::create(Device& device)
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    swapChain = device.logical.createSwapchainKHR(createInfo);
+    swapChain = context->logical.createSwapchainKHR(createInfo);
     
 	images = swapChain.getImages();
 
@@ -68,21 +69,21 @@ void SwapChain::create(Device& device)
 		createInfo.subresourceRange.levelCount = 1;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
-        imageViews.push_back(vk::raii::ImageView(device, createInfo));
+        imageViews.push_back(vk::raii::ImageView(context->logical, createInfo));
     }
 
     //Depth
-    vk::Format depthFormat = findDepthFormat(device);
+    vk::Format depthFormat = findDepthFormat(*context);
 
-	depthImage = DImage(device, 1, depthFormat, extent, vk::ImageTiling::eOptimal, 
+	depthImage = DImage(*context, 1, depthFormat, extent, vk::ImageTiling::eOptimal, 
         vk::ImageUsageFlagBits::eDepthStencilAttachment,
         vk::ImageLayout::eUndefined,
         vk::MemoryPropertyFlagBits::eDeviceLocal, 
         vk::ImageAspectFlagBits::eDepth);
 
-	vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(device);
+	vk::raii::CommandBuffer commandBuffer = beginSingleTimeCommands(*context);
 	depthImage.setImageLayout(commandBuffer, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-	endSingleTimeCommands(device, commandBuffer);
+	endSingleTimeCommands(*context, commandBuffer);
 
     vk::AttachmentDescription colorAttachment{};
     colorAttachment.format = imageFormat;
@@ -131,7 +132,7 @@ void SwapChain::create(Device& device)
     renderPassInfo.setAttachments(attachments);
     renderPassInfo.setSubpasses(subpass);
 	renderPassInfo.setDependencies(dependency);
-    renderPass = vk::raii::RenderPass(device, renderPassInfo);
+    renderPass = vk::raii::RenderPass(context->logical, renderPassInfo);
     
     framebuffers.reserve(images.size());
     for (size_t i = 0; i < images.size(); i++) {
@@ -147,12 +148,12 @@ void SwapChain::create(Device& device)
         framebufferInfo.height = this->extent.height;
         framebufferInfo.layers = 1;
 
-        framebuffers.emplace_back(device,framebufferInfo,nullptr);
+        framebuffers.emplace_back(context->logical,framebufferInfo,nullptr);
     }
 
 }
 
-void SwapChain::destroy(std::shared_ptr<Device> device)
+void SwapChain::destroy()
 {
 
     
@@ -195,7 +196,7 @@ vk::Extent2D SwapChain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
     }
     else {
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(context->window, &width, &height);
 
         VkExtent2D actualExtent = {
             static_cast<uint32_t>(width),
@@ -210,13 +211,13 @@ vk::Extent2D SwapChain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
 }
 
 
-vk::Format findDepthFormat(Device& device) {
-    return findSupportedFormat(device, { vk::Format::eD32Sfloat,vk::Format::eD32SfloatS8Uint,vk::Format::eD24UnormS8Uint}, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+vk::Format findDepthFormat(DContext& context) {
+    return findSupportedFormat(context, { vk::Format::eD32Sfloat,vk::Format::eD32SfloatS8Uint,vk::Format::eD24UnormS8Uint}, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
 
-vk::Format findSupportedFormat(Device& device, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
+vk::Format findSupportedFormat(DContext& context, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
     for (vk::Format format : candidates) {
-        vk::FormatProperties props = device.physical.getFormatProperties(format);
+        vk::FormatProperties props = context.physical.getFormatProperties(format);
 
         if (tiling == vk::ImageTiling::eLinear&& (props.linearTilingFeatures & features) == features) {
             return format;

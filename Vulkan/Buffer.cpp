@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Buffer.h"
 
-void DBuffer::unmap(Device& device)
+void DBuffer::unmap()
 {
     if (mapped)
     {
@@ -10,27 +10,27 @@ void DBuffer::unmap(Device& device)
     }
 }
 
-void DBuffer::map(Device& device, vk::DeviceSize size, vk::DeviceSize offset)
+void DBuffer::map(vk::DeviceSize size, vk::DeviceSize offset)
 {
     mapped = memory.mapMemory(offset, size);
 }
 
-void DBuffer::flush(Device& device, vk::DeviceSize size, vk::DeviceSize offset)
+void DBuffer::flush(DContext& context, vk::DeviceSize size, vk::DeviceSize offset)
 {
 
     vk::MappedMemoryRange mappedRange = { memory,offset,size };
-    device.logical.flushMappedMemoryRanges(mappedRange);
+    context.logical.flushMappedMemoryRanges(mappedRange);
 }
 
-void DBuffer::fillBuffer(Device& device, void* data, vk::DeviceSize size)
+void DBuffer::fillBuffer(DContext& context, void* data, vk::DeviceSize size)
 {
-    DBuffer stagingBuffer(device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    DBuffer stagingBuffer(context, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-    stagingBuffer.map(device, size);
+    stagingBuffer.map(size);
     memcpy(stagingBuffer.mapped, data, static_cast<size_t>(size));
-    stagingBuffer.unmap(device);
+    stagingBuffer.unmap();
 
-    copyBuffer(device, stagingBuffer, *this, size);
+    copyBuffer(context, stagingBuffer, *this, size);
 
     this->size = size;
 }

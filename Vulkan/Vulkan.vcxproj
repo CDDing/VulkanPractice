@@ -158,13 +158,12 @@
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CommandPool.cpp" />
+    <ClCompile Include="Context.cpp" />
     <ClCompile Include="Deferred.cpp" />
     <ClCompile Include="DescriptorSetLayout.cpp" />
-    <ClCompile Include="Device.cpp" />
     <ClCompile Include="FileLoader.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="GUI.cpp" />
-    <ClCompile Include="Instance.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -181,7 +180,6 @@
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="Struct.cpp" />
-    <ClCompile Include="Surface.cpp" />
     <ClCompile Include="SwapChain.cpp" />
     <ClCompile Include="ThreadPool.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -203,13 +201,12 @@
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommandPool.h" />
+    <ClInclude Include="Context.h" />
     <ClInclude Include="Deferred.h" />
     <ClInclude Include="DescriptorSetLayout.h" />
-    <ClInclude Include="Device.h" />
     <ClInclude Include="FileLoader.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="GUI.h" />
-    <ClInclude Include="Instance.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
@@ -223,7 +220,6 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Skybox.h" />
     <ClInclude Include="Struct.h" />
-    <ClInclude Include="Surface.h" />
     <ClInclude Include="SwapChain.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="Utils.h" />

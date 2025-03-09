@@ -2,11 +2,11 @@
 #include "Pipeline.h"
 
 
-Pipeline::Pipeline(Device& device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, vk::raii::RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
+Pipeline::Pipeline(DContext& context, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, vk::raii::RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type)
 	: pipeline(nullptr), pipelineLayout(nullptr)
 {
-    vk::raii::ShaderModule vertShaderModule = createShader(device, vsShaderPath);
-    vk::raii::ShaderModule fragShaderModule = createShader(device, psShaderPath);
+    vk::raii::ShaderModule vertShaderModule = createShader(context, vsShaderPath);
+    vk::raii::ShaderModule fragShaderModule = createShader(context, psShaderPath);
 
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ {},
         vk::ShaderStageFlagBits::eVertex,vertShaderModule,"main"};
@@ -139,7 +139,7 @@ Pipeline::Pipeline(Device& device, vk::Extent2D& swapChainExtent, std::vector<st
 
     //
 
-    pipelineLayout = device.logical.createPipelineLayout(pipelineLayoutInfo);
+    pipelineLayout = context.logical.createPipelineLayout(pipelineLayoutInfo);
     
 
     vk::GraphicsPipelineCreateInfo pipelineInfo{};
@@ -159,6 +159,6 @@ Pipeline::Pipeline(Device& device, vk::Extent2D& swapChainExtent, std::vector<st
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
     
-	pipeline = vk::raii::Pipeline(device, nullptr, pipelineInfo);
+	pipeline = vk::raii::Pipeline(context.logical, nullptr, pipelineInfo);
     
 }

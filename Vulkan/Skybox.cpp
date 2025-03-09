@@ -1,24 +1,24 @@
 #include "pch.h"
 #include "Skybox.h"
 
-Skybox::Skybox(Device& device) : Model(nullptr)
+Skybox::Skybox(DContext& context) : Model(nullptr)
 {
-	GenerateBox(device, *this);
-	material = std::move(Material::createMaterialForSkybox(device));
+	GenerateBox(context, *this);
+	material = std::move(Material::createMaterialForSkybox(context));
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         {
             vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Skybox) };
-            material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+            material.descriptorSets.push_back(std::move(vk::raii::DescriptorSets(context.logical, allocInfo).front()));
         }
         {
             vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool,*DescriptorSetLayout::Get(DescriptorType::Model) };
-            descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+            descriptorSets.push_back(std::move(vk::raii::DescriptorSets(context.logical, allocInfo).front()));
         }
     }
-	InitDescriptorSet(device);
+	InitDescriptorSet(context);
 }
 
-void Skybox::InitDescriptorSet(Device& device)
+void Skybox::InitDescriptorSet(DContext& context)
 {
     for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
         std::vector<vk::DescriptorImageInfo> imageInfos(4);
@@ -52,6 +52,6 @@ void Skybox::InitDescriptorSet(Device& device)
 
         std::vector<vk::WriteDescriptorSet> descriptorWrites;
         descriptorWrites = { descriptorWriteForMap,descriptorWriteForLut };
-        device.logical.updateDescriptorSets(descriptorWrites, nullptr);
+        context.logical.updateDescriptorSets(descriptorWrites, nullptr);
     }
 }

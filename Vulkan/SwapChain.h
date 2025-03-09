@@ -5,7 +5,7 @@ class Sampler;
 class SwapChain
 {
 public:
-    SwapChain(Device& device, vk::raii::SurfaceKHR& surface);
+    SwapChain(DContext& context);
     operator vk::raii::SwapchainKHR& () {
         return swapChain;
     }
@@ -13,8 +13,8 @@ public:
 		return swapChain;
 	}
 
-    void create(Device& device);
-    void destroy(std::shared_ptr<Device> device);
+    void create();
+    void destroy();
 
     static SwapChainSupportDetails querySwapChainSupport(vk::raii::PhysicalDevice& device,vk::raii::SurfaceKHR& surface) {
         SwapChainSupportDetails details;
@@ -41,8 +41,7 @@ private:
     vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
 
-    vk::raii::SurfaceKHR* surface;
-    GLFWwindow* window;
+    DContext* context;
 
     
     vk::raii::SwapchainKHR swapChain;
@@ -51,5 +50,5 @@ private:
 
 };
 
-vk::Format findDepthFormat(Device& device);
-vk::Format findSupportedFormat(Device& device, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+vk::Format findDepthFormat(DContext& context);
+vk::Format findSupportedFormat(DContext& context, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);

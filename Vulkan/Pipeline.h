@@ -11,7 +11,7 @@ public:
 		DEFERRED,
 		END,
 	};
-	Pipeline(Device& device, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, vk::raii::RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
+	Pipeline(DContext& context, vk::Extent2D& swapChainExtent, std::vector<std::vector<vk::DescriptorSetLayout>>& descriptorSetLayouts, vk::raii::RenderPass& renderPass, const std::string& vsShaderPath, const std::string& psShaderPath, ShaderType type);
 	operator vk::raii::Pipeline& () {
 		return pipeline;
 	}

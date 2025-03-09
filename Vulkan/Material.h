@@ -2,9 +2,9 @@
 class Material
 {
 public:
-	static Material createMaterialForSkybox(Device& device);
+	static Material createMaterialForSkybox(DContext& context);
 	static DImage dummy;
-	static DImage GetDefaultMaterial(Device& device) {
+	static DImage GetDefaultMaterial(DContext& context) {
 		const uint32_t pixelData = 0xFFFFFFFF;
 
 		int width = 1, height = 1;
@@ -12,7 +12,7 @@ public:
 		vk::DeviceSize imageSize = 4;
 
 
-		DBuffer stagingBuffer(device,
+		DBuffer stagingBuffer(context,
 			imageSize,
 			vk::BufferUsageFlagBits::eTransferSrc,
 			vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -21,7 +21,7 @@ public:
 		memcpy(data, &pixelData, static_cast<size_t>(imageSize));
 		stagingBuffer.memory.unmapMemory();
 
-		DImage image = DImage(device, mipLevels,
+		DImage image = DImage(context, mipLevels,
 			vk::Format::eR8G8B8A8Unorm,
 			vk::Extent2D(width, height),
 			vk::ImageTiling::eOptimal,
@@ -34,17 +34,17 @@ public:
 
 
 
-		vk::raii::CommandBuffer cmdBuf = beginSingleTimeCommands(device);
+		vk::raii::CommandBuffer cmdBuf = beginSingleTimeCommands(context);
 		image.setImageLayout(cmdBuf, vk::ImageLayout::eTransferDstOptimal);
 		image.copyFromBuffer(cmdBuf, stagingBuffer.buffer);
 		image.setImageLayout(cmdBuf, vk::ImageLayout::eShaderReadOnlyOptimal);
-		endSingleTimeCommands(device, cmdBuf);
+		endSingleTimeCommands(context, cmdBuf);
 
 
 		return image;
 	}
 	Material(std::nullptr_t) {};
-	Material(Device& device, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath);
+	Material(DContext& context, std::vector<MaterialComponent> components, const std::vector<std::string>& filesPath);
 	Material(const Material& other) = delete;
 	Material& operator=(const Material& other) = delete;
 
@@ -59,7 +59,7 @@ public:
 private:
 	std::unordered_map<int,DImage> materials = {};
 	std::vector<bool> components;
-	void loadImage(Device& device, const std::string& filePath, const MaterialComponent component,vk::Format format);
-	void loadImageFromDDSFile(Device& device, const std::wstring& filePath, int cnt,int idx);
+	void loadImage(DContext& context, const std::string& filePath, const MaterialComponent component,vk::Format format);
+	void loadImageFromDDSFile(DContext& context, const std::wstring& filePath, int cnt,int idx);
 };
 

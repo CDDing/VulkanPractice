@@ -8,22 +8,26 @@
 #include <queue>
 #include <thread>
 #include <vector>
-class ThreadPool
+class DThreadPool
 {
 public:
 	size_t num_threads = std::thread::hardware_concurrency() - 1;
 
-	ThreadPool() { init(num_threads); }
-	ThreadPool(size_t num_threads) : num_threads(num_threads){ init(num_threads); }
-	~ThreadPool();
+	DThreadPool(DContext& context) { init(context); }
+	DThreadPool(DContext& context,size_t num_threads) : num_threads(num_threads){ init(context); }
+	~DThreadPool();
 	template <class F, class... Args>
 	std::future<typename std::invoke_result<F,Args...>::type> EnqueueJob(F&& f, Args&&... args);
 private:
-	void init(size_t num_threads);
+	struct DThread {
+		std::unique_ptr<std::thread> worker_thread;
+		vk::raii::CommandPool pool;
+	};
+	void init(DContext& context);
 	void WorkerThread();
 	//default thread pool size is the number of hardware threads
 
-	std::vector<std::unique_ptr<std::thread>> worker_threads;
+	std::vector<DThread> worker_threads;
 	std::queue<std::function<void()>> jobs;
 	std::condition_variable cv_job_q;
 	std::mutex m_job_q;
@@ -31,7 +35,7 @@ private:
 };
 
 template<class F, class ...Args>
-std::future<typename std::invoke_result<F,Args...>::type> ThreadPool::EnqueueJob(F&& f, Args&& ...args)
+std::future<typename std::invoke_result<F,Args...>::type> DThreadPool::EnqueueJob(F&& f, Args&& ...args)
 {
 	if (stop_all) throw std::runtime_error("ThreadPool »ç¿ë ÁßÁöµÊ");
 

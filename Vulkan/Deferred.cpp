@@ -1,24 +1,24 @@
 #include "pch.h"
 #include "Deferred.h"
 
-Deferred::Deferred(Device& device, SwapChain& swapChain) : swapChain(&swapChain),
+Deferred::Deferred(DContext& context, SwapChain& swapChain) : swapChain(&swapChain),
  renderPass(nullptr)
 {
-	createImages(device);
-	createRenderPass(device);
-	createFramebuffers(device);
+	createImages(context);
+	createRenderPass(context);
+	createFramebuffers(context);
 
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		{
 			vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool ,*DescriptorSetLayout::Get(DescriptorType::GBuffer) };
-			descriptorSets.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+			descriptorSets.push_back(std::move(vk::raii::DescriptorSets(context.logical, allocInfo).front()));
 		}
 	}
-	updateDescriptorSets(device);
+	updateDescriptorSets(context);
 }
 
-void Deferred::createRenderPass(Device& device)
+void Deferred::createRenderPass(DContext& context)
 {
 	//렌더 패스 생성
 	std::array<vk::AttachmentDescription, 7> attachmentDescription = {};
@@ -91,10 +91,10 @@ void Deferred::createRenderPass(Device& device)
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies = dependencies.data();
 
-	renderPass = device.logical.createRenderPass(renderPassInfo);
+	renderPass = context.logical.createRenderPass(renderPassInfo);
 }
 
-void Deferred::createImages(Device& device)
+void Deferred::createImages(DContext& context)
 {
 	//디퍼드 렌더링
 	//1. 이미지 7개 만들기(위치, 노말, 알베도, 깊이, roughness,metalic,ao)
@@ -104,8 +104,8 @@ void Deferred::createImages(Device& device)
 	vk::Format roughnessFormat = vk::Format::eR8G8B8A8Unorm;
 	vk::Format metalnessFormat = vk::Format::eR8G8B8A8Unorm;
 	vk::Format aoFormat = vk::Format::eR8G8B8A8Unorm;
-	vk::Format depthFormat = findDepthFormat(device);
-	images.push_back(DImage(device, 1,
+	vk::Format depthFormat = findDepthFormat(context);
+	images.push_back(DImage(context, 1,
 		positionFormat,
 		swapChain->extent,
 		vk::ImageTiling::eOptimal,
@@ -115,7 +115,7 @@ void Deferred::createImages(Device& device)
 		vk::ImageAspectFlagBits::eColor));
 
 
-	images.push_back(DImage(device, 1,
+	images.push_back(DImage(context, 1,
 		normalFormat,
 		swapChain->extent,
 		vk::ImageTiling::eOptimal,
@@ -125,7 +125,7 @@ void Deferred::createImages(Device& device)
 		vk::ImageAspectFlagBits::eColor));
 
 
-	images.push_back(DImage(device, 1,
+	images.push_back(DImage(context, 1,
 		albedoFormat,
 		swapChain->extent,
 		vk::ImageTiling::eOptimal,
@@ -135,7 +135,7 @@ void Deferred::createImages(Device& device)
 		vk::ImageAspectFlagBits::eColor));
 
 
-	images.push_back(DImage(device, 1,
+	images.push_back(DImage(context, 1,
 		roughnessFormat,
 		swapChain->extent,
 		vk::ImageTiling::eOptimal,
@@ -145,7 +145,7 @@ void Deferred::createImages(Device& device)
 		vk::ImageAspectFlagBits::eColor));
 
 
-	images.push_back(DImage(device, 1,
+	images.push_back(DImage(context, 1,
 		metalnessFormat,
 		swapChain->extent,
 		vk::ImageTiling::eOptimal,
@@ -154,7 +154,7 @@ void Deferred::createImages(Device& device)
 		vk::MemoryPropertyFlagBits::eDeviceLocal,
 		vk::ImageAspectFlagBits::eColor));
 
-	images.push_back(DImage(device, 1,
+	images.push_back(DImage(context, 1,
 		aoFormat,
 		swapChain->extent,
 		vk::ImageTiling::eOptimal,
@@ -166,7 +166,7 @@ void Deferred::createImages(Device& device)
 
 
 	if (depthFormat >= vk::Format::eD16UnormS8Uint) {
-		images.push_back(DImage(device, 1,
+		images.push_back(DImage(context, 1,
 			depthFormat,
 			swapChain->extent,
 			vk::ImageTiling::eOptimal,
@@ -177,7 +177,7 @@ void Deferred::createImages(Device& device)
 	}
 	else {
 
-		images.push_back(DImage(device, 1,
+		images.push_back(DImage(context, 1,
 			depthFormat,
 			swapChain->extent,
 			vk::ImageTiling::eOptimal,
@@ -188,7 +188,7 @@ void Deferred::createImages(Device& device)
 	}
 }
 
-void Deferred::createFramebuffers(Device& device)
+void Deferred::createFramebuffers(DContext& context)
 {
 	framebuffers.reserve(swapChain->images.size());
 
@@ -211,11 +211,11 @@ void Deferred::createFramebuffers(Device& device)
 		framebufferInfo.height = swapChain->extent.height;
 		framebufferInfo.layers = 1;
 
-		framebuffers.emplace_back(device,framebufferInfo,nullptr);
+		framebuffers.emplace_back(context.logical,framebufferInfo,nullptr);
 	}
 }
 
-void Deferred::updateDescriptorSets(Device& device)
+void Deferred::updateDescriptorSets(DContext& context)
 {
 
 	for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
@@ -235,6 +235,6 @@ void Deferred::updateDescriptorSets(Device& device)
 		descriptorWrite.descriptorCount = imageInfos.size();
 		descriptorWrite.pImageInfo = imageInfos.data();
 
-		device.logical.updateDescriptorSets(descriptorWrite, nullptr);
+		context.logical.updateDescriptorSets(descriptorWrite, nullptr);
 	}
 }

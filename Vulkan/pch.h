@@ -38,9 +38,7 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 #include "Utils.h"
 #include "Struct.h"
-#include "Instance.h"
-#include "Surface.h"
-#include "Device.h"
+#include "Context.h"
 #include "CommandPool.h"
 #include "VL.h"
 #include "Sampler.h"
@@ -62,7 +60,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 #include "Deferred.h"
 #include "PostProcessing.h"
 #include "ThreadPool.h"
-//TODO 상수값들 위치 수정
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
 };

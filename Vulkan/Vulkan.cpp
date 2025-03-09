@@ -1,97 +1,124 @@
 ﻿#include "pch.h"
 bool multithread = false;
 
-//vk::raii::CommandBuffer multithreaded(uint32_t imageIndex, int modelIndex, int meshStart,int meshEnd,
-//	vk::Viewport viewport,vk::Rect2D scissor) {
-//	vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::eSecondary,1 };
-//	auto commandBuffer = (std::move(vk::raii::CommandBuffers(device, allocInfo).front()));
-//
-//	vk::CommandBufferInheritanceInfo inheritanceInfo{};
-//	inheritanceInfo.setRenderPass(deferred.renderPass);
-//	inheritanceInfo.setFramebuffer(deferred.framebuffers[1]); //TODO
-//	inheritanceInfo.setSubpass(0);
-//	vk::CommandBufferBeginInfo beginInfo{};
-//	beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue);
-//	beginInfo.setPInheritanceInfo(&inheritanceInfo);
-//
-//	commandBuffer.setViewport(0, viewport);
-//	commandBuffer.setScissor(0, scissor);
-//
-//
-//
-//
-//	commandBuffer.end();
-//	return commandBuffer;
-//}
-vk::raii::CommandPool createCommandPool(Device& device, QueueFamilyIndices queueFamilyIndices) {
+vk::raii::CommandBuffer multithreaded(Scene& scene,std::vector<vk::DescriptorSet> descriptorSetListForModel,
+	vk::CommandPool commandPool, DContext& context, Deferred& deferred, std::vector<Pipeline>& pipelines,
+	uint32_t imageIndex, int modelIndex, int meshStart,int meshEnd,
+	vk::Viewport viewport,vk::Rect2D scissor) {
+	vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::eSecondary,1 };
+	auto commandBuffer = (std::move(vk::raii::CommandBuffers(context.logical, allocInfo).front()));
 
-	//QueueFamilyIndices queueFamilyIndices = findQueueFamilies(device, surface);
-	vk::CommandPoolCreateInfo poolInfo{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-	queueFamilyIndices.graphicsFamily.value() };
+	vk::CommandBufferInheritanceInfo inheritanceInfo{};
+	inheritanceInfo.setRenderPass(deferred.renderPass);
+	inheritanceInfo.setFramebuffer(deferred.framebuffers[1]); //TODO
+	inheritanceInfo.setSubpass(0);
+	vk::CommandBufferBeginInfo beginInfo{};
+	beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue);
+	beginInfo.setPInheritanceInfo(&inheritanceInfo);
 
-	return device.logical.createCommandPool(poolInfo);
+	commandBuffer.begin(beginInfo);
+	commandBuffer.setViewport(0, viewport);
+	commandBuffer.setScissor(0, scissor);
+
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFERRED]);
+
+	for (int i = meshStart; i < meshEnd; i++) {
+		auto& mesh = scene.models[modelIndex].meshes[i];
+		vk::Buffer vertexBuffers[] = { mesh.vertexBuffer.buffer };
+		vk::DeviceSize offsets[] = { 0 };
+		commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
+		commandBuffer.bindIndexBuffer(mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+
+		int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
+		std::vector<VkBool32> data(5);
+		for (int i = 0; i < maxMaterialCnt; i++) {
+			data[i] = (scene.models[modelIndex].material.hasComponent(i));
+		}
+		commandBuffer.pushConstants<VkBool32>(pipelines[Pipeline::DEFERRED].GetLayout(), vk::ShaderStageFlagBits::eFragment, 0, data);
+
+
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+			pipelines[Pipeline::DEFERRED].GetLayout(),
+			0, descriptorSetListForModel, {});
+
+		commandBuffer.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+
+	}
+
+
+	commandBuffer.end();
+	return commandBuffer;
 }
-Scene createScene(Device& device) {
+
+vk::raii::CommandPool createCommandPool(DContext& context) {
+	QueueFamilyIndices indices = findQueueFamilies(context.physical, context.surface);
+
+	vk::CommandPoolCreateInfo poolInfo{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+	indices.graphicsFamily.value() };
+
+	return context.logical.createCommandPool(poolInfo);
+}
+Scene createScene(DContext& context) {
 	Scene scene(nullptr);
-	scene.models.push_back(Model(device, {},
+	scene.models.push_back(Model(context, {},
 		BaseModel::Square,
 		{},
 		glm::translate(glm::mat4(30.0f), glm::vec3(0, -2.f / 30.f, 0))));
-	scene.models.push_back(Model(device, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
+	scene.models.push_back(Model(context, { MaterialComponent::ALBEDO, MaterialComponent::NORMAL, MaterialComponent::ROUGHNESS, MaterialComponent::ao },
 		"Resources/models/vk2vcdl/vk2vcdl.fbx",
 		{ "Resources/models/vk2vcdl/vk2vcdl_4K_BaseColor.jpg",
 		"Resources/models/vk2vcdl/vk2vcdl_4K_Normal.jpg",
 		"Resources/models/vk2vcdl/vk2vcdl_4K_Roughness.jpg",
 		"Resources/models/vk2vcdl/vk2vcdl_4K_AO.jpg" },
 		glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3(1.5, 0, 2)), glm::radians(45.0f), glm::vec3(-2, 3, 1))));
-	scene.models.push_back(Model(device, {},
+	scene.models.push_back(Model(context, {},
 		BaseModel::Sphere,
 		{},
 		glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)))); 	
-	scene.models.push_back(Model(device, {},
+	scene.models.push_back(Model(context, {},
 			"Resources/BistroInterior.fbx",
 			{},
 			glm::mat4x4(1.f))); 
-	scene.skybox = Skybox(device);
+	scene.skybox = Skybox(context);
 	return scene;
 }
 
 template<typename T>
-std::vector<DBuffer> createDBuffer(Device& device) {
+std::vector<DBuffer> createDBuffer(DContext& context) {
 	std::vector<DBuffer> result;
 
 	VkDeviceSize bufferSize = sizeof(T);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		result.push_back(DBuffer(device, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent));
-		result[i].map(device, bufferSize, 0);
+		result.push_back(DBuffer(context, bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent));
+		result[i].map(bufferSize, 0);
 
 	}
 	return result;
 }
-std::vector<vk::raii::Semaphore> createSemaphores(Device& device) {
+std::vector<vk::raii::Semaphore> createSemaphores(DContext& context) {
 	std::vector<vk::raii::Semaphore> result;
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vk::SemaphoreCreateInfo semaphoreInfo{};
-		result.push_back(device.logical.createSemaphore(semaphoreInfo));
+		result.push_back(context.logical.createSemaphore(semaphoreInfo));
 	}
 	return result;
 }
-std::vector<vk::raii::Fence> createFences(Device& device) {
+std::vector<vk::raii::Fence> createFences(DContext& context) {
 	std::vector<vk::raii::Fence> result;
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vk::FenceCreateInfo fenceInfo{};
 		fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
-		result.push_back(device.logical.createFence(fenceInfo));
+		result.push_back(context.logical.createFence(fenceInfo));
 	}
 	return result;
 }
 template<typename T>
-std::vector<vk::raii::DescriptorSet> createSets(Device& device, std::vector<DBuffer>& buffers) {
+std::vector<vk::raii::DescriptorSet> createSets(DContext& context, std::vector<DBuffer>& buffers) {
 	std::vector<vk::raii::DescriptorSet> result;
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vk::DescriptorSetAllocateInfo allocInfo{ DescriptorPool::Pool ,*DescriptorSetLayout::Get(DescriptorType::VP) };
-		result.push_back(std::move(vk::raii::DescriptorSets(device, allocInfo).front()));
+		result.push_back(std::move(vk::raii::DescriptorSets(context.logical, allocInfo).front()));
 
 		vk::DescriptorBufferInfo bufferInfo;
 		bufferInfo.buffer = buffers[i].buffer;
@@ -106,13 +133,13 @@ std::vector<vk::raii::DescriptorSet> createSets(Device& device, std::vector<DBuf
 		descriptorWrite.descriptorCount = 1;
 		descriptorWrite.pBufferInfo = &bufferInfo;
 
-		device.logical.updateDescriptorSets(descriptorWrite, nullptr);
+		context.logical.updateDescriptorSets(descriptorWrite, nullptr);
 
 	}
 
 	return result;
 }
-std::vector<Pipeline> createPipelines(Device& device,SwapChain& swapChain, Deferred& deferred) {
+std::vector<Pipeline> createPipelines(DContext& context,SwapChain& swapChain, Deferred& deferred) {
 	std::vector<Pipeline> result;
 
 	std::vector<std::vector<vk::DescriptorSetLayout>> descriptorSetLayoutList;
@@ -136,7 +163,7 @@ std::vector<Pipeline> createPipelines(Device& device,SwapChain& swapChain, Defer
 			*DescriptorSetLayout::Get(0)}
 			};
 
-	result.push_back(Pipeline(device,
+	result.push_back(Pipeline(context,
 		swapChain.extent,
 		descriptorSetLayoutList,
 		swapChain.renderPass,
@@ -144,7 +171,7 @@ std::vector<Pipeline> createPipelines(Device& device,SwapChain& swapChain, Defer
 		"shaders/shader.frag.spv",
 		ShaderType::DEFAULT));
 
-	result.push_back(Pipeline(device,
+	result.push_back(Pipeline(context,
 		swapChain.extent,
 		descriptorSetLayoutList,
 		swapChain.renderPass,
@@ -152,7 +179,7 @@ std::vector<Pipeline> createPipelines(Device& device,SwapChain& swapChain, Defer
 		"shaders/skybox.frag.spv",
 		ShaderType::SKYBOX));
 
-	result.push_back(Pipeline(device,
+	result.push_back(Pipeline(context,
 		swapChain.extent,
 		descriptorSetLayoutList,
 		deferred.renderPass,
@@ -175,27 +202,25 @@ class VulkanApp {
 public:
 	VulkanApp() :
 		window(initWindow()),
-		instance("DDing"),
-		surface(createSurface(instance, window)),
-		device(instance, surface),
-		swapChain(device, surface),
-		deferred(device, swapChain),
-		pp(device, swapChain),
-		commandPool(createCommandPool(device, findQueueFamilies(device, surface))),
-		imgui(device, window, instance, swapChain.renderPass),
-		scene(std::move(createScene(device))),
-		uniformBuffers(std::move(createDBuffer<UniformBufferObject>(device))),
-		GUIBuffers(std::move(createDBuffer<GUIControl>(device))),
-		uboDescriptorSets(createSets<UniformBufferObject>(device, uniformBuffers)),
-		GUIDescriptorSets(createSets<GUIControl>(device, GUIBuffers)),
-		pipelines(createPipelines(device, swapChain, deferred)),
-		rt(device, swapChain, scene, uniformBuffers, GUIBuffers),
+		context(window),
+		swapChain(context),
+		deferred(context, swapChain),
+		pp(context, swapChain),
+		commandPool(createCommandPool(context)),
+		imgui(context, swapChain.renderPass),
+		scene(std::move(createScene(context))),
+		uniformBuffers(std::move(createDBuffer<UniformBufferObject>(context))),
+		GUIBuffers(std::move(createDBuffer<GUIControl>(context))),
+		uboDescriptorSets(createSets<UniformBufferObject>(context, uniformBuffers)),
+		GUIDescriptorSets(createSets<GUIControl>(context, GUIBuffers)),
+		pipelines(createPipelines(context, swapChain, deferred)),
+		rt(context, swapChain, scene, uniformBuffers, GUIBuffers),
 
-		imageAvailableSemaphores(createSemaphores(device)),
-		renderFinishedSemaphores(createSemaphores(device)),
-		inFlightFences(createFences(device)),
+		imageAvailableSemaphores(createSemaphores(context)),
+		renderFinishedSemaphores(createSemaphores(context)),
+		inFlightFences(createFences(context)),
 
-		threadPool(10)
+		threadPool(context, 10)
 
 	{
 
@@ -205,7 +230,7 @@ public:
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::ePrimary,1 };
-			commandBuffers.push_back(std::move(vk::raii::CommandBuffers(device, allocInfo).front()));
+			commandBuffers.push_back(std::move(vk::raii::CommandBuffers(context.logical, allocInfo).front()));
 		}
 	}
 	void run() {
@@ -214,9 +239,7 @@ public:
 	}
 private:
 	GLFWwindow* window;
-	Instance instance;
-	vk::raii::SurfaceKHR surface;
-	Device device;
+	DContext context;
 	SwapChain swapChain;
 	Deferred deferred;
 	PostProcessing pp;
@@ -238,7 +261,7 @@ private:
 	std::vector<vk::raii::CommandBuffer> commandBuffers;
 	GUIControl guiControl{};
 
-	ThreadPool threadPool;
+	DThreadPool threadPool;
 
 	Camera camera;
 	uint32_t currentFrame = 0;
@@ -312,7 +335,7 @@ private:
 
 		if (guiControl.RayTracing) {
 
-			rt.recordCommandBuffer(device, commandBuffer, currentFrame, imageIndex);
+			rt.recordCommandBuffer(context, commandBuffer, currentFrame, imageIndex);
 			vk::RenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.setRenderPass(pp.renderPass);
 			renderPassInfo.framebuffer = pp.framebuffers[imageIndex];
@@ -398,12 +421,36 @@ private:
 				}
 			}
 			else {
-				//auto fut = threadPool.EnqueueJob(multithreaded, 1, 1, 1,1,viewport,scissor);
-				//for (auto& model : models) {
-				//	for (int i = 0; i < model.meshes.size(); i++) {
+				std::vector<std::future<vk::raii::CommandBuffer>> futures;
+				for (auto& model : models) {
+					for (int i = 0; i < model.meshes.size(); i+= threadPool.num_threads) {
+						auto startIndex = i;
+						auto endIndex = std::min(model.meshes.size(), i + threadPool.num_threads);
 
-				//	}
-				//}
+						std::vector<vk::DescriptorSet> descriptorSetListForModel = {
+							*uboDescriptorSets[currentFrame],
+							*model.material.descriptorSets[currentFrame],
+							*model.descriptorSets[currentFrame],
+							*GUIDescriptorSets[currentFrame]
+						};
+						/*auto fut = threadPool.EnqueueJob(multithreaded, scene,descriptorSetListForModel,
+							*commandPool,context,deferred,pipelines,
+							1, 1, 1, 1, viewport, scissor);
+						futures.push_back(std::move(fut));*/
+
+						if (endIndex >= model.meshes.size()) break;
+					}
+				}
+				std::vector<vk::raii::CommandBuffer> commandBuffers;
+				for (auto& fut : futures) {
+					commandBuffers.push_back(std::move(fut.get()));
+				}
+				std::vector<vk::CommandBuffer> cmdBufs;
+				for (auto& cmdBuf : commandBuffers) {
+					cmdBufs.push_back(*cmdBuf);
+
+				}
+				commandBuffer.executeCommands(cmdBufs);
 			}
 
 			commandBuffer.endRenderPass();
@@ -485,7 +532,7 @@ private:
 			}
 			drawFrame();
 		}
-		device.logical.waitIdle();
+		context.logical.waitIdle();
 	}
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
@@ -507,7 +554,7 @@ private:
 	}
 	void drawFrame() {
 		//이전 프레임 대기
-		device.logical.waitForFences({ *inFlightFences[currentFrame] }, vk::True, UINT64_MAX);
+		context.logical.waitForFences({ *inFlightFences[currentFrame] }, vk::True, UINT64_MAX);
 
 		auto acquireImage = swapChain.Get().acquireNextImage(UINT64_MAX, *imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE);
 		uint32_t imageIndex = acquireImage.second;
@@ -519,7 +566,7 @@ private:
 		else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
-		device.logical.resetFences({ *inFlightFences[currentFrame] });
+		context.logical.resetFences({ *inFlightFences[currentFrame] });
 		updateUniformBuffer(currentFrame);
 		commandBuffers[currentFrame].reset({});
 		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, scene.models);
@@ -539,7 +586,7 @@ private:
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		device.GetQueue(Device::QueueType::GRAPHICS).submit(submitInfo, *inFlightFences[currentFrame]);
+		context.GetQueue(DContext::QueueType::GRAPHICS).submit(submitInfo, *inFlightFences[currentFrame]);
 
 		vk::PresentInfoKHR presentInfo{};
 		presentInfo.waitSemaphoreCount = 1;
@@ -551,7 +598,7 @@ private:
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 
-		result = device.GetQueue(Device::QueueType::PRESENT).presentKHR(presentInfo);
+		result = context.GetQueue(DContext::QueueType::PRESENT).presentKHR(presentInfo);
 		if (result == vk::Result::eErrorOutOfDateKHR|| result == vk::Result::eSuboptimalKHR|| framebufferResized) {
 			framebufferResized = false;
 			recreateSwapChain();

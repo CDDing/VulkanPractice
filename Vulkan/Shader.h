@@ -1,2 +1,2 @@
 #pragma once
-vk::raii::ShaderModule createShader(Device& device, const std::string& filename);
+vk::raii::ShaderModule createShader(DContext& context, const std::string& filename);

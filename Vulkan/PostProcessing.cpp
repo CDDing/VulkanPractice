@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "PostProcessing.h"
 
-PostProcessing::PostProcessing(Device& device, SwapChain& swapChain) : swapChain(&swapChain),
+PostProcessing::PostProcessing(DContext& context, SwapChain& swapChain) : swapChain(&swapChain),
 renderPass(nullptr)
 {
-	createRenderPass(device);
-	createFramebuffers(device);
+	createRenderPass(context);
+	createFramebuffers(context);
 }
 
-void PostProcessing::createRenderPass(Device& device)
+void PostProcessing::createRenderPass(DContext& context)
 {
 
     vk::AttachmentDescription colorAttachment{};
@@ -22,7 +22,7 @@ void PostProcessing::createRenderPass(Device& device)
     colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
     vk::AttachmentDescription depthAttachment{};
-    depthAttachment.format = findDepthFormat(device);
+    depthAttachment.format = findDepthFormat(context);
     depthAttachment.samples = vk::SampleCountFlagBits::e1;
     depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
     depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
@@ -58,10 +58,10 @@ void PostProcessing::createRenderPass(Device& device)
         {},attachments,{postsubpass},{postdependency}
     };
 
-    renderPass = device.logical.createRenderPass(postrenderPassInfo);
+    renderPass = context.logical.createRenderPass(postrenderPassInfo);
 }
 
-void PostProcessing::createFramebuffers(Device& device)
+void PostProcessing::createFramebuffers(DContext& context)
 {
 	framebuffers.reserve(swapChain->images.size());
     for (size_t i = 0; i < swapChain->images.size(); i++) {
@@ -77,6 +77,6 @@ void PostProcessing::createFramebuffers(Device& device)
         framebufferInfo.layers = 1;
 
 
-        framebuffers.emplace_back(device,framebufferInfo,nullptr);
+        framebuffers.emplace_back(context.logical,framebufferInfo,nullptr);
     }
 }
