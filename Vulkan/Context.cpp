@@ -137,7 +137,6 @@ vk::raii::Device DContext::createLogicalDevice()
         vk::DeviceQueueCreateInfo queueCreateInfo{ {},queueFamiliy,1, &queuePriority };
         queueCreateInfos.push_back(queueCreateInfo);
     }
-
     //For RT
     vk::PhysicalDeviceDescriptorIndexingFeaturesEXT pddifEXT;
     pddifEXT.runtimeDescriptorArray = VK_TRUE;

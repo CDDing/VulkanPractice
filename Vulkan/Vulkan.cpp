@@ -1,54 +1,6 @@
 ﻿#include "pch.h"
-bool multithread = false;
+bool multithread = true;
 
-vk::raii::CommandBuffer multithreaded(Scene& scene,std::vector<vk::DescriptorSet> descriptorSetListForModel,
-	vk::CommandPool commandPool, DContext& context, Deferred& deferred, std::vector<Pipeline>& pipelines,
-	uint32_t imageIndex, int modelIndex, int meshStart,int meshEnd,
-	vk::Viewport viewport,vk::Rect2D scissor) {
-	vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::eSecondary,1 };
-	auto commandBuffer = (std::move(vk::raii::CommandBuffers(context.logical, allocInfo).front()));
-
-	vk::CommandBufferInheritanceInfo inheritanceInfo{};
-	inheritanceInfo.setRenderPass(deferred.renderPass);
-	inheritanceInfo.setFramebuffer(deferred.framebuffers[1]); //TODO
-	inheritanceInfo.setSubpass(0);
-	vk::CommandBufferBeginInfo beginInfo{};
-	beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue);
-	beginInfo.setPInheritanceInfo(&inheritanceInfo);
-
-	commandBuffer.begin(beginInfo);
-	commandBuffer.setViewport(0, viewport);
-	commandBuffer.setScissor(0, scissor);
-
-	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFERRED]);
-
-	for (int i = meshStart; i < meshEnd; i++) {
-		auto& mesh = scene.models[modelIndex].meshes[i];
-		vk::Buffer vertexBuffers[] = { mesh.vertexBuffer.buffer };
-		vk::DeviceSize offsets[] = { 0 };
-		commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
-		commandBuffer.bindIndexBuffer(mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-
-		int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
-		std::vector<VkBool32> data(5);
-		for (int i = 0; i < maxMaterialCnt; i++) {
-			data[i] = (scene.models[modelIndex].material.hasComponent(i));
-		}
-		commandBuffer.pushConstants<VkBool32>(pipelines[Pipeline::DEFERRED].GetLayout(), vk::ShaderStageFlagBits::eFragment, 0, data);
-
-
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-			pipelines[Pipeline::DEFERRED].GetLayout(),
-			0, descriptorSetListForModel, {});
-
-		commandBuffer.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
-
-	}
-
-
-	commandBuffer.end();
-	return commandBuffer;
-}
 
 vk::raii::CommandPool createCommandPool(DContext& context) {
 	QueueFamilyIndices indices = findQueueFamilies(context.physical, context.surface);
@@ -219,9 +171,7 @@ public:
 		imageAvailableSemaphores(createSemaphores(context)),
 		renderFinishedSemaphores(createSemaphores(context)),
 		inFlightFences(createFences(context)),
-
-		threadPool(context, 10)
-
+		threadPool({std::make_shared<DThreadPool>(context,5),std::make_shared<DThreadPool>(context,5)})
 	{
 
 		glfwSetWindowUserPointer(window, this);
@@ -231,7 +181,9 @@ public:
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vk::CommandBufferAllocateInfo allocInfo{ commandPool,vk::CommandBufferLevel::ePrimary,1 };
 			commandBuffers.push_back(std::move(vk::raii::CommandBuffers(context.logical, allocInfo).front()));
+			
 		}
+		
 	}
 	void run() {
 		mainLoop();
@@ -261,7 +213,7 @@ private:
 	std::vector<vk::raii::CommandBuffer> commandBuffers;
 	GUIControl guiControl{};
 
-	DThreadPool threadPool;
+	std::vector<std::shared_ptr<DThreadPool>> threadPool;
 
 	Camera camera;
 	uint32_t currentFrame = 0;
@@ -335,17 +287,17 @@ private:
 
 		if (guiControl.RayTracing) {
 
+			std::array<vk::ClearValue, 2> clearValues{};
+			clearValues[1].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
+
 			rt.recordCommandBuffer(context, commandBuffer, currentFrame, imageIndex);
+
 			vk::RenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.setRenderPass(pp.renderPass);
 			renderPassInfo.framebuffer = pp.framebuffers[imageIndex];
 			renderPassInfo.renderArea.offset = vk::Offset2D(0,0);
 			renderPassInfo.renderArea.extent = swapChain.extent;
-
-			std::array<vk::ClearValue, 2> clearValues{};
-			clearValues[1].depthStencil = vk::ClearDepthStencilValue( 1.0f, 0 );
-			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			renderPassInfo.pClearValues = clearValues.data();
+			renderPassInfo.setClearValues(clearValues);
 
 			commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 			imgui.drawFrame(commandBuffer);
@@ -368,8 +320,7 @@ private:
 			deferredClearValues[4].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
 			deferredClearValues[5].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
 			deferredClearValues[6].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
-			deferredRenderPassInfo.clearValueCount = static_cast<uint32_t>(deferredClearValues.size());
-			deferredRenderPassInfo.pClearValues = deferredClearValues.data();
+			deferredRenderPassInfo.setClearValues(deferredClearValues);
 
 			vk::Viewport viewport{};
 			viewport.x = 0.0f;
@@ -378,18 +329,18 @@ private:
 			viewport.height = static_cast<float>(swapChain.extent.height);
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
-			commandBuffer.setViewport(0,viewport);
 
 			vk::Rect2D scissor{};
 			scissor.offset = vk::Offset2D( 0,0 );
 			scissor.extent = swapChain.extent;
-			
-			commandBuffer.setScissor(0, scissor);
-			commandBuffer.beginRenderPass(deferredRenderPassInfo, vk::SubpassContents::eInline);
 
-			//GBuffer Draw
-			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFERRED]);
+			commandBuffer.setViewport(0, viewport);
+			commandBuffer.setScissor(0, scissor);
 			if (!multithread) {
+				commandBuffer.beginRenderPass(deferredRenderPassInfo, vk::SubpassContents::eInline);
+
+				//GBuffer Draw
+				commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFERRED]);
 				for (auto& model : models) {
 					for (auto& mesh : model.meshes) {
 						vk::Buffer vertexBuffers[] = { mesh.vertexBuffer.buffer };
@@ -421,36 +372,65 @@ private:
 				}
 			}
 			else {
-				std::vector<std::future<vk::raii::CommandBuffer>> futures;
-				for (auto& model : models) {
-					for (int i = 0; i < model.meshes.size(); i+= threadPool.num_threads) {
-						auto startIndex = i;
-						auto endIndex = std::min(model.meshes.size(), i + threadPool.num_threads);
+				auto totalMeshCnt = 0;
+				for (int i = 0; i < scene.models.size(); i++) {
+					totalMeshCnt += scene.models[i].meshes.size();
+				}
+				int meshCntPerThread = std::ceil(float(totalMeshCnt) / float(threadPool[currentFrame]->num_threads));
 
-						std::vector<vk::DescriptorSet> descriptorSetListForModel = {
-							*uboDescriptorSets[currentFrame],
-							*model.material.descriptorSets[currentFrame],
-							*model.descriptorSets[currentFrame],
-							*GUIDescriptorSets[currentFrame]
-						};
-						/*auto fut = threadPool.EnqueueJob(multithreaded, scene,descriptorSetListForModel,
-							*commandPool,context,deferred,pipelines,
-							1, 1, 1, 1, viewport, scissor);
-						futures.push_back(std::move(fut));*/
 
-						if (endIndex >= model.meshes.size()) break;
+				commandBuffer.beginRenderPass(deferredRenderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
+				
+
+				vk::CommandBufferInheritanceInfo inheritanceInfo{};
+				inheritanceInfo.setRenderPass(deferred.renderPass);
+				inheritanceInfo.setFramebuffer(deferred.framebuffers[imageIndex]);
+				inheritanceInfo.setSubpass(0);
+				vk::CommandBufferBeginInfo beginInfo{};
+				beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eRenderPassContinue);
+				beginInfo.setPInheritanceInfo(&inheritanceInfo);
+
+				threadPool[currentFrame]->begin(beginInfo);
+				
+				std::vector<std::future<DThread*>> futures;
+				int cnt = 0;
+				for (int i = 0; i < scene.models.size(); i++) {
+					for (int j = 0; j < scene.models[i].meshes.size(); j++) {
+						cnt++;
+						if (cnt == meshCntPerThread) {
+							cnt = 0;
+
+							auto fut = threadPool[currentFrame]->EnqueueJob(
+								[this](DThread& thread, auto viewport, auto scissor, int imageIndex, int startIndex, int endIndex, int someInt) {
+									return this->threadRenderCode(thread, viewport, scissor, imageIndex, startIndex, endIndex, someInt);
+								},
+								viewport, scissor, imageIndex, i, j, meshCntPerThread
+							);
+							futures.push_back(std::move(fut));
+						}
+						else if (i == scene.models.size() - 1 && j == scene.models[i].meshes.size() - 1) {
+
+
+							auto fut = threadPool[currentFrame]->EnqueueJob(
+								[this](DThread& thread, auto viewport, auto scissor, int imageIndex, int startIndex, int endIndex, int someInt) {
+									return this->threadRenderCode(thread, viewport, scissor, imageIndex, startIndex, endIndex, someInt);
+								},
+								viewport, scissor, imageIndex, i, j, cnt
+							);
+							futures.push_back(std::move(fut));
+						}
+						
 					}
 				}
-				std::vector<vk::raii::CommandBuffer> commandBuffers;
-				for (auto& fut : futures) {
-					commandBuffers.push_back(std::move(fut.get()));
-				}
-				std::vector<vk::CommandBuffer> cmdBufs;
-				for (auto& cmdBuf : commandBuffers) {
-					cmdBufs.push_back(*cmdBuf);
 
+				std::vector<vk::CommandBuffer> threadedBuffers;
+				for (auto& fut : futures) {
+					DThread* pDThread = std::move(fut.get());
+					pDThread->buffer.end();
+					threadedBuffers.push_back(*pDThread->buffer);
 				}
-				commandBuffer.executeCommands(cmdBufs);
+
+				commandBuffer.executeCommands(threadedBuffers);
 			}
 
 			commandBuffer.endRenderPass();
@@ -464,8 +444,7 @@ private:
 			std::array<vk::ClearValue, 2> clearValues{};
 			clearValues[0].color = vk::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f};
 			clearValues[1].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
-			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			renderPassInfo.pClearValues = clearValues.data();
+			renderPassInfo.setClearValues(clearValues);
 
 			//imgui.updateBuffers();
 			//SkyboxDraw
@@ -506,7 +485,55 @@ private:
 		commandBuffer.end();
 
 	}
+	DThread* threadRenderCode(DThread& thread, vk::Viewport viewport, vk::Rect2D scissor,
+		uint32_t imageIndex, int modelIdx, int meshIdx, int meshCnt) {
+		auto& commandBuffer = thread.buffer;
 
+		commandBuffer.setViewport(0, viewport);
+		commandBuffer.setScissor(0, scissor);
+
+		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipelines[Pipeline::DEFERRED]);
+		
+		while (meshCnt) {
+
+			auto& mesh = scene.models[modelIdx].meshes[meshIdx];
+			vk::Buffer vertexBuffers[] = { mesh.vertexBuffer.buffer };
+			vk::DeviceSize offsets[] = { 0 };
+			commandBuffer.bindVertexBuffers(0, vertexBuffers, offsets);
+			commandBuffer.bindIndexBuffer(mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+
+			int maxMaterialCnt = static_cast<int>(MaterialComponent::END);
+			std::vector<VkBool32> data(5);
+			for (int i = 0; i < maxMaterialCnt; i++) {
+				data[i] = (scene.models[modelIdx].material.hasComponent(i));
+			}
+			commandBuffer.pushConstants<VkBool32>(pipelines[Pipeline::DEFERRED].GetLayout(), vk::ShaderStageFlagBits::eFragment, 0, data);
+
+
+			std::vector<vk::DescriptorSet> descriptorSetListForModel = {
+				*uboDescriptorSets[currentFrame],
+				*scene.models[modelIdx].material.descriptorSets[currentFrame],
+				* scene.models[modelIdx].descriptorSets[currentFrame],
+				*GUIDescriptorSets[currentFrame]
+			};
+			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+				pipelines[Pipeline::DEFERRED].GetLayout(),
+				0, descriptorSetListForModel, {});
+
+			commandBuffer.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+
+
+			meshCnt--;
+			meshIdx--;
+			if (meshIdx == -1) {
+				modelIdx--;
+				if(modelIdx>=0)	meshIdx = scene.models[modelIdx].meshes.size() - 1;
+			}
+		}
+
+
+		return &thread;
+	}
 
 	void mainLoop() {
 		static auto previousTime = std::chrono::high_resolution_clock::now();
@@ -575,26 +602,16 @@ private:
 		vk::Semaphore waitSemaphores[] = { *imageAvailableSemaphores[currentFrame] };
 		vk::PipelineStageFlags waitStages[1] = { vk::PipelineStageFlagBits::eColorAttachmentOutput};
 		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-
-		std::vector<vk::CommandBuffer> commandBuffersToSubmit = { *commandBuffers[currentFrame]};
-		submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit.size());
-		submitInfo.pCommandBuffers = commandBuffersToSubmit.data();
-
-		vk::Semaphore signalSemaphores[1] = { *renderFinishedSemaphores[currentFrame] };
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
+		submitInfo.setWaitSemaphores(waitSemaphores);
+		submitInfo.setPWaitDstStageMask(waitStages);
+		submitInfo.setCommandBuffers(*commandBuffers[currentFrame]);
+		submitInfo.setSignalSemaphores(*renderFinishedSemaphores[currentFrame]);
 
 		context.GetQueue(DContext::QueueType::GRAPHICS).submit(submitInfo, *inFlightFences[currentFrame]);
 
 		vk::PresentInfoKHR presentInfo{};
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
-
-		vk::SwapchainKHR swapChains[1] = { swapChain.Get()};
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
+		presentInfo.setWaitSemaphores(*renderFinishedSemaphores[currentFrame]);
+		presentInfo.setSwapchains(*swapChain.Get());
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 
