@@ -23,9 +23,7 @@ layout(location = 4) in vec3 inTangent;
 layout(location = 0) out vec4 outPosition;
 layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outAlbedo;
-layout(location = 3) out vec4 outRoughness;
-layout(location = 4) out vec4 outMetalness;
-layout(location = 5) out vec4 outao;
+layout(location = 3) out vec4 outPBR;
 vec3 GetNormal(){
 	vec3 normalWorld = normalize(inNormal);
 	if(hasNormal){
@@ -52,7 +50,5 @@ void main(){
 
 	outAlbedo = vec4(albedo,1.0);
 
-	outRoughness = vec4(roughness,0,0,0);
-	outMetalness = vec4(metallic,0,0,0);
-	outao = vec4(ao,0,0,0);
+	outPBR = vec4(roughness,metallic,ao,0);
 }

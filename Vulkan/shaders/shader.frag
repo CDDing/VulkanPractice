@@ -9,7 +9,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject{
 
 layout (set = 1, binding = 0) uniform samplerCube samplerCubeMap[3];
 layout (set = 1, binding = 1) uniform sampler2D brdfsampler;
-layout (set = 2, binding = 0) uniform sampler2D samplers[6];
+layout (set = 2, binding = 0) uniform sampler2D samplers[4];
 
 //0 , Texture Sampler
 //1, NormalMap Sampler
@@ -86,8 +86,8 @@ void main(){
 	vec3 normal = texture(samplers[1], inUV).rgb;
 	vec3 albedo = texture(samplers[2], inUV).rgb;
 	float roughness = texture(samplers[3],inUV).r;
-	float metallic = texture(samplers[4],inUV).r;
-	float ao = texture(samplers[5],inUV).r;
+	float metallic = texture(samplers[3],inUV).g;
+	float ao = texture(samplers[3],inUV).b;
 	vec3 ambientLight = AmbientLightingByIBL(albedo,normal,pixelToEye,ao,metallic,roughness);
 	
 	if(fragPos.x == 0&& fragPos.y==0&&fragPos.z==0){

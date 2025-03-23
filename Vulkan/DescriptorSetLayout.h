@@ -71,7 +71,7 @@ public:
             results = { {ShaderComponent::UNIFORM_BUFFER,1,vk::ShaderStageFlagBits::eVertex}};
             break;
         case DescriptorType::GBuffer:
-            results = { {ShaderComponent::COMBINED_IMAGE,6, vk::ShaderStageFlagBits::eFragment} };
+            results = { {ShaderComponent::COMBINED_IMAGE,4, vk::ShaderStageFlagBits::eFragment} };
             break;
         case DescriptorType::ImGUI:
             results = { {ShaderComponent::COMBINED_IMAGE,1, vk::ShaderStageFlagBits::eFragment} };

@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-bool multithread = true;
+bool multithread = false;
 
 
 vk::raii::CommandPool createCommandPool(DContext& context) {
@@ -28,7 +28,7 @@ Scene createScene(DContext& context) {
 		{},
 		glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(0.4f)))); 	
 	scene.models.push_back(Model(context, {},
-			"Resources/BistroInterior.fbx",
+			"Resources/models/Exterior/exterior.obj",
 			{},
 			glm::mat4x4(1.f))); 
 	scene.skybox = Skybox(context);
@@ -312,14 +312,12 @@ private:
 			deferredRenderPassInfo.renderArea.offset = vk::Offset2D( 0,0 );
 			deferredRenderPassInfo.renderArea.extent = swapChain.extent;
 
-			std::array<vk::ClearValue, 7> deferredClearValues{};
+			std::array<vk::ClearValue, 5> deferredClearValues{};
 			deferredClearValues[0].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
 			deferredClearValues[1].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
 			deferredClearValues[2].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
 			deferredClearValues[3].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
-			deferredClearValues[4].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
-			deferredClearValues[5].color = vk::ClearColorValue{0.0f,0.0f,0.0f,0.0f};
-			deferredClearValues[6].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
+			deferredClearValues[4].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
 			deferredRenderPassInfo.setClearValues(deferredClearValues);
 
 			vk::Viewport viewport{};
@@ -513,7 +511,7 @@ private:
 			std::vector<vk::DescriptorSet> descriptorSetListForModel = {
 				*uboDescriptorSets[currentFrame],
 				*scene.models[modelIdx].material.descriptorSets[currentFrame],
-				* scene.models[modelIdx].descriptorSets[currentFrame],
+				*scene.models[modelIdx].descriptorSets[currentFrame],
 				*GUIDescriptorSets[currentFrame]
 			};
 			commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
@@ -560,6 +558,7 @@ private:
 			drawFrame();
 		}
 		context.logical.waitIdle();
+
 	}
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};

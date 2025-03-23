@@ -21,14 +21,14 @@ Deferred::Deferred(DContext& context, SwapChain& swapChain) : swapChain(&swapCha
 void Deferred::createRenderPass(DContext& context)
 {
 	//렌더 패스 생성
-	std::array<vk::AttachmentDescription, 7> attachmentDescription = {};
-	for (uint32_t i = 0; i < 7; ++i) {
+	std::array<vk::AttachmentDescription, 5> attachmentDescription = {};
+	for (uint32_t i = 0; i < 5; ++i) {
 		attachmentDescription[i].samples = vk::SampleCountFlagBits::e1;
 		attachmentDescription[i].loadOp = vk::AttachmentLoadOp::eClear;
 		attachmentDescription[i].storeOp = vk::AttachmentStoreOp::eStore;
 		attachmentDescription[i].stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
 		attachmentDescription[i].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-		if (i == 6) {
+		if (i == 4) {
 			attachmentDescription[i].initialLayout = vk::ImageLayout::eUndefined;
 			attachmentDescription[i].finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 		}
@@ -43,19 +43,15 @@ void Deferred::createRenderPass(DContext& context)
 	attachmentDescription[2].format = images[2].format;
 	attachmentDescription[3].format = images[3].format;
 	attachmentDescription[4].format = images[4].format;
-	attachmentDescription[5].format = images[5].format;
-	attachmentDescription[6].format = images[6].format;
 
 	std::vector<vk::AttachmentReference> colorReferences;
 	colorReferences.push_back({ 0,vk::ImageLayout::eColorAttachmentOptimal });
 	colorReferences.push_back({ 1,vk::ImageLayout::eColorAttachmentOptimal });
 	colorReferences.push_back({ 2,vk::ImageLayout::eColorAttachmentOptimal });
 	colorReferences.push_back({ 3,vk::ImageLayout::eColorAttachmentOptimal });
-	colorReferences.push_back({ 4,vk::ImageLayout::eColorAttachmentOptimal });
-	colorReferences.push_back({ 5,vk::ImageLayout::eColorAttachmentOptimal });
 
 	vk::AttachmentReference depthReference = {};
-	depthReference.attachment = 6;
+	depthReference.attachment = 4;
 	depthReference.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
 	vk::SubpassDescription subpass = {};
@@ -84,12 +80,9 @@ void Deferred::createRenderPass(DContext& context)
 
 
 	vk::RenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.pAttachments = attachmentDescription.data();
-	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescription.size());
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 2;
-	renderPassInfo.pDependencies = dependencies.data();
+	renderPassInfo.setAttachments(attachmentDescription);
+	renderPassInfo.setSubpasses(subpass);
+	renderPassInfo.setDependencies(dependencies);
 
 	renderPass = context.logical.createRenderPass(renderPassInfo);
 }
@@ -97,13 +90,11 @@ void Deferred::createRenderPass(DContext& context)
 void Deferred::createImages(DContext& context)
 {
 	//디퍼드 렌더링
-	//1. 이미지 7개 만들기(위치, 노말, 알베도, 깊이, roughness,metalic,ao)
+	//1. 이미지 5개 만들기(위치, 노말, 알베도, 깊이, (roughness,metalic,ao))
 	vk::Format positionFormat = vk::Format::eR16G16B16A16Sfloat;
 	vk::Format normalFormat = vk::Format::eR16G16B16A16Sfloat;
 	vk::Format albedoFormat = vk::Format::eR8G8B8A8Unorm;
-	vk::Format roughnessFormat = vk::Format::eR8G8B8A8Unorm;
-	vk::Format metalnessFormat = vk::Format::eR8G8B8A8Unorm;
-	vk::Format aoFormat = vk::Format::eR8G8B8A8Unorm;
+	vk::Format pbrFormat = vk::Format::eR8G8B8A8Unorm;
 	vk::Format depthFormat = findDepthFormat(context);
 	images.push_back(DImage(context, 1,
 		positionFormat,
@@ -136,26 +127,7 @@ void Deferred::createImages(DContext& context)
 
 
 	images.push_back(DImage(context, 1,
-		roughnessFormat,
-		swapChain->extent,
-		vk::ImageTiling::eOptimal,
-		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
-		vk::ImageLayout::eUndefined,
-		vk::MemoryPropertyFlagBits::eDeviceLocal,
-		vk::ImageAspectFlagBits::eColor));
-
-
-	images.push_back(DImage(context, 1,
-		metalnessFormat,
-		swapChain->extent,
-		vk::ImageTiling::eOptimal,
-		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
-		vk::ImageLayout::eUndefined,
-		vk::MemoryPropertyFlagBits::eDeviceLocal,
-		vk::ImageAspectFlagBits::eColor));
-
-	images.push_back(DImage(context, 1,
-		aoFormat,
+		pbrFormat,
 		swapChain->extent,
 		vk::ImageTiling::eOptimal,
 		vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
@@ -193,14 +165,12 @@ void Deferred::createFramebuffers(DContext& context)
 	framebuffers.reserve(swapChain->images.size());
 
 	for (size_t i = 0; i < swapChain->images.size(); i++) {
-		std::array<vk::ImageView, 7> attachments = {
+		std::array<vk::ImageView, 5> attachments = {
 			images[0].view,
 			images[1].view,
 			images[2].view,
 			images[3].view,
-			images[4].view,
-			images[5].view,
-			images[6].view,
+			images[4].view
 		};
 		vk::FramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.setAttachments(attachments);
@@ -219,8 +189,8 @@ void Deferred::updateDescriptorSets(DContext& context)
 {
 
 	for (size_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; frame++) {
-		std::vector<vk::DescriptorImageInfo> imageInfos(6);
-		for (int i = 0; i < 6; i++) {
+		std::vector<vk::DescriptorImageInfo> imageInfos(4);
+		for (int i = 0; i < 4; i++) {
 			auto& imageInfo = imageInfos[i];
 			imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 			imageInfo.imageView = images[i].view;

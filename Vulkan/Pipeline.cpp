@@ -85,13 +85,11 @@ Pipeline::Pipeline(DContext& context, vk::Extent2D& swapChainExtent, std::vector
     colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
     colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
 
-    std::array<vk::PipelineColorBlendAttachmentState, 6> blendAttachmentStates = {
+    std::array<vk::PipelineColorBlendAttachmentState, 4> blendAttachmentStates = {
         colorBlendAttachment,
         colorBlendAttachment,
         colorBlendAttachment,
         colorBlendAttachment,
-        colorBlendAttachment,
-        colorBlendAttachment
     };
 
     vk::PipelineColorBlendStateCreateInfo colorBlending{};
